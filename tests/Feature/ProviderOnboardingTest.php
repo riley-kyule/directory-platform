@@ -97,6 +97,7 @@ class ProviderOnboardingTest extends TestCase
         $provider = $this->provider(ProviderType::Independent);
         $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData());
         $profile = Profile::query()->firstOrFail();
+        $this->processedImage($profile);
 
         $this->actingAs($provider)
             ->post(route('onboarding.profiles.submit', $profile))
@@ -114,6 +115,18 @@ class ProviderOnboardingTest extends TestCase
         $this->actingAs($this->provider(ProviderType::Independent))
             ->post(route('onboarding.profiles.submit', Profile::query()->firstOrFail()))
             ->assertForbidden();
+    }
+
+    public function test_draft_without_processed_media_cannot_be_submitted(): void
+    {
+        $provider = $this->provider(ProviderType::Independent);
+        $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData());
+
+        $this->actingAs($provider)
+            ->from(route('onboarding.index'))
+            ->post(route('onboarding.profiles.submit', Profile::query()->firstOrFail()))
+            ->assertRedirect(route('onboarding.index'))
+            ->assertSessionHasErrors('media');
     }
 
     public function test_underage_profile_is_rejected_server_side(): void
@@ -159,6 +172,22 @@ class ProviderOnboardingTest extends TestCase
             'provider_type' => $type,
             'onboarding_status' => OnboardingStatus::InProgress,
             'onboarding_started_at' => now(),
+        ]);
+    }
+
+    private function processedImage(Profile $profile): void
+    {
+        $profile->images()->create([
+            'storage_directory' => 'test/image',
+            'sort_order' => 10,
+            'status' => 'pending_review',
+            'width' => 800,
+            'height' => 1000,
+            'aspect_ratio' => 0.8,
+            'mime_type' => 'image/webp',
+            'file_size' => 1000,
+            'exact_hash' => hash('sha256', 'test-image-'.$profile->id),
+            'derivatives' => ['thumb' => ['file' => 'thumb-320.webp', 'width' => 320, 'height' => 400, 'size' => 100]],
         ]);
     }
 

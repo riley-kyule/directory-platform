@@ -7,6 +7,7 @@ use App\Enums\PackageRequestStatus;
 use App\Enums\ProfileStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewProfileRequest;
+use App\Jobs\PublishProfileImages;
 use App\Models\AuditLog;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
@@ -43,7 +44,7 @@ class ProfileReviewController extends Controller
 
         return view('staff.profiles.show', [
             'packageRequest' => $packageRequest->load([
-                'profile.primaryLocation', 'profile.sublocation', 'profile.contacts',
+                'profile.primaryLocation', 'profile.sublocation', 'profile.contacts', 'profile.images',
                 'profile.services', 'requestedPackage', 'requestedBy',
             ]),
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
@@ -80,6 +81,12 @@ class ProfileReviewController extends Controller
 
                 return;
             }
+
+            abort_unless(
+                $profile->images()->whereIn('status', ['pending_review', 'approved'])->exists(),
+                422,
+                'At least one successfully processed image is required for activation.',
+            );
 
             $duration = PackageDurationOption::query()->where('is_active', true)->findOrFail($request->integer('duration_option_id'));
             $packageId = $request->integer('assigned_package_id');
@@ -134,6 +141,8 @@ class ProfileReviewController extends Controller
                 'assigned_package_id' => $packageId,
                 'expires_at' => $expiresAt->toIso8601String(),
             ], $request->validated('reason'));
+
+            PublishProfileImages::dispatch($profile->id)->afterCommit();
         });
 
         return redirect()->route('staff.profiles.index')->with('status', 'Profile review completed.');

@@ -39,6 +39,12 @@ npm run build
 php artisan serve
 ```
 
+Run the database queue worker in a second terminal so quarantined media is processed and published after approval:
+
+```bash
+php artisan queue:work --queue=media,default
+```
+
 The application will be available at `http://127.0.0.1:8000` by default.
 
 ## Quality checks

@@ -6,10 +6,12 @@ use App\Enums\AccountType;
 use App\Enums\ProfileStatus;
 use App\Enums\ProviderType;
 use App\Jobs\ProcessProfileImage;
+use App\Jobs\PublishProfileImages;
 use App\Models\Location;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Services\ProfileImageVisibility;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -23,6 +25,7 @@ class ProfileImageProcessingTest extends TestCase
     {
         Storage::fake('quarantine');
         Storage::fake('media_staging');
+        Storage::fake('media_review');
         Storage::fake('profile_media');
         $this->seed(DirectoryDefaultsSeeder::class);
 
@@ -55,11 +58,23 @@ class ProfileImageProcessingTest extends TestCase
         Storage::disk('quarantine')->assertMissing($quarantinePath);
 
         foreach (['thumb-320.webp', 'card-640.webp', 'profile-960.webp', 'full-1280.webp'] as $filename) {
-            Storage::disk('profile_media')->assertExists($image->storage_directory.'/'.$filename);
+            Storage::disk('media_review')->assertExists($image->storage_directory.'/'.$filename);
+            Storage::disk('profile_media')->assertMissing($image->storage_directory.'/'.$filename);
             $this->assertSame('image/webp', (new \finfo(FILEINFO_MIME_TYPE))->file(
-                Storage::disk('profile_media')->path($image->storage_directory.'/'.$filename),
+                Storage::disk('media_review')->path($image->storage_directory.'/'.$filename),
             ));
         }
+
+        $profile->update(['status' => ProfileStatus::Active, 'expires_at' => now()->addDays(30)]);
+        (new PublishProfileImages($profile->id))->handle(app(ProfileImageVisibility::class));
+        $this->assertSame('approved', $image->refresh()->status);
+        Storage::disk('media_review')->assertMissing($image->storage_directory.'/card-640.webp');
+        Storage::disk('profile_media')->assertExists($image->storage_directory.'/card-640.webp');
+
+        app(ProfileImageVisibility::class)->unpublish($profile);
+        $this->assertSame('pending_review', $image->refresh()->status);
+        Storage::disk('profile_media')->assertMissing($image->storage_directory.'/card-640.webp');
+        Storage::disk('media_review')->assertExists($image->storage_directory.'/card-640.webp');
     }
 
     private function profile(): Profile

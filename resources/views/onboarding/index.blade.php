@@ -10,6 +10,7 @@
                     {{ session('status') }}
                 </div>
             @endif
+            @error('media')<div class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{{ $message }}</div>@enderror
 
             @if ($user->provider_type === \App\Enums\ProviderType::Independent)
                 <section class="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
@@ -20,6 +21,7 @@
                             <div><dt class="text-sm text-gray-500">Status</dt><dd class="font-medium capitalize">{{ str($user->profile->status->value)->replace('_', ' ') }}</dd></div>
                             <div><dt class="text-sm text-gray-500">Requested package</dt><dd class="font-medium">{{ $user->profile->packageRequests->last()?->requestedPackage?->name ?? '—' }}</dd></div>
                         </dl>
+                        <a href="{{ route('profiles.media.index', $user->profile) }}" class="mt-5 inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500">Manage media</a>
                         @if ($user->profile->status === \App\Enums\ProfileStatus::Draft)
                             <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}" class="mt-5">
                                 @csrf
@@ -67,6 +69,7 @@
                                     <div><p class="font-medium">{{ $profile->display_name }}</p><p class="text-sm capitalize text-gray-500">{{ str($profile->status->value)->replace('_', ' ') }}</p></div>
                                     <div class="text-right">
                                         <span class="text-sm text-gray-600">{{ $profile->packageRequests->last()?->requestedPackage?->name ?? 'No package' }}</span>
+                                        <a href="{{ route('profiles.media.index', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">Manage media</a>
                                         @if ($profile->status === \App\Enums\ProfileStatus::Draft)
                                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="mt-2">
                                                 @csrf

@@ -26,8 +26,8 @@ class ProcessProfileImage implements ShouldQueue
 
     public function handle(): void
     {
-        $imageRecord = ProfileImage::query()->findOrFail($this->profileImageId);
-        if ($imageRecord->status !== 'quarantined') {
+        $imageRecord = ProfileImage::withTrashed()->find($this->profileImageId);
+        if (! $imageRecord || $imageRecord->trashed() || $imageRecord->status !== 'quarantined') {
             return;
         }
 
@@ -49,7 +49,7 @@ class ProcessProfileImage implements ShouldQueue
         $stagingDirectory = $imageRecord->public_id.'-'.Str::lower(Str::random(10));
         $finalDirectory = substr($imageRecord->public_id, 0, 2).'/'.substr($imageRecord->public_id, 2, 2).'/'.$imageRecord->public_id;
         $stagingDisk = Storage::disk('media_staging');
-        $publicDisk = Storage::disk('profile_media');
+        $reviewDisk = Storage::disk('media_review');
         $stagingDisk->makeDirectory($stagingDirectory);
 
         try {
@@ -64,7 +64,7 @@ class ProcessProfileImage implements ShouldQueue
                 $derivatives[$slot]['file'] = $slot.'-'.$maximumWidth.'.webp';
             }
 
-            $finalPath = $publicDisk->path($finalDirectory);
+            $finalPath = $reviewDisk->path($finalDirectory);
             if (is_dir($finalPath)) {
                 throw new RuntimeException('A published derivative directory already exists.');
             }
@@ -86,7 +86,7 @@ class ProcessProfileImage implements ShouldQueue
                 ]);
                 $quarantineDisk->delete($quarantinePath);
             } catch (Throwable $exception) {
-                $publicDisk->deleteDirectory($finalDirectory);
+                $reviewDisk->deleteDirectory($finalDirectory);
                 throw $exception;
             }
         } finally {

@@ -61,6 +61,13 @@ return [
             'throw' => true,
         ],
 
+        'media_review' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/media-review'),
+            'serve' => false,
+            'throw' => true,
+        ],
+
         'profile_media' => [
             'driver' => 'local',
             'root' => public_path('media/profiles'),

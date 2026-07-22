@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProfileMediaController extends Controller
 {
@@ -69,13 +70,36 @@ class ProfileMediaController extends Controller
         return back()->with('status', 'Image uploaded securely and queued for processing.');
     }
 
+    public function preview(Profile $profile, ProfileImage $image, string $slot): BinaryFileResponse
+    {
+        abort_unless($image->profile_id === $profile->id, 404);
+        abort_unless($this->access->canView(request()->user(), $profile), 403);
+        abort_unless(in_array($slot, ['thumb', 'card', 'profile', 'full'], true), 404);
+        abort_unless(in_array($image->status, ['pending_review', 'approved'], true), 404);
+
+        $derivative = $image->derivatives[$slot] ?? null;
+        abort_unless($derivative, 404);
+        $disk = $image->status === 'approved' ? Storage::disk('profile_media') : Storage::disk('media_review');
+        $path = $image->storage_directory.'/'.$derivative['file'];
+        abort_unless($disk->exists($path), 404);
+
+        return response()->file($disk->path($path), [
+            'Content-Type' => 'image/webp',
+            'Cache-Control' => 'private, max-age=300',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function destroy(Profile $profile, ProfileImage $image): RedirectResponse
     {
         abort_unless($image->profile_id === $profile->id, 404);
         abort_unless($this->access->canManage(request()->user(), $profile), 403);
+        abort_if($image->status === 'processing', 409, 'Wait for image processing to finish before removing it.');
 
         if ($image->status === 'quarantined') {
             Storage::disk('quarantine')->delete($image->storage_directory);
+        } elseif ($image->status === 'pending_review') {
+            Storage::disk('media_review')->deleteDirectory($image->storage_directory);
         } elseif ($image->storage_directory) {
             Storage::disk('profile_media')->deleteDirectory($image->storage_directory);
         }

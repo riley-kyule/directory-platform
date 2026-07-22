@@ -151,6 +151,9 @@ class ProviderOnboardingController extends Controller
         abort_unless($this->ownsProfile($user, $profile), 403);
         abort_unless($profile->status === ProfileStatus::Draft, 409, 'Only a draft profile can be submitted.');
         abort_unless($profile->packageRequests()->where('status', PackageRequestStatus::Pending)->exists(), 409, 'Choose a package before submitting.');
+        if (! $profile->images()->whereIn('status', ['pending_review', 'approved'])->exists()) {
+            return back()->withErrors(['media' => 'Upload at least one image and wait for processing to finish before submitting.']);
+        }
 
         $profile->update(['status' => ProfileStatus::PendingReview]);
         $user->update([

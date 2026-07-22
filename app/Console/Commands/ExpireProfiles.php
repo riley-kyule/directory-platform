@@ -6,6 +6,7 @@ use App\Enums\ProfileStatus;
 use App\Models\AuditLog;
 use App\Models\Profile;
 use App\Services\LocationInventoryService;
+use App\Services\ProfileImageVisibility;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +16,7 @@ class ExpireProfiles extends Command
 
     protected $description = 'Make profiles private when their package assignment expires';
 
-    public function handle(LocationInventoryService $locationInventory): int
+    public function handle(LocationInventoryService $locationInventory, ProfileImageVisibility $imageVisibility): int
     {
         $expired = 0;
 
@@ -24,15 +25,16 @@ class ExpireProfiles extends Command
             ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now())
             ->select('id')
-            ->chunkById(100, function ($profiles) use (&$expired, $locationInventory): void {
+            ->chunkById(100, function ($profiles) use (&$expired, $locationInventory, $imageVisibility): void {
                 foreach ($profiles as $candidate) {
-                    DB::transaction(function () use ($candidate, &$expired, $locationInventory): void {
+                    DB::transaction(function () use ($candidate, &$expired, $locationInventory, $imageVisibility): void {
                         $profile = Profile::query()->lockForUpdate()->find($candidate->id);
                         if (! $profile || $profile->status !== ProfileStatus::Active || $profile->expires_at?->isFuture()) {
                             return;
                         }
 
                         $profile->packageAssignments()->where('status', 'active')->update(['status' => 'expired']);
+                        $imageVisibility->unpublish($profile);
                         $profile->update(['status' => ProfileStatus::Expired]);
                         $locationInventory->syncForProfile($profile);
                         AuditLog::query()->create([

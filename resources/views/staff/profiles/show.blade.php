@@ -13,6 +13,7 @@
                     <div class="mt-5"><p class="text-sm text-gray-500">About</p><p class="mt-1 whitespace-pre-line text-gray-800">{{ $packageRequest->profile->description }}</p></div>
                     <div class="mt-5"><p class="text-sm text-gray-500">Services</p><p class="mt-1 text-gray-800">{{ $packageRequest->profile->services->pluck('label')->join(', ') }}</p></div>
                     <div class="mt-5"><p class="text-sm text-gray-500">Contact methods</p><ul class="mt-1 space-y-1">@foreach ($packageRequest->profile->contacts as $contact)<li>{{ str($contact->type)->replace('_', ' ')->title() }}: {{ $contact->display_value }}</li>@endforeach</ul></div>
+                    <div class="mt-5"><p class="text-sm text-gray-500">Media</p><div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">@forelse ($packageRequest->profile->images as $image)@if (in_array($image->status, ['pending_review', 'approved']) && isset($image->derivatives['thumb']))<img src="{{ route('profiles.media.preview', [$packageRequest->profile, $image, 'thumb']) }}" alt="Submitted media" class="aspect-[4/5] w-full rounded-md object-cover">@else<div class="flex aspect-[4/5] items-center justify-center rounded-md bg-gray-100 p-2 text-center text-xs text-gray-500">{{ str($image->status)->replace('_', ' ')->title() }}</div>@endif @empty<p class="col-span-full text-sm text-red-700">No media submitted.</p>@endforelse</div></div>
                 </div>
             </section>
 

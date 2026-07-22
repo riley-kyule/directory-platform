@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProviderOnboardingController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Staff\ProfileReviewController;
@@ -25,6 +26,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/profiles/create', [ProviderOnboardingController::class, 'createProfile'])->name('profiles.create');
         Route::post('/profiles', [ProviderOnboardingController::class, 'storeProfile'])->name('profiles.store');
         Route::post('/profiles/{profile}/submit', [ProviderOnboardingController::class, 'submitProfile'])->name('profiles.submit');
+    });
+
+    Route::prefix('profiles/{profile}/media')->name('profiles.media.')->group(function () {
+        Route::get('/', [ProfileMediaController::class, 'index'])->name('index');
+        Route::post('/', [ProfileMediaController::class, 'store'])->name('store');
+        Route::get('/{image}/{slot}', [ProfileMediaController::class, 'preview'])->name('preview');
+        Route::delete('/{image}', [ProfileMediaController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

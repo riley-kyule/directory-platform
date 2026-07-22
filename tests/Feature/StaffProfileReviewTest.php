@@ -7,6 +7,7 @@ use App\Enums\OnboardingStatus;
 use App\Enums\PackageRequestStatus;
 use App\Enums\ProfileStatus;
 use App\Enums\ProviderType;
+use App\Jobs\PublishProfileImages;
 use App\Models\Location;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
@@ -19,6 +20,7 @@ use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class StaffProfileReviewTest extends TestCase
@@ -88,6 +90,19 @@ class StaffProfileReviewTest extends TestCase
             'requested_by' => $this->provider->id,
             'requested_at' => now(),
         ]);
+        $this->profile->images()->create([
+            'storage_directory' => 'review/test-image',
+            'sort_order' => 10,
+            'status' => 'pending_review',
+            'width' => 800,
+            'height' => 1000,
+            'aspect_ratio' => 0.8,
+            'mime_type' => 'image/webp',
+            'file_size' => 1000,
+            'exact_hash' => hash('sha256', 'review-image'),
+            'derivatives' => ['thumb' => ['file' => 'thumb-320.webp', 'width' => 320, 'height' => 400, 'size' => 100]],
+        ]);
+        Queue::fake();
     }
 
     public function test_subscriber_cannot_access_staff_review_queue(): void
@@ -123,6 +138,7 @@ class StaffProfileReviewTest extends TestCase
         $this->assertSame(OnboardingStatus::Completed, $this->provider->refresh()->onboarding_status);
         $this->assertTrue($this->profile->primaryLocation->refresh()->is_indexable);
         $this->assertSame(1, $this->profile->primaryLocation->active_profile_count);
+        Queue::assertPushed(PublishProfileImages::class, fn ($job) => $job->profileId === $this->profile->id);
     }
 
     public function test_staff_package_change_is_retained_in_request_history(): void
