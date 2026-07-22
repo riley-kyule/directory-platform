@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Location;
+use App\Models\PageContent;
 use App\Models\Profile;
 use App\Services\PublicContactLinks;
 use App\Services\PublicProfileListings;
@@ -18,15 +19,19 @@ class PublicDirectoryController extends Controller
 
     public function home(): View
     {
+        $content = PageContent::query()->where('page_key', 'homepage')->firstOrFail();
+
         return view('directory.index', [
-            'heading' => 'Discover independent providers near you',
-            'intro' => 'Browse active profiles by package and find the right connection for you.',
+            'heading' => $content->heading,
+            'intro' => $content->intro_content,
+            'bottomContent' => $content->bottom_content,
+            'sectionContent' => $content->listing_sections,
             'sections' => $this->listings->sections(limit: 8),
             'location' => null,
             'page' => 1,
             'totalPages' => 1,
-            'metaTitle' => config('app.name').' — Find providers near you',
-            'metaDescription' => 'Browse active VIP, Premium, Basic and newly activated provider profiles.',
+            'metaTitle' => $content->seo_title,
+            'metaDescription' => $content->meta_description,
             'canonicalUrl' => route('directory.home'),
             'robots' => 'index,follow',
         ]);
@@ -98,10 +103,13 @@ class PublicDirectoryController extends Controller
         $basePath = $location->content?->canonical_path
             ?? ($location->parent ? '/'.$location->parent->slug.'/'.$location->slug.'-escorts' : '/'.$location->slug.'-escorts');
         $canonicalPath = $page === 1 ? $basePath : $basePath.'/page/'.$page;
+        $globalContent = PageContent::query()->where('page_key', 'homepage')->firstOrFail();
 
         return view('directory.index', [
-            'heading' => $location->name.' Escorts',
+            'heading' => $location->content?->heading ?? $location->name.' Escorts',
             'intro' => $location->content?->intro_content ?? 'Browse active provider profiles in '.$location->name.'.',
+            'bottomContent' => $location->content?->bottom_content,
+            'sectionContent' => $globalContent->listing_sections,
             'sections' => $sections,
             'location' => $location,
             'page' => $page,

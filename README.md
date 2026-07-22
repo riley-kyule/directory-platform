@@ -17,6 +17,8 @@ The project is in active development. Its current foundation provides account re
 - Separate VIP, Premium, Basic, and New listing sections
 - Stable randomized listing order with scheduled rotation
 - SEO titles, descriptions, canonicals, and inventory-aware robots rules
+- Database-managed homepage and location copy with audited SEO/Admin editing
+- Safe Markdown content blocks below public listings
 - Public Call, SMS, WhatsApp, and Telegram profile actions
 - Media-processing metadata and package image limits
 - Policy-acceptance and audit-log foundations

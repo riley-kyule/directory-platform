@@ -45,6 +45,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/directory', [DirectoryConfigurationController::class, 'index'])->name('directory.index');
         Route::get('/locations/create', [DirectoryConfigurationController::class, 'createLocation'])->name('locations.create');
         Route::post('/locations', [DirectoryConfigurationController::class, 'storeLocation'])->name('locations.store');
+        Route::get('/locations/{location}/content', [DirectoryConfigurationController::class, 'editLocation'])->name('locations.content.edit');
+        Route::patch('/locations/{location}/content', [DirectoryConfigurationController::class, 'updateLocation'])->name('locations.content.update');
+        Route::patch('/pages/homepage', [DirectoryConfigurationController::class, 'updateHomepage'])->name('pages.homepage.update');
         Route::post('/taxonomies', [DirectoryConfigurationController::class, 'storeTaxonomy'])->name('taxonomies.store');
     });
 });

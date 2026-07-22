@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Package;
+use App\Models\PageContent;
 use App\Models\TaxonomyOption;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,19 @@ class DirectoryDefaultsSeeder extends Seeder
 {
     public function run(): void
     {
+        PageContent::query()->firstOrCreate(['page_key' => 'homepage'], [
+            'heading' => 'Discover independent providers near you',
+            'intro_content' => 'Browse active profiles by package and find the right connection for you.',
+            'seo_title' => config('app.name').' — Find providers near you',
+            'meta_description' => 'Browse active VIP, Premium, Basic and newly activated provider profiles.',
+            'listing_sections' => [
+                'vip' => ['heading' => 'VIP Escorts', 'description' => 'Featured profiles with our highest visibility package.'],
+                'premium' => ['heading' => 'Premium Escorts', 'description' => 'Prominent profiles with enhanced directory visibility.'],
+                'basic' => ['heading' => 'Basic Escorts', 'description' => 'All active profiles on the Basic package.'],
+                'new' => ['heading' => 'New Escorts', 'description' => 'Recently activated provider profiles.'],
+            ],
+        ]);
+
         foreach ([
             ['code' => 'vip', 'name' => 'VIP', 'image_limit' => 15, 'display_order' => 10],
             ['code' => 'premium', 'name' => 'Premium', 'image_limit' => 10, 'display_order' => 20],

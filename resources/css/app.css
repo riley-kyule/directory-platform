@@ -1,3 +1,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    .directory-content {
+        @apply max-w-none text-stone-700;
+    }
+
+    .directory-content h2 {
+        @apply mb-4 mt-8 text-2xl font-black tracking-tight text-stone-950;
+    }
+
+    .directory-content h3 {
+        @apply mb-3 mt-6 text-xl font-bold text-stone-950;
+    }
+
+    .directory-content p {
+        @apply my-4 leading-7;
+    }
+
+    .directory-content ul {
+        @apply my-4 list-disc space-y-2 pl-6;
+    }
+
+    .directory-content ol {
+        @apply my-4 list-decimal space-y-2 pl-6;
+    }
+
+    .directory-content a {
+        @apply font-semibold text-rose-600 underline underline-offset-2;
+    }
+}

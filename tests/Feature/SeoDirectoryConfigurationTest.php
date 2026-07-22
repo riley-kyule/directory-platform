@@ -26,6 +26,15 @@ class SeoDirectoryConfigurationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_seo_user_can_open_managed_homepage_editor(): void
+    {
+        $this->actingAs($this->staff('seo'))
+            ->get(route('seo.directory.index'))
+            ->assertOk()
+            ->assertSee('Homepage content')
+            ->assertSee('Bottom SEO content');
+    }
+
     public function test_seo_user_can_publish_location_only_with_complete_seo_data(): void
     {
         $seo = $this->staff('seo');
@@ -103,6 +112,72 @@ class SeoDirectoryConfigurationTest extends TestCase
             'country_code' => 'KE',
             'is_active' => true,
         ]);
+    }
+
+    public function test_seo_user_can_edit_all_homepage_copy_without_code_changes(): void
+    {
+        $seo = $this->staff('seo');
+        $sections = [
+            'vip' => ['heading' => 'Exclusive Profiles', 'description' => 'Our most visible profiles.'],
+            'premium' => ['heading' => 'Featured Profiles', 'description' => 'Profiles with enhanced visibility.'],
+            'basic' => ['heading' => 'All Profiles', 'description' => 'Browse all standard profiles.'],
+            'new' => ['heading' => 'Just Joined', 'description' => 'Recently activated profiles.'],
+        ];
+
+        $this->actingAs($seo)->patch(route('seo.pages.homepage.update'), [
+            'heading' => 'Find trusted independent providers',
+            'intro_content' => 'Browse active provider profiles across every available package.',
+            'bottom_content' => "## Helpful directory guide\n\nUse the filters to discover profiles.",
+            'seo_title' => 'Independent Provider Directory',
+            'meta_description' => 'Browse active independent provider profiles by location, package and recently activated status.',
+            'sections' => $sections,
+        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('page_contents', [
+            'page_key' => 'homepage',
+            'heading' => 'Find trusted independent providers',
+            'updated_by' => $seo->id,
+        ]);
+        $this->get(route('directory.home'))
+            ->assertOk()
+            ->assertSee('Find trusted independent providers')
+            ->assertSee('Exclusive Profiles')
+            ->assertSee('<h2>Helpful directory guide</h2>', false);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'pages.content-update']);
+    }
+
+    public function test_seo_user_can_edit_location_top_and_bottom_content(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData());
+        $location = Location::query()->firstOrFail();
+
+        $this->actingAs($seo)->patch(route('seo.locations.content.update', $location), [
+            'heading' => 'Independent Nairobi Profiles',
+            'intro_content' => str_repeat('Updated original introduction for Nairobi visitors. ', 3),
+            'bottom_content' => "## Choosing a Nairobi profile\n\nReview each listing before making contact.",
+            'seo_title' => 'Independent Nairobi Profiles and Escorts',
+            'meta_description' => 'Browse independently managed Nairobi profiles with current package and location information.',
+            'canonical_path' => '/nairobi-escorts',
+        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('location_contents', [
+            'location_id' => $location->id,
+            'heading' => 'Independent Nairobi Profiles',
+            'reviewed_by' => $seo->id,
+        ]);
+        $this->get('/nairobi-escorts')
+            ->assertOk()
+            ->assertSee('Independent Nairobi Profiles')
+            ->assertSee('<h2>Choosing a Nairobi profile</h2>', false);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'locations.content-update', 'target_id' => $location->id]);
+    }
+
+    public function test_subscriber_cannot_update_managed_page_content(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->patch(route('seo.pages.homepage.update'), [])
+            ->assertForbidden();
     }
 
     private function staff(string $role): User

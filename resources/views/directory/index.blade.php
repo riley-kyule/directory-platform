@@ -13,12 +13,11 @@
             <p class="mt-3 max-w-3xl text-base leading-7 text-stone-600">{{ $intro }}</p>
         </header>
 
-        @foreach ([
-            'vip' => ['VIP Escorts', 'Featured profiles with our highest visibility package.'],
-            'premium' => ['Premium Escorts', 'Prominent profiles with enhanced directory visibility.'],
-            'basic' => ['Basic Escorts', 'All active profiles on the Basic package.'],
-            'new' => ['New Escorts', 'Profiles activated within the last '.config('directory.new_profile_days').' days.'],
-        ] as $key => [$title, $description])
+        @foreach (['vip', 'premium', 'basic', 'new'] as $key)
+            @php
+                $title = $sectionContent[$key]['heading'];
+                $description = $sectionContent[$key]['description'];
+            @endphp
             <section aria-labelledby="section-{{ $key }}">
                 <div class="mb-6 flex items-end justify-between gap-6 border-b border-stone-300 pb-4">
                     <div>
@@ -47,6 +46,12 @@
                 <span class="text-sm text-stone-500">Page {{ $page }} of {{ $totalPages }}</span>
                 @if ($page < $totalPages)<a href="{{ ($page === 1 ? $canonicalUrl : Str::before($canonicalUrl, '/page/'.$page)).'/page/'.($page + 1) }}" class="rounded-full bg-stone-950 px-5 py-2.5 text-sm font-semibold text-white">Next</a>@endif
             </nav>
+        @endif
+
+        @if (filled($bottomContent))
+            <section class="directory-content border-t border-stone-200 pt-10" aria-label="Additional directory information">
+                {!! Str::markdown($bottomContent, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+            </section>
         @endif
     </div>
 </x-public-layout>

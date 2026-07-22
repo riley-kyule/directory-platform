@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Seo;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLocationRequest;
 use App\Http\Requests\StoreTaxonomyOptionRequest;
+use App\Http\Requests\UpdateHomepageContentRequest;
+use App\Http\Requests\UpdateLocationContentRequest;
 use App\Models\AuditLog;
 use App\Models\Location;
+use App\Models\PageContent;
 use App\Models\TaxonomyOption;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +31,7 @@ class DirectoryConfigurationController extends Controller
         return view('seo.directory.index', [
             'locations' => Location::query()->with('parent')->orderBy('country_code')->orderBy('full_slug')->get(),
             'taxonomyOptions' => TaxonomyOption::query()->orderBy('type')->orderBy('sort_order')->orderBy('label')->get(),
+            'homepage' => PageContent::query()->where('page_key', 'homepage')->firstOrFail(),
         ]);
     }
 
@@ -71,7 +75,9 @@ class DirectoryConfigurationController extends Controller
             if ($validated['status'] === 'published') {
                 DB::table('location_contents')->insert([
                     'location_id' => $location->id,
+                    'heading' => $validated['page_heading'] ?? $location->name.' Escorts',
                     'intro_content' => $validated['intro_content'],
+                    'bottom_content' => $validated['bottom_content'] ?? null,
                     'faq_content' => ! empty($validated['faq_content']) ? json_encode(['content' => $validated['faq_content']]) : null,
                     'seo_title' => $validated['seo_title'],
                     'meta_description' => $validated['meta_description'],
@@ -94,6 +100,62 @@ class DirectoryConfigurationController extends Controller
         });
 
         return redirect()->route('seo.directory.index')->with('status', "Location {$location->name} created.");
+    }
+
+    public function editLocation(Location $location): View
+    {
+        Gate::authorize('seo.content');
+        abort_unless($location->status === 'published' && $location->content, 404);
+
+        return view('seo.directory.location-content-form', ['location' => $location->load(['content', 'parent'])]);
+    }
+
+    public function updateLocation(UpdateLocationContentRequest $request, Location $location): RedirectResponse
+    {
+        abort_unless($location->status === 'published' && $location->content, 404);
+        $validated = $request->validated();
+        $previous = $location->content->only(['heading', 'intro_content', 'bottom_content', 'seo_title', 'meta_description', 'canonical_path']);
+
+        $location->content->update([
+            'heading' => $validated['heading'],
+            'intro_content' => $validated['intro_content'],
+            'bottom_content' => $validated['bottom_content'] ?? null,
+            'faq_content' => ! empty($validated['faq_content']) ? ['content' => $validated['faq_content']] : null,
+            'seo_title' => $validated['seo_title'],
+            'meta_description' => $validated['meta_description'],
+            'canonical_path' => $validated['canonical_path'],
+            'content_status' => 'approved',
+            'last_reviewed_at' => now(),
+            'reviewed_by' => $request->user()->id,
+        ]);
+
+        $this->auditUpdate($request->user()->id, 'locations.content-update', $location->id, $previous, $location->content->fresh()->toArray());
+
+        return redirect()->route('seo.directory.index')->with('status', "Content for {$location->name} updated.");
+    }
+
+    public function updateHomepage(UpdateHomepageContentRequest $request): RedirectResponse
+    {
+        $homepage = PageContent::query()->where('page_key', 'homepage')->firstOrFail();
+        $previous = $homepage->only(['heading', 'intro_content', 'bottom_content', 'seo_title', 'meta_description', 'listing_sections']);
+        $validated = $request->validated();
+        $sections = collect(['vip', 'premium', 'basic', 'new'])
+            ->mapWithKeys(fn (string $key) => [$key => $validated['sections'][$key]])
+            ->all();
+
+        $homepage->update([
+            'heading' => $validated['heading'],
+            'intro_content' => $validated['intro_content'],
+            'bottom_content' => $validated['bottom_content'] ?? null,
+            'seo_title' => $validated['seo_title'],
+            'meta_description' => $validated['meta_description'],
+            'listing_sections' => $sections,
+            'updated_by' => $request->user()->id,
+        ]);
+
+        $this->auditUpdate($request->user()->id, 'pages.content-update', $homepage->id, $previous, $homepage->fresh()->toArray());
+
+        return redirect()->route('seo.directory.index')->with('status', 'Homepage content updated.');
     }
 
     public function storeTaxonomy(StoreTaxonomyOptionRequest $request): RedirectResponse
@@ -144,6 +206,24 @@ class DirectoryConfigurationController extends Controller
             'target_id' => $targetId,
             'new_state' => $state,
             'reason' => $reason,
+            'ip_address' => request()->ip(),
+            'user_agent' => str(request()->userAgent())->limit(500)->toString(),
+        ]);
+    }
+
+    /** @param array<string, mixed> $previousState
+     * @param  array<string, mixed>  $newState
+     */
+    private function auditUpdate(int $actorId, string $action, int $targetId, array $previousState, array $newState): void
+    {
+        AuditLog::query()->create([
+            'actor_user_id' => $actorId,
+            'action' => $action,
+            'target_type' => str($action)->before('.')->singular()->toString(),
+            'target_id' => $targetId,
+            'previous_state' => $previousState,
+            'new_state' => $newState,
+            'reason' => 'Updated through SEO content management.',
             'ip_address' => request()->ip(),
             'user_agent' => str(request()->userAgent())->limit(500)->toString(),
         ]);
