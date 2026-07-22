@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderOnboardingController;
+use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Staff\ProfileReviewController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/profiles', [ProfileReviewController::class, 'index'])->name('profiles.index');
         Route::get('/profiles/{packageRequest}', [ProfileReviewController::class, 'show'])->name('profiles.show');
         Route::patch('/profiles/{packageRequest}', [ProfileReviewController::class, 'update'])->name('profiles.update');
+    });
+
+    Route::prefix('seo')->name('seo.')->group(function () {
+        Route::get('/directory', [DirectoryConfigurationController::class, 'index'])->name('directory.index');
+        Route::get('/locations/create', [DirectoryConfigurationController::class, 'createLocation'])->name('locations.create');
+        Route::post('/locations', [DirectoryConfigurationController::class, 'storeLocation'])->name('locations.store');
+        Route::post('/taxonomies', [DirectoryConfigurationController::class, 'storeTaxonomy'])->name('taxonomies.store');
     });
 });
 

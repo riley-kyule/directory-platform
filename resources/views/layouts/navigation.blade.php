@@ -25,6 +25,11 @@
                             {{ __('Profile reviews') }}
                         </x-nav-link>
                     @endcan
+                    @can('seo.locations')
+                        <x-nav-link :href="route('seo.directory.index')" :active="request()->routeIs('seo.*')">
+                            {{ __('Directory configuration') }}
+                        </x-nav-link>
+                    @endcan
                 </div>
             </div>
 
@@ -88,6 +93,11 @@
             @can('profiles.activate')
                 <x-responsive-nav-link :href="route('staff.profiles.index')" :active="request()->routeIs('staff.profiles.*')">
                     {{ __('Profile reviews') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('seo.locations')
+                <x-responsive-nav-link :href="route('seo.directory.index')" :active="request()->routeIs('seo.*')">
+                    {{ __('Directory configuration') }}
                 </x-responsive-nav-link>
             @endcan
         </div>

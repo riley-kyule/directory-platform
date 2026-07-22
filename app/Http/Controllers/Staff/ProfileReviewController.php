@@ -11,6 +11,7 @@ use App\Models\AuditLog;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
 use App\Models\ProfilePackageRequest;
+use App\Services\LocationInventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -19,6 +20,8 @@ use Illuminate\View\View;
 
 class ProfileReviewController extends Controller
 {
+    public function __construct(private readonly LocationInventoryService $locationInventory) {}
+
     public function index(): View
     {
         Gate::authorize('profiles.activate');
@@ -113,6 +116,7 @@ class ProfileReviewController extends Controller
                 'last_activated_at' => $startsAt,
                 'expires_at' => $expiresAt,
             ]);
+            $this->locationInventory->syncForProfile($profile);
 
             $owner = $profile->owner
                 ?? $profile->agency()->wherePivotNull('unassigned_at')->first()?->owner;

@@ -18,6 +18,7 @@ use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class StaffProfileReviewTest extends TestCase
@@ -44,6 +45,18 @@ class StaffProfileReviewTest extends TestCase
             'name' => 'Westlands', 'slug' => 'westlands', 'full_slug' => 'nairobi/westlands',
             'status' => 'published',
         ]);
+        foreach ([$location, $sublocation] as $reviewedLocation) {
+            DB::table('location_contents')->insert([
+                'location_id' => $reviewedLocation->id,
+                'intro_content' => str_repeat('Approved original location content. ', 5),
+                'seo_title' => $reviewedLocation->name.' Escorts',
+                'meta_description' => str_repeat('Approved location description. ', 3),
+                'canonical_path' => '/'.$reviewedLocation->slug.'-escorts',
+                'content_status' => 'approved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
         $ethnicity = TaxonomyOption::query()->create([
             'type' => 'ethnicity', 'slug' => 'african', 'label' => 'African', 'is_active' => true,
         ]);
@@ -108,6 +121,8 @@ class StaffProfileReviewTest extends TestCase
         ]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'profiles.activate', 'target_id' => $this->profile->id]);
         $this->assertSame(OnboardingStatus::Completed, $this->provider->refresh()->onboarding_status);
+        $this->assertTrue($this->profile->primaryLocation->refresh()->is_indexable);
+        $this->assertSame(1, $this->profile->primaryLocation->active_profile_count);
     }
 
     public function test_staff_package_change_is_retained_in_request_history(): void
@@ -158,6 +173,8 @@ class StaffProfileReviewTest extends TestCase
         $this->assertSame(ProfileStatus::Expired, $this->profile->refresh()->status);
         $this->assertDatabaseHas('profile_package_assignments', ['profile_id' => $this->profile->id, 'status' => 'expired']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'profiles.expire', 'target_id' => $this->profile->id]);
+        $this->assertFalse($this->profile->primaryLocation->refresh()->is_indexable);
+        $this->assertSame(0, $this->profile->primaryLocation->active_profile_count);
     }
 
     private function staff(string $role): User
