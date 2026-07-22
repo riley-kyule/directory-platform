@@ -29,6 +29,16 @@ class Location extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    public function profiles(): HasMany
+    {
+        return $this->hasMany(Profile::class, 'primary_location_id');
+    }
+
+    public function sublocationProfiles(): HasMany
+    {
+        return $this->hasMany(Profile::class, 'sublocation_id');
+    }
+
     protected function casts(): array
     {
         return ['is_indexable' => 'boolean'];

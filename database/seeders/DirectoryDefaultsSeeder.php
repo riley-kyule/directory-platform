@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Package;
+use App\Models\TaxonomyOption;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DirectoryDefaultsSeeder extends Seeder
 {
@@ -30,5 +32,62 @@ class DirectoryDefaultsSeeder extends Seeder
                 ],
             );
         }
+
+        $taxonomies = [
+            'gender' => [
+                ['slug' => 'woman', 'label' => 'Woman', 'settings' => ['requires_bust_size' => true]],
+                ['slug' => 'man', 'label' => 'Man'],
+                ['slug' => 'trans-woman', 'label' => 'Trans Woman', 'settings' => ['requires_bust_size' => true]],
+                ['slug' => 'trans-man', 'label' => 'Trans Man'],
+                ['slug' => 'non-binary', 'label' => 'Non-binary'],
+            ],
+            'build' => [
+                ['slug' => 'slim', 'label' => 'Slim'],
+                ['slug' => 'athletic', 'label' => 'Athletic'],
+                ['slug' => 'average', 'label' => 'Average'],
+                ['slug' => 'curvy', 'label' => 'Curvy'],
+                ['slug' => 'plus-size', 'label' => 'Plus Size'],
+                ['slug' => 'muscular', 'label' => 'Muscular'],
+            ],
+            'hair_color' => $this->options(['Black', 'Brown', 'Blonde', 'Red', 'Grey', 'Other']),
+            'hair_length' => $this->options(['Bald', 'Short', 'Medium', 'Long']),
+            'bust_size' => $this->options(['A', 'B', 'C', 'D', 'DD', 'E', 'F', 'G+']),
+            'service' => $this->options(['BDSM', 'Couples', 'Escort', 'GFE', 'Massage', 'Domination', 'BFE', 'Fetish', 'Mature']),
+            'language' => $this->options(['English', 'Swahili']),
+            'rate_period' => [
+                ['slug' => '30-minutes', 'label' => '30 minutes'],
+                ['slug' => '1-hour', 'label' => '1 hour'],
+                ['slug' => '2-hours', 'label' => '2 hours'],
+                ['slug' => 'overnight', 'label' => 'Overnight'],
+            ],
+        ];
+
+        foreach ($taxonomies as $type => $options) {
+            foreach ($options as $index => $option) {
+                $taxonomyOption = TaxonomyOption::query()->firstOrNew(
+                    ['type' => $type, 'slug' => $option['slug'], 'country_code' => null],
+                );
+                $taxonomyOption->fill([
+                    'label' => $option['label'],
+                    'sort_order' => ($index + 1) * 10,
+                    'is_active' => true,
+                    'settings' => $option['settings'] ?? null,
+                ]);
+                $taxonomyOption->public_id ??= (string) Str::uuid();
+                $taxonomyOption->save();
+            }
+        }
+    }
+
+    /**
+     * @param  list<string>  $labels
+     * @return list<array{slug: string, label: string}>
+     */
+    private function options(array $labels): array
+    {
+        return array_map(fn (string $label) => [
+            'slug' => str($label)->lower()->replace('+', '-plus')->slug()->toString(),
+            'label' => $label,
+        ], $labels);
     }
 }

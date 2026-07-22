@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -36,6 +39,46 @@ class Profile extends Model
     public function sublocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'sublocation_id');
+    }
+
+    public function agency(): BelongsToMany
+    {
+        return $this->belongsToMany(Agency::class, 'agency_profiles')
+            ->withPivot(['assigned_by', 'assigned_at', 'unassigned_at'])
+            ->withTimestamps();
+    }
+
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(ProfileContactMethod::class);
+    }
+
+    public function packageRequests(): HasMany
+    {
+        return $this->hasMany(ProfilePackageRequest::class);
+    }
+
+    public function packageAssignments(): HasMany
+    {
+        return $this->hasMany(ProfilePackageAssignment::class);
+    }
+
+    public function currentPackageAssignment(): HasOne
+    {
+        return $this->hasOne(ProfilePackageAssignment::class)
+            ->where('status', 'active')
+            ->where('expires_at', '>', now())
+            ->latestOfMany('starts_at');
+    }
+
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(TaxonomyOption::class, 'profile_services', 'profile_id', 'service_option_id');
+    }
+
+    public function languages(): BelongsToMany
+    {
+        return $this->belongsToMany(TaxonomyOption::class, 'profile_languages', 'profile_id', 'language_option_id');
     }
 
     public function scopePubliclyVisible(Builder $query): Builder

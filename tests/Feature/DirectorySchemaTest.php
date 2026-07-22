@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ProfileStatus;
 use App\Models\Package;
+use App\Models\TaxonomyOption;
 use App\Models\User;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,6 +33,17 @@ class DirectorySchemaTest extends TestCase
         $this->assertSame(15, Package::query()->where('code', 'vip')->value('image_limit'));
         $this->assertSame(10, Package::query()->where('code', 'premium')->value('image_limit'));
         $this->assertSame(5, Package::query()->where('code', 'basic')->value('image_limit'));
+    }
+
+    public function test_required_managed_taxonomies_are_seeded(): void
+    {
+        $this->seed(DirectoryDefaultsSeeder::class);
+
+        $this->assertSame(9, TaxonomyOption::query()->ofType('service')->count());
+        $this->assertTrue(
+            TaxonomyOption::query()->ofType('gender')->where('slug', 'woman')->firstOrFail()->settings['requires_bust_size'],
+        );
+        $this->assertTrue(TaxonomyOption::query()->ofType('build')->enabled()->exists());
     }
 
     public function test_only_active_profile_status_is_public(): void
