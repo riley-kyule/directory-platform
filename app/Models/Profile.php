@@ -63,6 +63,11 @@ class Profile extends Model
         return $this->hasMany(ProfilePackageAssignment::class);
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProfileImage::class)->orderBy('sort_order');
+    }
+
     public function currentPackageAssignment(): HasOne
     {
         return $this->hasOne(ProfilePackageAssignment::class)

@@ -47,6 +47,28 @@ return [
             'report' => false,
         ],
 
+        'quarantine' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/quarantine'),
+            'serve' => false,
+            'throw' => true,
+        ],
+
+        'media_staging' => [
+            'driver' => 'local',
+            'root' => storage_path('app/media-staging'),
+            'serve' => false,
+            'throw' => true,
+        ],
+
+        'profile_media' => [
+            'driver' => 'local',
+            'root' => public_path('media/profiles'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/media/profiles',
+            'visibility' => 'public',
+            'throw' => true,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
