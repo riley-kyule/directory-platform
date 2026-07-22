@@ -14,6 +14,7 @@ use App\Models\Location;
 use App\Models\Package;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -87,7 +88,7 @@ class ProviderOnboardingController extends Controller
                 'bust_size_option_id' => $validated['bust_size_option_id'] ?? null,
                 'allows_incall' => $validated['allows_incall'],
                 'allows_outcall' => $validated['allows_outcall'],
-                'status' => ProfileStatus::PendingReview,
+                'status' => ProfileStatus::Draft,
             ]);
 
             if ($request->user()->provider_type === ProviderType::Agency) {
@@ -136,10 +137,26 @@ class ProviderOnboardingController extends Controller
             ]);
 
             $request->user()->update([
-                'onboarding_status' => OnboardingStatus::Submitted,
+                'onboarding_status' => OnboardingStatus::InProgress,
                 'last_onboarding_activity_at' => now(),
             ]);
         });
+
+        return redirect()->route('onboarding.index')->with('status', 'Profile draft saved. Add media, then submit it for review.');
+    }
+
+    public function submitProfile(Profile $profile): RedirectResponse
+    {
+        $user = request()->user();
+        abort_unless($this->ownsProfile($user, $profile), 403);
+        abort_unless($profile->status === ProfileStatus::Draft, 409, 'Only a draft profile can be submitted.');
+        abort_unless($profile->packageRequests()->where('status', PackageRequestStatus::Pending)->exists(), 409, 'Choose a package before submitting.');
+
+        $profile->update(['status' => ProfileStatus::PendingReview]);
+        $user->update([
+            'onboarding_status' => OnboardingStatus::Submitted,
+            'last_onboarding_activity_at' => now(),
+        ]);
 
         return redirect()->route('onboarding.index')->with('status', 'Profile submitted for staff review.');
     }
@@ -177,6 +194,18 @@ class ProviderOnboardingController extends Controller
         }
 
         return array_map(fn (array $contact) => $contact + ['is_public' => true, 'is_verified' => false], $contacts);
+    }
+
+    private function ownsProfile(User $user, Profile $profile): bool
+    {
+        if ($profile->owner_user_id === $user->id) {
+            return true;
+        }
+
+        return $user->agency?->profiles()
+            ->whereKey($profile->id)
+            ->wherePivotNull('unassigned_at')
+            ->exists() ?? false;
     }
 
     /** @param  class-string<Model>  $model */

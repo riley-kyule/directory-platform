@@ -70,7 +70,7 @@
                 <x-input-error :messages="$errors->get('requested_package_id')" class="mt-2" />
             </section>
 
-            <div class="flex justify-end"><x-primary-button>Submit for review</x-primary-button></div>
+            <div class="flex justify-end"><x-primary-button>Save and continue to media</x-primary-button></div>
         </form>
     </div>
 </x-app-layout>

@@ -20,6 +20,12 @@
                             <div><dt class="text-sm text-gray-500">Status</dt><dd class="font-medium capitalize">{{ str($user->profile->status->value)->replace('_', ' ') }}</dd></div>
                             <div><dt class="text-sm text-gray-500">Requested package</dt><dd class="font-medium">{{ $user->profile->packageRequests->last()?->requestedPackage?->name ?? '—' }}</dd></div>
                         </dl>
+                        @if ($user->profile->status === \App\Enums\ProfileStatus::Draft)
+                            <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}" class="mt-5">
+                                @csrf
+                                <x-primary-button>Submit for review</x-primary-button>
+                            </form>
+                        @endif
                     @else
                         <p class="mt-2 text-sm text-gray-600">Complete your listing and choose a package. Staff will review it before publication.</p>
                         <a href="{{ route('onboarding.profiles.create') }}" class="mt-5 inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Create profile</a>
@@ -59,7 +65,15 @@
                             @forelse ($user->agency->profiles as $profile)
                                 <div class="flex items-center justify-between py-4">
                                     <div><p class="font-medium">{{ $profile->display_name }}</p><p class="text-sm capitalize text-gray-500">{{ str($profile->status->value)->replace('_', ' ') }}</p></div>
-                                    <span class="text-sm text-gray-600">{{ $profile->packageRequests->last()?->requestedPackage?->name ?? 'No package' }}</span>
+                                    <div class="text-right">
+                                        <span class="text-sm text-gray-600">{{ $profile->packageRequests->last()?->requestedPackage?->name ?? 'No package' }}</span>
+                                        @if ($profile->status === \App\Enums\ProfileStatus::Draft)
+                                            <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="mt-2">
+                                                @csrf
+                                                <button class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Submit for review</button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </div>
                             @empty
                                 <p class="py-6 text-sm text-gray-600">No profiles have been added yet.</p>

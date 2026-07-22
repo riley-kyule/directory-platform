@@ -71,7 +71,7 @@ class ProviderOnboardingTest extends TestCase
         $this->actingAs($member)->get(route('onboarding.index'))->assertForbidden();
     }
 
-    public function test_independent_provider_can_submit_one_profile_and_package_request(): void
+    public function test_independent_provider_can_save_one_draft_and_package_request(): void
     {
         $provider = $this->provider(ProviderType::Independent);
 
@@ -81,14 +81,38 @@ class ProviderOnboardingTest extends TestCase
 
         $profile = Profile::query()->firstOrFail();
         $this->assertSame($provider->id, $profile->owner_user_id);
-        $this->assertSame(ProfileStatus::PendingReview, $profile->status);
+        $this->assertSame(ProfileStatus::Draft, $profile->status);
         $this->assertCount(1, $profile->packageRequests);
         $this->assertSame('vip', $profile->packageRequests->first()->requestedPackage->code);
         $this->assertSame(['call', 'sms', 'whatsapp'], $profile->contacts()->orderBy('sort_order')->pluck('type')->all());
-        $this->assertSame(OnboardingStatus::Submitted, $provider->refresh()->onboarding_status);
+        $this->assertSame(OnboardingStatus::InProgress, $provider->refresh()->onboarding_status);
 
         $this->actingAs($provider)
             ->post(route('onboarding.profiles.store'), $this->validProfileData(['display_name' => 'Second Profile']))
+            ->assertForbidden();
+    }
+
+    public function test_profile_owner_can_explicitly_submit_a_completed_draft(): void
+    {
+        $provider = $this->provider(ProviderType::Independent);
+        $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData());
+        $profile = Profile::query()->firstOrFail();
+
+        $this->actingAs($provider)
+            ->post(route('onboarding.profiles.submit', $profile))
+            ->assertRedirect(route('onboarding.index'));
+
+        $this->assertSame(ProfileStatus::PendingReview, $profile->refresh()->status);
+        $this->assertSame(OnboardingStatus::Submitted, $provider->refresh()->onboarding_status);
+    }
+
+    public function test_another_provider_cannot_submit_someone_elses_draft(): void
+    {
+        $provider = $this->provider(ProviderType::Independent);
+        $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData());
+
+        $this->actingAs($this->provider(ProviderType::Independent))
+            ->post(route('onboarding.profiles.submit', Profile::query()->firstOrFail()))
             ->assertForbidden();
     }
 

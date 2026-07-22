@@ -24,6 +24,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/agency', [ProviderOnboardingController::class, 'storeAgency'])->name('agency.store');
         Route::get('/profiles/create', [ProviderOnboardingController::class, 'createProfile'])->name('profiles.create');
         Route::post('/profiles', [ProviderOnboardingController::class, 'storeProfile'])->name('profiles.store');
+        Route::post('/profiles/{profile}/submit', [ProviderOnboardingController::class, 'submitProfile'])->name('profiles.submit');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

@@ -29,6 +29,7 @@ class ProfileReviewController extends Controller
         return view('staff.profiles.index', [
             'requests' => ProfilePackageRequest::query()
                 ->where('status', PackageRequestStatus::Pending)
+                ->whereHas('profile', fn ($query) => $query->where('status', ProfileStatus::PendingReview))
                 ->with(['profile.primaryLocation', 'requestedPackage', 'requestedBy'])
                 ->oldest('requested_at')
                 ->paginate(25),
