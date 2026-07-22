@@ -122,7 +122,10 @@ class Profile extends Model
             ->where('status', ProfileStatus::Active->value)
             ->where(fn (Builder $query) => $query
                 ->whereNull('expires_at')
-                ->orWhere('expires_at', '>', now()));
+                ->orWhere('expires_at', '>', now()))
+            ->whereHas('packageAssignments', fn (Builder $query) => $query
+                ->where('status', 'active')
+                ->where('expires_at', '>', now()));
     }
 
     public function activityLabel(): ?string

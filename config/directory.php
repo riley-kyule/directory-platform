@@ -3,6 +3,7 @@
 return [
     'agency_profile_limit' => (int) env('DIRECTORY_AGENCY_PROFILE_LIMIT', 15),
     'new_profile_days' => (int) env('DIRECTORY_NEW_PROFILE_DAYS', 14),
+    'sitemap_chunk_size' => (int) env('DIRECTORY_SITEMAP_CHUNK_SIZE', 10000),
 
     'activity' => [
         'online_minutes' => (int) env('DIRECTORY_ONLINE_MINUTES', 30),

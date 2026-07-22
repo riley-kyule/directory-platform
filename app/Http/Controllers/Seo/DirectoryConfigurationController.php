@@ -23,6 +23,7 @@ class DirectoryConfigurationController extends Controller
     private const PROTECTED_SLUGS = [
         'escort', 'search', 'login', 'register', 'account', 'admin', 'api', 'help',
         'about', 'contact', 'privacy', 'terms', 'safety', 'report', 'media', 'agencies', 'agency',
+        'robots-txt', 'robotstxt', 'sitemap-xml', 'sitemapxml', 'sitemaps',
     ];
 
     public function index(): View

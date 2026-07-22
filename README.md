@@ -22,6 +22,7 @@ The project is in active development. Its current foundation provides account re
 - Public Call, SMS, WhatsApp, and Telegram profile actions
 - Public agency directory and active-profile agency pages
 - Privacy-safe related profiles prioritized by sub-location
+- Dynamic, visibility-aware XML sitemaps and robots discovery
 - Media-processing metadata and package image limits
 - Policy-acceptance and audit-log foundations
 - Database-backed sessions, cache, and queues
