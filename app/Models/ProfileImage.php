@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProfileImage extends Model
@@ -26,6 +27,17 @@ class ProfileImage extends Model
     public function profile(): BelongsTo
     {
         return $this->belongsTo(Profile::class);
+    }
+
+    public function publicUrl(string $slot = 'card'): ?string
+    {
+        $file = $this->derivatives[$slot]['file'] ?? null;
+
+        if ($this->status !== 'approved' || ! is_string($file)) {
+            return null;
+        }
+
+        return Storage::disk('profile_media')->url($this->storage_directory.'/'.$file);
     }
 
     protected function casts(): array

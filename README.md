@@ -13,6 +13,11 @@ The project is in active development. Its current foundation provides account re
 - Profile and agency ownership structures
 - Configurable listing packages and durations
 - Structured locations, attributes, services, contacts, and rates
+- Server-rendered public homepage, location archives, and profile pages
+- Separate VIP, Premium, Basic, and New listing sections
+- Stable randomized listing order with scheduled rotation
+- SEO titles, descriptions, canonicals, and inventory-aware robots rules
+- Public Call, SMS, WhatsApp, and Telegram profile actions
 - Media-processing metadata and package image limits
 - Policy-acceptance and audit-log foundations
 - Database-backed sessions, cache, and queues
@@ -45,7 +50,7 @@ Run the database queue worker in a second terminal so quarantined media is proce
 php artisan queue:work --queue=media,default
 ```
 
-The application will be available at `http://127.0.0.1:8000` by default.
+The public directory will be available at `http://127.0.0.1:8000` by default. Location pages use routes such as `/nairobi-escorts` and `/nairobi/westlands-escorts` after those locations have been created by an SEO or Admin account.
 
 ## Quality checks
 
@@ -65,4 +70,4 @@ If you discover a security issue, report it privately to the project maintainer 
 
 ## Status
 
-This repository currently contains the Phase 1 application foundation. Public directory pages and complete provider/staff workflows are under development.
+This repository contains the Phase 1 application foundation, manual provider activation workflow, secure media pipeline, SEO directory configuration, and the first public directory experience. Further moderation, policy, agency-directory, and administrative tooling remains under development.

@@ -53,6 +53,36 @@ class Profile extends Model
         return $this->hasMany(ProfileContactMethod::class);
     }
 
+    public function gender(): BelongsTo
+    {
+        return $this->belongsTo(TaxonomyOption::class, 'gender_option_id');
+    }
+
+    public function ethnicity(): BelongsTo
+    {
+        return $this->belongsTo(TaxonomyOption::class, 'ethnicity_option_id');
+    }
+
+    public function build(): BelongsTo
+    {
+        return $this->belongsTo(TaxonomyOption::class, 'build_option_id');
+    }
+
+    public function bustSize(): BelongsTo
+    {
+        return $this->belongsTo(TaxonomyOption::class, 'bust_size_option_id');
+    }
+
+    public function details(): HasOne
+    {
+        return $this->hasOne(ProfileDetail::class);
+    }
+
+    public function rates(): HasMany
+    {
+        return $this->hasMany(ProfileRate::class)->where('is_active', true)->orderBy('sort_order');
+    }
+
     public function packageRequests(): HasMany
     {
         return $this->hasMany(ProfilePackageRequest::class);

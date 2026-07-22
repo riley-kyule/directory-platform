@@ -3,13 +3,13 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProviderOnboardingController;
+use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Staff\ProfileReviewController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.home');
+Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->name('directory.profiles.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -50,3 +50,10 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/{city}-escorts/page/{page}', [PublicDirectoryController::class, 'city'])
+    ->whereNumber('page')->name('directory.cities.page');
+Route::get('/{city}/{neighbourhood}-escorts/page/{page}', [PublicDirectoryController::class, 'neighbourhood'])
+    ->whereNumber('page')->name('directory.neighbourhoods.page');
+Route::get('/{city}-escorts', [PublicDirectoryController::class, 'city'])->name('directory.cities.show');
+Route::get('/{city}/{neighbourhood}-escorts', [PublicDirectoryController::class, 'neighbourhood'])->name('directory.neighbourhoods.show');
