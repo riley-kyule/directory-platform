@@ -20,6 +20,7 @@ The project is in active development. Its current foundation provides account re
 - Database-managed homepage and location copy with audited SEO/Admin editing
 - Safe Markdown content blocks below public listings
 - Public Call, SMS, WhatsApp, and Telegram profile actions
+- Public agency directory and active-profile agency pages
 - Media-processing metadata and package image limits
 - Policy-acceptance and audit-log foundations
 - Database-backed sessions, cache, and queues

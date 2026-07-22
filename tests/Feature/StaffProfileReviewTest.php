@@ -8,6 +8,7 @@ use App\Enums\PackageRequestStatus;
 use App\Enums\ProfileStatus;
 use App\Enums\ProviderType;
 use App\Jobs\PublishProfileImages;
+use App\Models\Agency;
 use App\Models\Location;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
@@ -156,6 +157,33 @@ class StaffProfileReviewTest extends TestCase
 
         $this->assertSame(PackageRequestStatus::Changed, $this->packageRequest->refresh()->status);
         $this->assertSame($basic->id, $this->packageRequest->assigned_package_id);
+    }
+
+    public function test_activating_an_agency_profile_makes_the_agency_publicly_eligible(): void
+    {
+        $agencyOwner = User::factory()->create();
+        $agency = Agency::query()->create([
+            'owner_user_id' => $agencyOwner->id,
+            'name' => 'Review Agency',
+            'slug' => 'review-agency',
+            'description' => 'An agency awaiting its first approved profile.',
+            'status' => 'draft',
+        ]);
+        $this->profile->update(['owner_user_id' => null]);
+        $agency->profiles()->attach($this->profile, [
+            'assigned_by' => $agencyOwner->id,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($this->staff('csr'))->patch(route('staff.profiles.update', $this->packageRequest), [
+            'decision' => 'approve',
+            'assigned_package_id' => $this->packageRequest->requested_package_id,
+            'duration_option_id' => PackageDurationOption::query()->where('duration_days', 30)->value('id'),
+            'reason' => 'Agency profile and media were reviewed.',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('active', $agency->refresh()->status);
+        $this->assertTrue($agency->publiclyVisible()->exists());
     }
 
     public function test_csr_can_reject_profile_and_keep_it_private(): void

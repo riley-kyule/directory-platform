@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Seo;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLocationRequest;
 use App\Http\Requests\StoreTaxonomyOptionRequest;
+use App\Http\Requests\UpdateAgencyDirectoryContentRequest;
 use App\Http\Requests\UpdateHomepageContentRequest;
 use App\Http\Requests\UpdateLocationContentRequest;
 use App\Models\AuditLog;
@@ -32,6 +33,7 @@ class DirectoryConfigurationController extends Controller
             'locations' => Location::query()->with('parent')->orderBy('country_code')->orderBy('full_slug')->get(),
             'taxonomyOptions' => TaxonomyOption::query()->orderBy('type')->orderBy('sort_order')->orderBy('label')->get(),
             'homepage' => PageContent::query()->where('page_key', 'homepage')->firstOrFail(),
+            'agencyDirectory' => PageContent::query()->where('page_key', 'agencies')->firstOrFail(),
         ]);
     }
 
@@ -156,6 +158,17 @@ class DirectoryConfigurationController extends Controller
         $this->auditUpdate($request->user()->id, 'pages.content-update', $homepage->id, $previous, $homepage->fresh()->toArray());
 
         return redirect()->route('seo.directory.index')->with('status', 'Homepage content updated.');
+    }
+
+    public function updateAgencyDirectory(UpdateAgencyDirectoryContentRequest $request): RedirectResponse
+    {
+        $content = PageContent::query()->where('page_key', 'agencies')->firstOrFail();
+        $previous = $content->only(['heading', 'intro_content', 'bottom_content', 'seo_title', 'meta_description']);
+        $content->update($request->validated() + ['updated_by' => $request->user()->id]);
+
+        $this->auditUpdate($request->user()->id, 'pages.content-update', $content->id, $previous, $content->fresh()->toArray());
+
+        return redirect()->route('seo.directory.index')->with('status', 'Agency directory content updated.');
     }
 
     public function storeTaxonomy(StoreTaxonomyOptionRequest $request): RedirectResponse

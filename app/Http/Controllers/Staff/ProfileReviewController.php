@@ -127,8 +127,9 @@ class ProfileReviewController extends Controller
             ]);
             $this->locationInventory->syncForProfile($profile);
 
-            $owner = $profile->owner
-                ?? $profile->agency()->wherePivotNull('unassigned_at')->first()?->owner;
+            $agency = $profile->agency()->wherePivotNull('unassigned_at')->first();
+            $agency?->update(['status' => 'active']);
+            $owner = $profile->owner ?? $agency?->owner;
             $owner?->update([
                 'onboarding_status' => OnboardingStatus::Completed,
                 'onboarding_completed_at' => now(),

@@ -180,6 +180,29 @@ class SeoDirectoryConfigurationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_seo_user_can_edit_agency_directory_content(): void
+    {
+        $seo = $this->staff('seo');
+
+        $this->actingAs($seo)->patch(route('seo.pages.agencies.update'), [
+            'heading' => 'Independent Escort Agencies',
+            'intro_content' => 'Browse agencies with active and currently available provider profiles.',
+            'bottom_content' => "## Working with agencies\n\nReview each agency and its active profiles.",
+            'seo_title' => 'Independent Escort Agencies',
+            'meta_description' => 'Browse independent escort agencies with active provider profiles and current public listings.',
+        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('page_contents', [
+            'page_key' => 'agencies',
+            'heading' => 'Independent Escort Agencies',
+            'updated_by' => $seo->id,
+        ]);
+        $this->get(route('directory.agencies.index'))
+            ->assertOk()
+            ->assertSee('Independent Escort Agencies')
+            ->assertSee('<h2>Working with agencies</h2>', false);
+    }
+
     private function staff(string $role): User
     {
         $user = User::factory()->create();

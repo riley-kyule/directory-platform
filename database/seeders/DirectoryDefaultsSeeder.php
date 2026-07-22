@@ -25,6 +25,12 @@ class DirectoryDefaultsSeeder extends Seeder
                 'new' => ['heading' => 'New Escorts', 'description' => 'Recently activated provider profiles.'],
             ],
         ]);
+        PageContent::query()->firstOrCreate(['page_key' => 'agencies'], [
+            'heading' => 'Escort Agencies',
+            'intro_content' => 'Browse agencies with currently active provider profiles.',
+            'seo_title' => 'Escort Agencies — '.config('app.name'),
+            'meta_description' => 'Browse public agencies and their currently active provider profiles.',
+        ]);
 
         foreach ([
             ['code' => 'vip', 'name' => 'VIP', 'image_limit' => 15, 'display_order' => 10],

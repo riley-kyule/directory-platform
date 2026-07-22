@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProviderOnboardingController;
+use App\Http\Controllers\PublicAgencyController;
 use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Staff\ProfileReviewController;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.home');
 Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->name('directory.profiles.show');
+Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('directory.agencies.index');
+Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->name('directory.agencies.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -48,6 +51,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/locations/{location}/content', [DirectoryConfigurationController::class, 'editLocation'])->name('locations.content.edit');
         Route::patch('/locations/{location}/content', [DirectoryConfigurationController::class, 'updateLocation'])->name('locations.content.update');
         Route::patch('/pages/homepage', [DirectoryConfigurationController::class, 'updateHomepage'])->name('pages.homepage.update');
+        Route::patch('/pages/agencies', [DirectoryConfigurationController::class, 'updateAgencyDirectory'])->name('pages.agencies.update');
         Route::post('/taxonomies', [DirectoryConfigurationController::class, 'storeTaxonomy'])->name('taxonomies.store');
     });
 });
