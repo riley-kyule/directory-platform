@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('profiles:expire')->everyMinute()->withoutOverlapping();
+Schedule::command('profiles:rotate-listing-order')->dailyAt('03:00')->withoutOverlapping();

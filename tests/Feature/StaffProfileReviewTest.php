@@ -126,6 +126,7 @@ class StaffProfileReviewTest extends TestCase
         ])->assertRedirect(route('staff.profiles.index'))->assertSessionHasNoErrors();
 
         $this->assertSame(ProfileStatus::Active, $this->profile->refresh()->status);
+        $this->assertGreaterThan(0, $this->profile->listing_rank);
         $this->assertSame(PackageRequestStatus::Approved, $this->packageRequest->refresh()->status);
         $this->assertEqualsWithDelta(now()->addDays(30)->timestamp, $this->profile->expires_at->timestamp, 2);
         $this->assertDatabaseHas('profile_package_assignments', [

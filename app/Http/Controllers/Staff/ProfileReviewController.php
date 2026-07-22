@@ -123,6 +123,7 @@ class ProfileReviewController extends Controller
                 'published_at' => $profile->published_at ?? $startsAt,
                 'last_activated_at' => $startsAt,
                 'expires_at' => $expiresAt,
+                'listing_rank' => random_int(1, 2_147_483_647),
             ]);
             $this->locationInventory->syncForProfile($profile);
 
