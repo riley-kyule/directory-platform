@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\ProfileStatus;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+
+class Profile extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $guarded = [];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Profile $profile): void {
+            $profile->public_id ??= (string) Str::uuid();
+        });
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_user_id');
+    }
+
+    public function primaryLocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'primary_location_id');
+    }
+
+    public function sublocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'sublocation_id');
+    }
+
+    public function scopePubliclyVisible(Builder $query): Builder
+    {
+        return $query
+            ->where('status', ProfileStatus::Active->value)
+            ->where(fn (Builder $query) => $query
+                ->whereNull('expires_at')
+                ->orWhere('expires_at', '>', now()));
+    }
+
+    public function activityLabel(): ?string
+    {
+        if (! $this->owner?->last_seen_at) {
+            return null;
+        }
+
+        if ($this->owner->last_seen_at->gte(now()->subMinutes(config('directory.activity.online_minutes')))) {
+            return 'online';
+        }
+
+        if ($this->owner->last_seen_at->gte(now()->subMinutes(config('directory.activity.recently_active_minutes')))) {
+            return 'recently_active';
+        }
+
+        return null;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'status' => ProfileStatus::class,
+            'date_of_birth' => 'date',
+            'allows_incall' => 'boolean',
+            'allows_outcall' => 'boolean',
+            'published_at' => 'datetime',
+            'last_activated_at' => 'datetime',
+            'expires_at' => 'datetime',
+        ];
+    }
+}
