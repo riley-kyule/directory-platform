@@ -15,7 +15,11 @@ class TaxonomyOption extends Model
 
     protected static function booted(): void
     {
-        static::creating(fn (TaxonomyOption $option) => $option->public_id ??= (string) Str::uuid());
+        static::creating(function (TaxonomyOption $option): void {
+            if (! $option->public_id) {
+                $option->public_id = (string) Str::uuid();
+            }
+        });
     }
 
     public function scopeOfType(Builder $query, string $type): Builder

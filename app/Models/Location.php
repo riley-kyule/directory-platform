@@ -16,7 +16,11 @@ class Location extends Model
 
     protected static function booted(): void
     {
-        static::creating(fn (Location $location) => $location->public_id ??= (string) Str::uuid());
+        static::creating(function (Location $location): void {
+            if (! $location->public_id) {
+                $location->public_id = (string) Str::uuid();
+            }
+        });
     }
 
     public function parent(): BelongsTo

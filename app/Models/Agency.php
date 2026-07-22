@@ -17,7 +17,11 @@ class Agency extends Model
 
     protected static function booted(): void
     {
-        static::creating(fn (Agency $agency) => $agency->public_id ??= (string) Str::uuid());
+        static::creating(function (Agency $agency): void {
+            if (! $agency->public_id) {
+                $agency->public_id = (string) Str::uuid();
+            }
+        });
     }
 
     public function owner(): BelongsTo

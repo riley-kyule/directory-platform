@@ -14,7 +14,11 @@ class AuditLog extends Model
 
     protected static function booted(): void
     {
-        static::creating(fn (AuditLog $log) => $log->public_id ??= (string) Str::uuid());
+        static::creating(function (AuditLog $log): void {
+            if (! $log->public_id) {
+                $log->public_id = (string) Str::uuid();
+            }
+        });
     }
 
     public function actor(): BelongsTo

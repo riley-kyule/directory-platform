@@ -15,6 +15,11 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    @if (Auth::user()->account_type === \App\Enums\AccountType::Provider)
+                        <x-nav-link :href="route('onboarding.index')" :active="request()->routeIs('onboarding.*')">
+                            {{ __('Provider onboarding') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -70,6 +75,11 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @if (Auth::user()->account_type === \App\Enums\AccountType::Provider)
+                <x-responsive-nav-link :href="route('onboarding.index')" :active="request()->routeIs('onboarding.*')">
+                    {{ __('Provider onboarding') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->
