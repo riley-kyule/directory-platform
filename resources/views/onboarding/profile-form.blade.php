@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header"><h2 class="text-xl font-semibold leading-tight text-gray-800">{{ __('Create profile') }}</h2></x-slot>
 
-    <div class="py-12" x-data="{ additionalOpen: {{ $errors->hasAny(['hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg', 'smoker', 'language_ids', 'website_url', 'instagram_handle', 'snapchat_handle', 'tiktok_handle']) ? 'true' : 'false' }} }">
+    <div class="py-12" x-data="{ additionalOpen: {{ $errors->hasAny(['hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg', 'smoker', 'language_ids', 'website_url', 'instagram_handle', 'snapchat_handle', 'tiktok_handle']) ? 'true' : 'false' }}, telegramPhoneEnabled: {{ old('telegram_phone_enabled') ? 'true' : 'false' }} }">
         <form method="POST" action="{{ route('onboarding.profiles.store') }}" class="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
             @csrf
 
@@ -22,6 +22,8 @@
 
                 <div><x-input-label for="display_name" value="Name" /><x-text-input id="display_name" name="display_name" class="mt-1 block w-full" :value="old('display_name')" required /><x-input-error :messages="$errors->get('display_name')" class="mt-2" /></div>
                 <div><x-input-label for="phone" value="Phone number" /><x-text-input id="phone" name="phone" type="tel" class="mt-1 block w-full" :value="old('phone')" placeholder="+254..." required /><x-input-error :messages="$errors->get('phone')" class="mt-2" /></div>
+                <fieldset class="md:col-span-2"><legend class="text-sm font-medium text-gray-700">Phone availability</legend><div class="mt-2 flex flex-wrap gap-5"><label><input type="checkbox" name="whatsapp_enabled" value="1" @checked(old('whatsapp_enabled'))> Available on WhatsApp</label><label><input type="checkbox" name="telegram_phone_enabled" value="1" x-model="telegramPhoneEnabled" @checked(old('telegram_phone_enabled'))> Available on Telegram</label></div></fieldset>
+                <div x-show="! telegramPhoneEnabled" x-transition x-cloak class="md:col-span-2"><x-input-label for="telegram_username" value="Telegram username (if phone is not used)" /><x-text-input id="telegram_username" name="telegram_username" class="mt-1 block w-full md:max-w-md" :disabled="telegramPhoneEnabled" :value="old('telegram_username')" /><x-input-error :messages="$errors->get('telegram_username')" class="mt-2" /></div>
                 <div class="md:col-span-2"><x-input-label for="description" value="About / Bio" /><textarea id="description" name="description" rows="6" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description') }}</textarea><x-input-error :messages="$errors->get('description')" class="mt-2" /></div>
 
                 <div><x-input-label for="primary_location_id" value="Location" /><select id="primary_location_id" name="primary_location_id" required class="mt-1 block w-full rounded-md border-gray-300"><option value="">Choose location</option>@foreach ($locations as $location)<option value="{{ $location->id }}" @selected(old('primary_location_id') == $location->id)>{{ $location->name }}</option>@endforeach</select><x-input-error :messages="$errors->get('primary_location_id')" class="mt-2" /></div>
@@ -37,8 +39,6 @@
 
                 <fieldset class="md:col-span-2"><legend class="text-sm font-medium text-gray-700">Services</legend><div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">@foreach ($taxonomies['service'] ?? [] as $option)<label><input type="checkbox" name="service_ids[]" value="{{ $option->id }}" @checked(in_array($option->id, old('service_ids', [])))> {{ $option->label }}</label>@endforeach</div><x-input-error :messages="$errors->get('service_ids')" class="mt-2" /></fieldset>
 
-                <fieldset class="md:col-span-2"><legend class="text-sm font-medium text-gray-700">Phone availability</legend><div class="mt-2 flex flex-wrap gap-5"><label><input type="checkbox" name="whatsapp_enabled" value="1" @checked(old('whatsapp_enabled'))> Available on WhatsApp</label><label><input type="checkbox" name="telegram_phone_enabled" value="1" @checked(old('telegram_phone_enabled'))> Available on Telegram</label></div></fieldset>
-                <div><x-input-label for="telegram_username" value="Telegram username (if phone is not used)" /><x-text-input id="telegram_username" name="telegram_username" class="mt-1 block w-full" :value="old('telegram_username')" /><x-input-error :messages="$errors->get('telegram_username')" class="mt-2" /></div>
             </section>
 
             <section class="bg-white p-6 shadow-sm sm:rounded-lg">
