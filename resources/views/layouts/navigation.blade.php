@@ -20,6 +20,11 @@
                             {{ __('Provider onboarding') }}
                         </x-nav-link>
                     @endif
+                    @can('profiles.activate')
+                        <x-nav-link :href="route('staff.profiles.index')" :active="request()->routeIs('staff.profiles.*')">
+                            {{ __('Profile reviews') }}
+                        </x-nav-link>
+                    @endcan
                 </div>
             </div>
 
@@ -80,6 +85,11 @@
                     {{ __('Provider onboarding') }}
                 </x-responsive-nav-link>
             @endif
+            @can('profiles.activate')
+                <x-responsive-nav-link :href="route('staff.profiles.index')" :active="request()->routeIs('staff.profiles.*')">
+                    {{ __('Profile reviews') }}
+                </x-responsive-nav-link>
+            @endcan
         </div>
 
         <!-- Responsive Settings Options -->

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderOnboardingController;
+use App\Http\Controllers\Staff\ProfileReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -22,6 +23,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/agency', [ProviderOnboardingController::class, 'storeAgency'])->name('agency.store');
         Route::get('/profiles/create', [ProviderOnboardingController::class, 'createProfile'])->name('profiles.create');
         Route::post('/profiles', [ProviderOnboardingController::class, 'storeProfile'])->name('profiles.store');
+    });
+
+    Route::prefix('staff')->name('staff.')->group(function () {
+        Route::get('/profiles', [ProfileReviewController::class, 'index'])->name('profiles.index');
+        Route::get('/profiles/{packageRequest}', [ProfileReviewController::class, 'show'])->name('profiles.show');
+        Route::patch('/profiles/{packageRequest}', [ProfileReviewController::class, 'update'])->name('profiles.update');
     });
 });
 
