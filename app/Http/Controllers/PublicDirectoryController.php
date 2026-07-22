@@ -77,6 +77,7 @@ class PublicDirectoryController extends Controller
 
         return view('directory.profile', [
             'profile' => $profile,
+            'relatedProfiles' => $this->listings->relatedTo($profile),
             'contactLinks' => $this->contactLinks->for($profile),
             'metaTitle' => $profile->display_name.' — '.$profile->sublocation->name.', '.$profile->primaryLocation->name,
             'metaDescription' => str($profile->description)->squish()->limit(155),

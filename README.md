@@ -21,6 +21,7 @@ The project is in active development. Its current foundation provides account re
 - Safe Markdown content blocks below public listings
 - Public Call, SMS, WhatsApp, and Telegram profile actions
 - Public agency directory and active-profile agency pages
+- Privacy-safe related profiles prioritized by sub-location
 - Media-processing metadata and package image limits
 - Policy-acceptance and audit-log foundations
 - Database-backed sessions, cache, and queues

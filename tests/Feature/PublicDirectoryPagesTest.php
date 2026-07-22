@@ -115,4 +115,25 @@ class PublicDirectoryPagesTest extends TestCase
 
         $this->get(route('directory.profiles.show', $this->profile->slug))->assertNotFound();
     }
+
+    public function test_profile_page_renders_only_eligible_related_profiles(): void
+    {
+        $related = $this->profile->replicate();
+        $related->public_id = null;
+        $related->owner_user_id = User::factory()->create()->id;
+        $related->display_name = 'Related Jane';
+        $related->slug = 'related-jane';
+        $related->listing_rank = 20;
+        $related->save();
+        $related->packageAssignments()->create([
+            'package_id' => Package::query()->where('code', 'basic')->value('id'),
+            'starts_at' => now(), 'expires_at' => now()->addMonth(), 'status' => 'active',
+            'assigned_by' => $related->owner_user_id, 'assignment_source' => 'manual', 'reason' => 'Related profile test.',
+        ]);
+
+        $this->get(route('directory.profiles.show', $this->profile->slug))
+            ->assertOk()
+            ->assertSee('More profiles near Jane Public')
+            ->assertSee('Related Jane');
+    }
 }

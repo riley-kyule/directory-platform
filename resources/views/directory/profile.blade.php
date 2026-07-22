@@ -60,6 +60,20 @@
                 </div>
             </aside>
         </div>
+
+        @if ($relatedProfiles->isNotEmpty())
+            <section class="mt-16 border-t border-stone-200 pt-10" aria-labelledby="related-profiles">
+                <div class="mb-6">
+                    <h2 id="related-profiles" class="text-2xl font-black tracking-tight sm:text-3xl">More profiles near {{ $profile->display_name }}</h2>
+                    <p class="mt-1 text-sm text-stone-500">Other active profiles in {{ $profile->primaryLocation->name }}, with {{ $profile->sublocation->name }} shown first.</p>
+                </div>
+                <div class="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 lg:grid-cols-4">
+                    @foreach ($relatedProfiles as $relatedProfile)
+                        <x-profile-card :profile="$relatedProfile" :is-new="$relatedProfile->last_activated_at?->gte(now()->subDays(config('directory.new_profile_days')))" />
+                    @endforeach
+                </div>
+            </section>
+        @endif
     </div>
 
     @if ($contactLinks)

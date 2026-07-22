@@ -91,6 +91,26 @@ class PublicProfileListingsTest extends TestCase
         $this->assertGreaterThan(0, $earlier->refresh()->listing_rank);
     }
 
+    public function test_related_profiles_prioritize_same_sublocation_and_require_valid_packages(): void
+    {
+        $subject = $this->activeProfile('Subject Profile', 'vip', 500, now()->subDay());
+        $sameNeighbourhood = $this->activeProfile('Same Neighbourhood', 'basic', 900, now()->subDay());
+        $otherNeighbourhood = Location::query()->create([
+            'parent_id' => $this->city->id, 'country_code' => 'KE', 'type' => 'neighbourhood',
+            'name' => 'Kilimani', 'slug' => 'kilimani', 'full_slug' => 'nairobi/kilimani', 'status' => 'published',
+        ]);
+        $cityFallback = $this->activeProfile('City Fallback', 'premium', 1, now()->subDay());
+        $cityFallback->update(['sublocation_id' => $otherNeighbourhood->id]);
+        $invalidPackage = $this->activeProfile('Invalid Package', 'vip', 2, now()->subDay());
+        $invalidPackage->packageAssignments()->update(['expires_at' => now()->subMinute()]);
+
+        $related = app(PublicProfileListings::class)->relatedTo($subject);
+
+        $this->assertSame([$sameNeighbourhood->id, $cityFallback->id], $related->pluck('id')->all());
+        $this->assertFalse($related->contains($subject));
+        $this->assertFalse($related->contains($invalidPackage));
+    }
+
     private function activeProfile(string $name, string $packageCode, int $rank, mixed $activatedAt): Profile
     {
         $profile = Profile::query()->create([

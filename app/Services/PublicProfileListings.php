@@ -40,7 +40,23 @@ class PublicProfileListings
                 ->where('expires_at', '>', now()));
     }
 
-    private function baseQuery(?Location $location): Builder
+    public function relatedTo(Profile $profile, int $limit = 4): Collection
+    {
+        return $this->baseQuery()
+            ->whereKeyNot($profile->id)
+            ->where('primary_location_id', $profile->primary_location_id)
+            ->whereHas('packageAssignments', fn (Builder $query) => $query
+                ->where('status', 'active')
+                ->where('expires_at', '>', now()))
+            ->reorder()
+            ->orderByRaw('CASE WHEN sublocation_id = ? THEN 0 ELSE 1 END', [$profile->sublocation_id])
+            ->orderBy('listing_rank')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    private function baseQuery(?Location $location = null): Builder
     {
         return Profile::query()
             ->publiclyVisible()
