@@ -49,8 +49,14 @@
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
-        "serve": "php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=512M artisan serve",
-        "queue": "php -d memory_limit=512M artisan queue:work --queue=media,default --tries=3 --timeout=120",
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=512M artisan serve --host=0.0.0.0"
+        ],
+        "queue": [
+            "Composer\\Config::disableProcessTimeout",
+            "php -d memory_limit=512M artisan queue:work --queue=media,default --tries=3 --timeout=120"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
