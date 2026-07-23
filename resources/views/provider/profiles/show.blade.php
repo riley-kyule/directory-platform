@@ -34,7 +34,11 @@
 
                 @if (! $canEdit && in_array($profile->status, [\App\Enums\ProfileStatus::Expired, \App\Enums\ProfileStatus::Deactivated], true))
                     <div class="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                        This profile is private and cannot be edited. Request renewal below to return it to staff review.
+                        @if($moderationRestricted)
+                            This profile is private and cannot be edited while its moderation restriction is active.
+                        @else
+                            This profile is private and cannot be edited. Request renewal below to return it to staff review.
+                        @endif
                     </div>
                 @elseif ($profile->status === \App\Enums\ProfileStatus::PendingReview)
                     <div class="mt-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
@@ -78,6 +82,25 @@
                 <section class="rounded-md border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900">
                     A package request is awaiting staff review. You will be able to manage this profile again after activation.
                 </section>
+            @endif
+
+            @if ($moderationRestricted)
+                <section class="border border-red-200 bg-red-50 p-6 shadow-sm sm:rounded-lg">
+                    <h3 class="text-lg font-semibold text-red-950">Moderation restriction</h3>
+                    <p class="mt-1 text-sm text-red-800">This profile cannot be renewed while the moderation restriction remains active.</p>
+                    @if($canAppeal)
+                        <form method="POST" action="{{ route('provider.profiles.appeals.store', $profile) }}" class="mt-5 space-y-4">@csrf
+                            <div><x-input-label for="appeal_reason" value="Appeal explanation" /><textarea id="appeal_reason" name="reason" minlength="30" maxlength="5000" rows="6" required class="mt-1 block w-full rounded-md border-red-300">{{ old('reason') }}</textarea><x-input-error :messages="$errors->get('reason')" class="mt-2" /></div>
+                            <x-primary-button>Submit appeal</x-primary-button>
+                        </form>
+                    @else
+                        <p class="mt-4 text-sm font-semibold text-red-900">An appeal is already awaiting review.</p>
+                    @endif
+                </section>
+            @endif
+
+            @if($moderationAppeals->isNotEmpty())
+                <section class="overflow-hidden bg-white shadow-sm sm:rounded-lg"><div class="border-b p-5"><h3 class="font-semibold">Appeal history</h3></div><div class="divide-y">@foreach($moderationAppeals as $appeal)<div class="p-4 text-sm"><div class="flex justify-between gap-4"><span class="font-semibold capitalize">{{ $appeal->status }}</span><span class="text-gray-500">{{ $appeal->created_at->format('j M Y H:i') }}</span></div><p class="mt-2 text-gray-700">{{ $appeal->reason }}</p>@if($appeal->resolution)<p class="mt-2 rounded-md bg-gray-50 p-3"><strong>Decision:</strong> {{ $appeal->resolution }}</p>@endif</div>@endforeach</div></section>
             @endif
         </div>
     </div>

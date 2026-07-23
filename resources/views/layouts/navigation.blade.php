@@ -25,6 +25,11 @@
                             {{ __('Profile reviews') }}
                         </x-nav-link>
                     @endcan
+                    @can('moderation.view')
+                        <x-nav-link :href="route('staff.moderation.index')" :active="request()->routeIs('staff.moderation.*')">
+                            {{ __('Moderation') }}
+                        </x-nav-link>
+                    @endcan
                     @can('profiles.view-private')
                         <x-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.*')">
                             {{ __('Manage listings') }}
@@ -113,6 +118,11 @@
             @can('profiles.activate')
                 <x-responsive-nav-link :href="route('staff.profiles.index')" :active="request()->routeIs('staff.profiles.*')">
                     {{ __('Profile reviews') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('moderation.view')
+                <x-responsive-nav-link :href="route('staff.moderation.index')" :active="request()->routeIs('staff.moderation.*')">
+                    {{ __('Moderation') }}
                 </x-responsive-nav-link>
             @endcan
             @can('profiles.view-private')

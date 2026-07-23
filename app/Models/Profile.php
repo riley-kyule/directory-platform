@@ -113,6 +113,21 @@ class Profile extends Model
         return $this->hasMany(ProfileSlugHistory::class);
     }
 
+    public function reports(): HasMany
+    {
+        return $this->hasMany(ProfileReport::class);
+    }
+
+    public function moderationActions(): HasMany
+    {
+        return $this->hasMany(ModerationAction::class);
+    }
+
+    public function moderationAppeals(): HasMany
+    {
+        return $this->hasMany(ModerationAppeal::class);
+    }
+
     public function currentPackageAssignment(): HasOne
     {
         return $this->hasOne(ProfilePackageAssignment::class)
@@ -160,6 +175,17 @@ class Profile extends Model
         }
 
         return null;
+    }
+
+    public function hasActiveModerationRestriction(): bool
+    {
+        $latestDecision = $this->moderationActions()
+            ->whereIn('action', ['make_private', 'ban', 'appeal_approved'])
+            ->latest('created_at')
+            ->latest('id')
+            ->value('action');
+
+        return in_array($latestDecision, ['make_private', 'ban'], true);
     }
 
     protected function casts(): array

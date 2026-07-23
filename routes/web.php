@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Admin\DirectorySettingsController;
 use App\Http\Controllers\Admin\PolicyManagementController;
+use App\Http\Controllers\ModerationAppealController;
 use App\Http\Controllers\PolicyPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
+use App\Http\Controllers\ProfileReportController;
 use App\Http\Controllers\ProviderOnboardingController;
 use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
@@ -13,12 +15,17 @@ use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Seo\RedirectManagementController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\Staff\ModerationController;
 use App\Http\Controllers\Staff\ProfileManagementController;
 use App\Http\Controllers\Staff\ProfileReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.home');
 Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->name('directory.profiles.show');
+Route::get('/escort/{profile:slug}/report', [ProfileReportController::class, 'create'])->name('directory.profiles.report.create');
+Route::post('/escort/{profile:slug}/report', [ProfileReportController::class, 'store'])
+    ->middleware('throttle:5,10')
+    ->name('directory.profiles.report.store');
 Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('directory.agencies.index');
 Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->name('directory.agencies.show');
 Route::get('/search', [PublicSearchController::class, 'index'])->name('directory.search');
@@ -63,6 +70,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/edit', [ProviderProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProviderProfileController::class, 'update'])->name('update');
         Route::post('/renewal', [ProviderProfileController::class, 'requestRenewal'])->name('renewal.store');
+        Route::post('/moderation-appeals', [ModerationAppealController::class, 'store'])->name('appeals.store');
     });
 
     Route::prefix('admin/settings')->name('admin.settings.')->group(function () {
@@ -80,6 +88,10 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {
+        Route::get('/moderation', [ModerationController::class, 'index'])->name('moderation.index');
+        Route::get('/moderation/{report:public_id}', [ModerationController::class, 'show'])->name('moderation.show');
+        Route::patch('/moderation/{report:public_id}', [ModerationController::class, 'update'])->name('moderation.update');
+        Route::patch('/moderation-appeals/{appeal:public_id}', [ModerationController::class, 'reviewAppeal'])->name('moderation.appeals.review');
         Route::get('/directory', [ProfileManagementController::class, 'index'])->name('directory.index');
         Route::get('/directory/{profile}', [ProfileManagementController::class, 'show'])->name('directory.show');
         Route::patch('/directory/{profile}', [ProfileManagementController::class, 'update'])->name('directory.update');

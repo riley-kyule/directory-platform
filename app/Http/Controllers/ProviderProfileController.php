@@ -30,6 +30,7 @@ class ProviderProfileController extends Controller
     public function show(Profile $profile): View
     {
         abort_unless($this->access->owns(request()->user(), $profile), 403);
+        $moderationRestricted = $profile->hasActiveModerationRestriction();
 
         return view('provider.profiles.show', [
             'profile' => $profile->load([
@@ -40,8 +41,13 @@ class ProviderProfileController extends Controller
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
             'canEdit' => in_array($profile->status, [ProfileStatus::Draft, ProfileStatus::Active], true),
             'canRenew' => in_array($profile->status, [ProfileStatus::Expired, ProfileStatus::Deactivated], true)
+                && ! $moderationRestricted
                 && ! $profile->packageRequests()->where('status', PackageRequestStatus::Pending)->exists(),
             'renewalPolicies' => $this->policies->outstanding('renewal_request', request()->user(), $profile),
+            'moderationRestricted' => $moderationRestricted,
+            'canAppeal' => $moderationRestricted
+                && ! $profile->moderationAppeals()->where('status', 'pending')->exists(),
+            'moderationAppeals' => $profile->moderationAppeals()->latest()->get(),
         ]);
     }
 

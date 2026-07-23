@@ -1,4 +1,7 @@
 <x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots">
+    @if (session('report_status'))
+        <div class="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{{ session('report_status') }}</div></div>
+    @endif
     @php($package = $profile->currentPackageAssignment?->package?->code)
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <nav class="mb-7 text-sm text-stone-500" aria-label="Breadcrumb">
@@ -77,6 +80,9 @@
                 </div>
             </section>
         @endif
+        <div class="border-t border-stone-200 pt-8 text-center">
+            <a href="{{ route('directory.profiles.report.create', $profile) }}" class="text-sm font-bold text-stone-600 underline hover:text-rose-600">Report a concern about this profile</a>
+        </div>
     </div>
 
     @if ($contactLinks)

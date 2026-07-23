@@ -28,6 +28,7 @@ The project is in active development. Its current foundation provides account re
 - SEO-managed redirects, 410 removals, loop protection, and audited activation controls
 - Explicit profile slug changes with permanent old-URL history and redirect-chain flattening
 - Admin/CSR listing workspace with private profiles and audited lifecycle actions
+- Confidential public reporting, urgent safety triage, audited moderation actions, and owner appeals
 - Owner profile editing, private-profile viewing, and staff-reviewed renewal requests
 - Admin-managed packages, durations, listing rules, agency limits, and media constraints
 - Media-processing metadata and package image limits

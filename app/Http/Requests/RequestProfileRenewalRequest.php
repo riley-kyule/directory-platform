@@ -18,7 +18,8 @@ class RequestProfileRenewalRequest extends FormRequest
 
         return $profile instanceof Profile
             && app(ProfileMediaAccess::class)->owns($this->user(), $profile)
-            && in_array($profile->status, [ProfileStatus::Expired, ProfileStatus::Deactivated], true);
+            && in_array($profile->status, [ProfileStatus::Expired, ProfileStatus::Deactivated], true)
+            && ! $profile->hasActiveModerationRestriction();
     }
 
     public function rules(): array
