@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DirectorySettingsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProviderOnboardingController;
@@ -52,6 +53,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/edit', [ProviderProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProviderProfileController::class, 'update'])->name('update');
         Route::post('/renewal', [ProviderProfileController::class, 'requestRenewal'])->name('renewal.store');
+    });
+
+    Route::prefix('admin/settings')->name('admin.settings.')->group(function () {
+        Route::get('/', [DirectorySettingsController::class, 'index'])->name('index');
+        Route::patch('/', [DirectorySettingsController::class, 'update'])->name('update');
+        Route::patch('/packages/{package}', [DirectorySettingsController::class, 'updatePackage'])->name('packages.update');
+        Route::post('/durations', [DirectorySettingsController::class, 'storeDuration'])->name('durations.store');
+        Route::patch('/durations/{duration}', [DirectorySettingsController::class, 'updateDuration'])->name('durations.update');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

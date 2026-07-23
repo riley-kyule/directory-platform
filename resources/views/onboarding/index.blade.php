@@ -60,9 +60,9 @@
                         <div class="flex flex-wrap items-center justify-between gap-4">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-900">{{ $user->agency->name }}</h3>
-                                <p class="text-sm text-gray-600">{{ $user->agency->profiles->count() }} of {{ config('directory.agency_profile_limit') }} profile slots used</p>
+                                <p class="text-sm text-gray-600">{{ $user->agency->profiles->count() }} of {{ $agencyProfileLimit }} profile slots used</p>
                             </div>
-                            @if ($user->agency->profiles->count() < config('directory.agency_profile_limit'))
+                            @if ($user->agency->profiles->count() < $agencyProfileLimit)
                                 <a href="{{ route('onboarding.profiles.create') }}" class="inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Add profile</a>
                             @endif
                         </div>

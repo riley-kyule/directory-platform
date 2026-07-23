@@ -11,7 +11,7 @@
             <div class="mb-6 border-b border-stone-300 pb-4"><h2 id="agency-profiles" class="text-2xl font-black tracking-tight sm:text-3xl">Active profiles</h2><p class="mt-1 text-sm text-stone-500">Profiles currently represented by {{ $agency->name }}.</p></div>
             <div class="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach ($profiles as $profile)
-                    <x-profile-card :profile="$profile" :is-new="$profile->last_activated_at?->gte(now()->subDays(config('directory.new_profile_days')))" />
+                    <x-profile-card :profile="$profile" :is-new="$profile->last_activated_at?->gte(now()->subDays($newProfileDays))" />
                 @endforeach
             </div>
             @if ($profiles->hasPages())<div class="mt-10">{{ $profiles->onEachSide(1)->links() }}</div>@endif

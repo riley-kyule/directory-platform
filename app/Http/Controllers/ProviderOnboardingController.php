@@ -15,6 +15,7 @@ use App\Models\Package;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Services\DirectorySettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,8 @@ use Illuminate\View\View;
 
 class ProviderOnboardingController extends Controller
 {
+    public function __construct(private readonly DirectorySettings $settings) {}
+
     public function index(): View
     {
         $user = request()->user();
@@ -30,7 +33,10 @@ class ProviderOnboardingController extends Controller
 
         $user->load(['profile.packageRequests.requestedPackage', 'agency.profiles.packageRequests.requestedPackage']);
 
-        return view('onboarding.index', ['user' => $user]);
+        return view('onboarding.index', [
+            'user' => $user,
+            'agencyProfileLimit' => $this->settings->integer('profiles.agency_limit'),
+        ]);
     }
 
     public function storeAgency(AgencyOnboardingRequest $request): RedirectResponse
@@ -58,7 +64,7 @@ class ProviderOnboardingController extends Controller
         } else {
             abort_unless($user->agency, 409, 'Complete agency registration first.');
             abort_if(
-                $user->agency->profiles()->wherePivotNull('unassigned_at')->count() >= config('directory.agency_profile_limit'),
+                $user->agency->profiles()->wherePivotNull('unassigned_at')->count() >= $this->settings->integer('profiles.agency_limit'),
                 409,
                 'The agency profile limit has been reached.',
             );

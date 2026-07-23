@@ -29,7 +29,7 @@
                 @if ($sections[$key]->isNotEmpty())
                     <div class="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         @foreach ($sections[$key] as $profile)
-                            <x-profile-card :profile="$profile" :is-new="$key === 'new' || $profile->last_activated_at?->gte(now()->subDays(config('directory.new_profile_days')))" />
+                            <x-profile-card :profile="$profile" :is-new="$key === 'new' || $profile->last_activated_at?->gte(now()->subDays($newProfileDays))" />
                         @endforeach
                     </div>
                 @else

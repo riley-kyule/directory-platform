@@ -35,6 +35,11 @@
                             {{ __('Directory configuration') }}
                         </x-nav-link>
                     @endcan
+                    @can('settings.manage')
+                        <x-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
+                            {{ __('Admin settings') }}
+                        </x-nav-link>
+                    @endcan
                 </div>
             </div>
 
@@ -108,6 +113,11 @@
             @can('seo.locations')
                 <x-responsive-nav-link :href="route('seo.directory.index')" :active="request()->routeIs('seo.*')">
                     {{ __('Directory configuration') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('settings.manage')
+                <x-responsive-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
+                    {{ __('Admin settings') }}
                 </x-responsive-nav-link>
             @endcan
         </div>

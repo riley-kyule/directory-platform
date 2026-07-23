@@ -34,7 +34,7 @@
                     <div class="flex flex-wrap gap-2">
                         @if ($package === 'vip')<span class="rounded-full bg-amber-300 px-3 py-1 text-xs font-black uppercase tracking-wider text-amber-950">VIP</span>@endif
                         @if ($package === 'premium')<span class="rounded-full bg-violet-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">Premium</span>@endif
-                        @if ($profile->last_activated_at?->gte(now()->subDays(config('directory.new_profile_days'))))<span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">New</span>@endif
+                        @if ($profile->last_activated_at?->gte(now()->subDays($newProfileDays)))<span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">New</span>@endif
                     </div>
                     <h1 class="mt-4 text-4xl font-black tracking-tight">{{ $profile->display_name }}</h1>
                     <p class="mt-2 text-stone-500">{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p>
@@ -69,7 +69,7 @@
                 </div>
                 <div class="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 lg:grid-cols-4">
                     @foreach ($relatedProfiles as $relatedProfile)
-                        <x-profile-card :profile="$relatedProfile" :is-new="$relatedProfile->last_activated_at?->gte(now()->subDays(config('directory.new_profile_days')))" />
+                        <x-profile-card :profile="$relatedProfile" :is-new="$relatedProfile->last_activated_at?->gte(now()->subDays($newProfileDays))" />
                     @endforeach
                 </div>
             </section>

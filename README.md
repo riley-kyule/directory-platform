@@ -25,6 +25,7 @@ The project is in active development. Its current foundation provides account re
 - Dynamic, visibility-aware XML sitemaps and robots discovery
 - Admin/CSR listing workspace with private profiles and audited lifecycle actions
 - Owner profile editing, private-profile viewing, and staff-reviewed renewal requests
+- Admin-managed packages, durations, listing rules, agency limits, and media constraints
 - Media-processing metadata and package image limits
 - Policy-acceptance and audit-log foundations
 - Database-backed sessions, cache, and queues

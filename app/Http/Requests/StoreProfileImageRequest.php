@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Profile;
+use App\Services\DirectorySettings;
 use App\Services\ProfileMediaAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Dimensions;
@@ -20,18 +21,20 @@ class StoreProfileImageRequest extends FormRequest
 
     public function rules(): array
     {
+        $settings = app(DirectorySettings::class);
+
         return [
             'image' => [
                 'required',
                 'file',
                 'mimes:jpg,jpeg,png,webp',
                 'mimetypes:image/jpeg,image/png,image/webp',
-                'max:'.config('directory.media.maximum_file_kilobytes'),
+                'max:'.$settings->integer('media.maximum_file_kilobytes'),
                 (new Dimensions)
-                    ->minWidth(config('directory.media.minimum_width'))
-                    ->minHeight(config('directory.media.minimum_height'))
-                    ->maxWidth(config('directory.media.maximum_dimension'))
-                    ->maxHeight(config('directory.media.maximum_dimension')),
+                    ->minWidth($settings->integer('media.minimum_width'))
+                    ->minHeight($settings->integer('media.minimum_height'))
+                    ->maxWidth($settings->integer('media.maximum_dimension'))
+                    ->maxHeight($settings->integer('media.maximum_dimension')),
             ],
         ];
     }
@@ -52,12 +55,13 @@ class StoreProfileImageRequest extends FormRequest
             }
 
             [$width, $height] = $dimensions;
-            if ($width * $height > config('directory.media.maximum_pixels')) {
+            $settings = app(DirectorySettings::class);
+            if ($width * $height > $settings->integer('media.maximum_pixels')) {
                 $validator->errors()->add('image', 'The decoded image contains too many pixels.');
             }
 
             $ratio = $width / $height;
-            if ($ratio < config('directory.media.minimum_aspect_ratio') || $ratio > config('directory.media.maximum_aspect_ratio')) {
+            if ($ratio < $settings->float('media.minimum_aspect_ratio') || $ratio > $settings->float('media.maximum_aspect_ratio')) {
                 $validator->errors()->add('image', 'The image aspect ratio is outside the allowed range.');
             }
         }];

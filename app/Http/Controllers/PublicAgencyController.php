@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Agency;
 use App\Models\PageContent;
+use App\Services\DirectorySettings;
 use Illuminate\View\View;
 
 class PublicAgencyController extends Controller
 {
+    public function __construct(private readonly DirectorySettings $settings) {}
+
     public function index(): View
     {
         $content = PageContent::query()->where('page_key', 'agencies')->firstOrFail();
@@ -25,6 +28,7 @@ class PublicAgencyController extends Controller
             'metaDescription' => $content->meta_description,
             'canonicalUrl' => route('directory.agencies.index').($page > 1 ? '?page='.$page : ''),
             'robots' => 'index,follow',
+            'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
         ]);
     }
 
@@ -53,6 +57,7 @@ class PublicAgencyController extends Controller
             'metaDescription' => str($agency->description ?: 'Browse active profiles represented by '.$agency->name.'.')->squish()->limit(155),
             'canonicalUrl' => route('directory.agencies.show', $agency->slug).($page > 1 ? '?page='.$page : ''),
             'robots' => 'index,follow',
+            'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
         ]);
     }
 }

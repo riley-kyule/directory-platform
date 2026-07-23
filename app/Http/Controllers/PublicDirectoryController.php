@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\PageContent;
 use App\Models\Profile;
+use App\Services\DirectorySettings;
 use App\Services\PublicContactLinks;
 use App\Services\PublicProfileListings;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ class PublicDirectoryController extends Controller
     public function __construct(
         private readonly PublicProfileListings $listings,
         private readonly PublicContactLinks $contactLinks,
+        private readonly DirectorySettings $settings,
     ) {}
 
     public function home(): View
@@ -34,6 +36,7 @@ class PublicDirectoryController extends Controller
             'metaDescription' => $content->meta_description,
             'canonicalUrl' => route('directory.home'),
             'robots' => 'index,follow',
+            'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
         ]);
     }
 
@@ -83,6 +86,7 @@ class PublicDirectoryController extends Controller
             'metaDescription' => str($profile->description)->squish()->limit(155),
             'canonicalUrl' => route('directory.profiles.show', $profile->slug),
             'robots' => 'index,follow',
+            'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
         ]);
     }
 
@@ -119,6 +123,7 @@ class PublicDirectoryController extends Controller
             'metaDescription' => $location->content?->meta_description ?? 'Browse active provider profiles in '.$location->name.'.',
             'canonicalUrl' => url($canonicalPath),
             'robots' => $location->is_indexable ? 'index,follow' : 'noindex,follow',
+            'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
         ]);
     }
 }

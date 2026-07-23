@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\ProfileImage;
+use App\Services\DirectorySettings;
 use GdImage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -114,7 +115,8 @@ class ProcessProfileImage implements ShouldQueue
 
     private function validateEncodedInput(string $bytes, string $path): void
     {
-        $maximumBytes = config('directory.media.maximum_file_kilobytes') * 1024;
+        $settings = app(DirectorySettings::class);
+        $maximumBytes = $settings->integer('media.maximum_file_kilobytes') * 1024;
         if (strlen($bytes) > $maximumBytes) {
             throw new RuntimeException('The encoded image exceeds the file-size limit.');
         }
@@ -135,18 +137,18 @@ class ProcessProfileImage implements ShouldQueue
         }
 
         [$width, $height] = $dimensions;
-        if ($width < config('directory.media.minimum_width') || $height < config('directory.media.minimum_height')) {
+        if ($width < $settings->integer('media.minimum_width') || $height < $settings->integer('media.minimum_height')) {
             throw new RuntimeException('The image dimensions are below the minimum.');
         }
-        if ($width > config('directory.media.maximum_dimension') || $height > config('directory.media.maximum_dimension')) {
+        if ($width > $settings->integer('media.maximum_dimension') || $height > $settings->integer('media.maximum_dimension')) {
             throw new RuntimeException('The image dimensions exceed the maximum.');
         }
-        if ($width * $height > config('directory.media.maximum_pixels')) {
+        if ($width * $height > $settings->integer('media.maximum_pixels')) {
             throw new RuntimeException('The decoded image contains too many pixels.');
         }
 
         $ratio = $width / $height;
-        if ($ratio < config('directory.media.minimum_aspect_ratio') || $ratio > config('directory.media.maximum_aspect_ratio')) {
+        if ($ratio < $settings->float('media.minimum_aspect_ratio') || $ratio > $settings->float('media.maximum_aspect_ratio')) {
             throw new RuntimeException('The image aspect ratio is outside the allowed range.');
         }
     }
@@ -165,7 +167,7 @@ class ProcessProfileImage implements ShouldQueue
         imagefill($derivative, 0, 0, $transparent);
 
         if (! imagecopyresampled($derivative, $source, 0, 0, 0, 0, $width, $height, $sourceWidth, $sourceHeight)
-            || ! imagewebp($derivative, $destination, config('directory.media.webp_quality'))) {
+            || ! imagewebp($derivative, $destination, app(DirectorySettings::class)->integer('media.webp_quality'))) {
             imagedestroy($derivative);
             throw new RuntimeException('A required WebP derivative could not be encoded.');
         }

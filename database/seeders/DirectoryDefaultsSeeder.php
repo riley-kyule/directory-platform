@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\DirectorySetting;
 use App\Models\Package;
 use App\Models\PageContent;
 use App\Models\TaxonomyOption;
@@ -13,6 +14,25 @@ class DirectoryDefaultsSeeder extends Seeder
 {
     public function run(): void
     {
+        foreach ([
+            ['key' => 'profiles.agency_limit', 'value' => '15', 'value_type' => 'integer', 'group' => 'profiles'],
+            ['key' => 'listings.new_profile_days', 'value' => '14', 'value_type' => 'integer', 'group' => 'listings'],
+            ['key' => 'listings.rotation_hours', 'value' => '24', 'value_type' => 'integer', 'group' => 'listings'],
+            ['key' => 'media.maximum_file_kilobytes', 'value' => '51200', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.minimum_width', 'value' => '600', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.minimum_height', 'value' => '600', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.maximum_dimension', 'value' => '12000', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.maximum_pixels', 'value' => '40000000', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.minimum_aspect_ratio', 'value' => '0.4', 'value_type' => 'decimal', 'group' => 'media'],
+            ['key' => 'media.maximum_aspect_ratio', 'value' => '2.5', 'value_type' => 'decimal', 'group' => 'media'],
+            ['key' => 'media.webp_quality', 'value' => '82', 'value_type' => 'integer', 'group' => 'media'],
+        ] as $setting) {
+            DirectorySetting::query()->updateOrCreate(
+                ['key' => $setting['key']],
+                $setting,
+            );
+        }
+
         PageContent::query()->firstOrCreate(['page_key' => 'homepage'], [
             'heading' => 'Discover independent providers near you',
             'intro_content' => 'Browse active profiles by package and find the right connection for you.',

@@ -6,6 +6,7 @@ use App\Enums\AccountType;
 use App\Enums\ProviderType;
 use App\Models\Location;
 use App\Models\TaxonomyOption;
+use App\Services\DirectorySettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -26,7 +27,8 @@ class ProfileOnboardingRequest extends FormRequest
 
         return $user->provider_type === ProviderType::Agency
             && $user->agency !== null
-            && $user->agency->profiles()->wherePivotNull('unassigned_at')->count() < config('directory.agency_profile_limit');
+            && $user->agency->profiles()->wherePivotNull('unassigned_at')->count()
+                < app(DirectorySettings::class)->integer('profiles.agency_limit');
     }
 
     protected function prepareForValidation(): void

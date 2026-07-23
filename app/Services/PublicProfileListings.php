@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 
 class PublicProfileListings
 {
+    public function __construct(private readonly DirectorySettings $settings) {}
+
     /**
      * @return array<string, Collection<int, Profile>>
      */
@@ -34,7 +36,7 @@ class PublicProfileListings
     public function newProfiles(?Location $location = null): Builder
     {
         return $this->baseQuery($location)
-            ->where('last_activated_at', '>=', now()->subDays(config('directory.new_profile_days')))
+            ->where('last_activated_at', '>=', now()->subDays($this->settings->integer('listings.new_profile_days')))
             ->whereHas('packageAssignments', fn (Builder $query) => $query
                 ->where('status', 'active')
                 ->where('expires_at', '>', now()));
