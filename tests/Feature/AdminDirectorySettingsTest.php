@@ -43,11 +43,13 @@ class AdminDirectorySettingsTest extends TestCase
         $this->actingAs($admin)->patch(route('admin.settings.update'), $this->validSettings([
             'agency_profile_limit' => 20,
             'new_profile_days' => 21,
+            'micro_location_min_profiles' => 8,
             'maximum_file_megabytes' => 40,
         ]))->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertSame('20', DirectorySetting::query()->findOrFail('profiles.agency_limit')->value);
         $this->assertSame('21', DirectorySetting::query()->findOrFail('listings.new_profile_days')->value);
+        $this->assertSame('8', DirectorySetting::query()->findOrFail('locations.micro_min_profiles')->value);
         $this->assertSame('40960', DirectorySetting::query()->findOrFail('media.maximum_file_kilobytes')->value);
         $this->assertSame(20, $settings->integer('profiles.agency_limit'));
         $this->assertDatabaseHas('audit_logs', [
@@ -145,6 +147,7 @@ class AdminDirectorySettingsTest extends TestCase
             'agency_profile_limit' => 15,
             'new_profile_days' => 14,
             'listing_rotation_hours' => 24,
+            'micro_location_min_profiles' => 6,
             'maximum_file_megabytes' => 50,
             'minimum_width' => 600,
             'minimum_height' => 600,

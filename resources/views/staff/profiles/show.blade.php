@@ -6,7 +6,7 @@
                 <div class="bg-white p-6 shadow-sm sm:rounded-lg">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div><p class="text-sm text-gray-500">Name</p><p class="font-medium">{{ $packageRequest->profile->display_name }}</p></div>
-                        <div><p class="text-sm text-gray-500">Location</p><p class="font-medium">{{ $packageRequest->profile->primaryLocation->name }} / {{ $packageRequest->profile->sublocation->name }}</p></div>
+                        <div><p class="text-sm text-gray-500">Location</p><p class="font-medium">{{ $packageRequest->profile->primaryLocation->name }} / {{ $packageRequest->profile->sublocation->name }}@if($packageRequest->profile->microLocation) / {{ $packageRequest->profile->microLocation->name }}@endif</p></div>
                         <div><p class="text-sm text-gray-500">Date of birth</p><p class="font-medium">{{ $packageRequest->profile->date_of_birth->format('j M Y') }}</p></div>
                         <div><p class="text-sm text-gray-500">Requested package</p><p class="font-medium">{{ $packageRequest->requestedPackage->name }}</p></div>
                     </div>

@@ -48,7 +48,7 @@ class ProfileManagementController extends Controller
 
         return view('staff.directory.show', [
             'profile' => $profile->load([
-                'primaryLocation', 'sublocation', 'owner', 'currentAgency.owner', 'contacts', 'images',
+                'primaryLocation', 'sublocation', 'microLocation', 'owner', 'currentAgency.owner', 'contacts', 'images',
                 'packageAssignments.package', 'services',
             ]),
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
@@ -117,7 +117,7 @@ class ProfileManagementController extends Controller
                         ->where('status', 'active')
                         ->where('expires_at', '>', now()));
             })
-            ->with(['primaryLocation', 'sublocation', 'owner', 'currentAgency.owner', 'currentPackageAssignment.package', 'packageAssignments.package'])
+            ->with(['primaryLocation', 'sublocation', 'microLocation', 'owner', 'currentAgency.owner', 'currentPackageAssignment.package', 'packageAssignments.package'])
             ->latest('updated_at');
     }
 

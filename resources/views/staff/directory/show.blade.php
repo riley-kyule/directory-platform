@@ -8,7 +8,7 @@
             <div class="grid gap-6 lg:grid-cols-[1.3fr_.7fr]">
                 <section class="bg-white p-6 shadow-sm sm:rounded-lg">
                     <div class="flex flex-wrap items-start justify-between gap-4">
-                        <div><h3 class="text-2xl font-bold text-gray-900">{{ $profile->display_name }}</h3><p class="mt-1 text-sm text-gray-600">{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p></div>
+                        <div><h3 class="text-2xl font-bold text-gray-900">{{ $profile->display_name }}</h3><p class="mt-1 text-sm text-gray-600">@if($profile->microLocation){{ $profile->microLocation->name }}, @endif{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p></div>
                         <span class="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold capitalize text-gray-700">{{ str($profile->status->value)->replace('_', ' ') }}</span>
                     </div>
                     <dl class="mt-6 grid gap-4 border-y py-5 text-sm sm:grid-cols-2">

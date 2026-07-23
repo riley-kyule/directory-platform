@@ -49,6 +49,16 @@ class Location extends Model
         return $this->hasMany(Profile::class, 'sublocation_id');
     }
 
+    public function microLocationProfiles(): HasMany
+    {
+        return $this->hasMany(Profile::class, 'micro_location_id');
+    }
+
+    public function isMicroLocation(): bool
+    {
+        return in_array($this->type, ['area', 'landmark'], true);
+    }
+
     protected function casts(): array
     {
         return ['is_indexable' => 'boolean'];

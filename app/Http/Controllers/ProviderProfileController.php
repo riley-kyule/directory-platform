@@ -12,6 +12,7 @@ use App\Models\Location;
 use App\Models\Package;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
+use App\Services\LocationInventoryService;
 use App\Services\ProfileMediaAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,10 @@ use Illuminate\View\View;
 
 class ProviderProfileController extends Controller
 {
-    public function __construct(private readonly ProfileMediaAccess $access) {}
+    public function __construct(
+        private readonly ProfileMediaAccess $access,
+        private readonly LocationInventoryService $locationInventory,
+    ) {}
 
     public function show(Profile $profile): View
     {
@@ -27,7 +31,7 @@ class ProviderProfileController extends Controller
 
         return view('provider.profiles.show', [
             'profile' => $profile->load([
-                'primaryLocation', 'sublocation', 'gender', 'ethnicity', 'build', 'bustSize',
+                'primaryLocation', 'sublocation', 'microLocation', 'gender', 'ethnicity', 'build', 'bustSize',
                 'details', 'contacts', 'services', 'languages', 'rates', 'rates.period',
                 'images', 'currentPackageAssignment.package', 'packageRequests.requestedPackage',
             ]),
@@ -59,14 +63,24 @@ class ProviderProfileController extends Controller
             abort_unless($this->access->owns($request->user(), $profile), 403);
             abort_unless(in_array($profile->status, [ProfileStatus::Draft, ProfileStatus::Active], true), 409);
 
+            $locationIds = collect([
+                $profile->primary_location_id,
+                $profile->sublocation_id,
+                $profile->micro_location_id,
+            ]);
             $profileFields = [
-                'display_name', 'description', 'primary_location_id', 'sublocation_id',
+                'display_name', 'description', 'primary_location_id', 'sublocation_id', 'micro_location_id',
                 'gender_option_id', 'ethnicity_option_id', 'build_option_id',
                 'bust_size_option_id', 'allows_incall', 'allows_outcall',
             ];
             $profile->fill(collect($validated)->only($profileFields)->all());
             $changedFields = array_keys($profile->getDirty());
             $profile->save();
+            $locationIds
+                ->merge([$profile->primary_location_id, $profile->sublocation_id, $profile->micro_location_id])
+                ->filter()
+                ->unique()
+                ->each(fn (int $locationId) => $this->locationInventory->sync($locationId));
 
             $detailFields = [
                 'hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg',
@@ -182,6 +196,7 @@ class ProviderProfileController extends Controller
                 'telegram_username' => $contacts->get('telegram_username')?->display_value,
                 'primary_location_id' => $profile->primary_location_id,
                 'sublocation_id' => $profile->sublocation_id,
+                'micro_location_id' => $profile->micro_location_id,
                 'gender_option_id' => $profile->gender_option_id,
                 'ethnicity_option_id' => $profile->ethnicity_option_id,
                 'build_option_id' => $profile->build_option_id,
@@ -201,7 +216,16 @@ class ProviderProfileController extends Controller
                 ]) ?? []),
             ],
             'locations' => Location::query()->whereNull('parent_id')->where('status', 'published')->orderBy('name')->get(),
-            'sublocations' => Location::query()->whereNotNull('parent_id')->where('status', 'published')->orderBy('name')->get(),
+            'sublocations' => Location::query()
+                ->where('status', 'published')
+                ->whereHas('parent', fn ($query) => $query->whereNull('parent_id'))
+                ->orderBy('name')
+                ->get(),
+            'microLocations' => Location::query()
+                ->whereIn('type', ['area', 'landmark'])
+                ->where('status', 'published')
+                ->orderBy('name')
+                ->get(),
             'taxonomies' => $taxonomies,
             'packages' => collect(),
         ];

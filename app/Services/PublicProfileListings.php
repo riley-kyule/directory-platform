@@ -51,6 +51,8 @@ class PublicProfileListings
                 ->where('status', 'active')
                 ->where('expires_at', '>', now()))
             ->reorder()
+            ->when($profile->micro_location_id, fn (Builder $query) => $query
+                ->orderByRaw('CASE WHEN micro_location_id = ? THEN 0 ELSE 1 END', [$profile->micro_location_id]))
             ->orderByRaw('CASE WHEN sublocation_id = ? THEN 0 ELSE 1 END', [$profile->sublocation_id])
             ->orderBy('listing_rank')
             ->orderBy('id')
@@ -62,12 +64,15 @@ class PublicProfileListings
     {
         return Profile::query()
             ->publiclyVisible()
-            ->when($location, fn (Builder $query) => $location->parent_id
-                ? $query->where('sublocation_id', $location->id)
-                : $query->where('primary_location_id', $location->id))
+            ->when($location, fn (Builder $query) => $location->isMicroLocation()
+                ? $query->where('micro_location_id', $location->id)
+                : ($location->parent_id
+                    ? $query->where('sublocation_id', $location->id)
+                    : $query->where('primary_location_id', $location->id)))
             ->with([
                 'primaryLocation',
                 'sublocation',
+                'microLocation',
                 'owner',
                 'currentAgency.owner',
                 'images' => fn ($query) => $query->where('status', 'approved')->limit(1),

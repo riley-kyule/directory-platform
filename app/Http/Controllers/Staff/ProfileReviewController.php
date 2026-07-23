@@ -44,7 +44,7 @@ class ProfileReviewController extends Controller
 
         return view('staff.profiles.show', [
             'packageRequest' => $packageRequest->load([
-                'profile.primaryLocation', 'profile.sublocation', 'profile.contacts', 'profile.images',
+                'profile.primaryLocation', 'profile.sublocation', 'profile.microLocation', 'profile.contacts', 'profile.images',
                 'profile.services', 'requestedPackage', 'requestedBy',
             ]),
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),

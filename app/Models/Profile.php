@@ -41,6 +41,11 @@ class Profile extends Model
         return $this->belongsTo(Location::class, 'sublocation_id');
     }
 
+    public function microLocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'micro_location_id');
+    }
+
     public function agency(): BelongsToMany
     {
         return $this->belongsToMany(Agency::class, 'agency_profiles')

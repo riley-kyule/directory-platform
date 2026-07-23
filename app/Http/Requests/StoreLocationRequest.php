@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Location;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -28,7 +29,7 @@ class StoreLocationRequest extends FormRequest
         return [
             'parent_id' => ['nullable', Rule::exists('locations', 'id')],
             'country_code' => ['required', 'string', 'size:2', 'alpha:ascii'],
-            'type' => ['required', Rule::in(['country', 'county', 'city', 'town', 'district', 'neighbourhood', 'area'])],
+            'type' => ['required', Rule::in(['country', 'county', 'city', 'town', 'neighbourhood', 'area', 'landmark'])],
             'name' => ['required', 'string', 'max:160'],
             'status' => ['required', Rule::in(['draft', 'published'])],
             'is_indexable' => ['boolean'],
@@ -50,6 +51,13 @@ class StoreLocationRequest extends FormRequest
 
             if ($this->boolean('is_indexable')) {
                 $validator->errors()->add('is_indexable', 'A new location needs at least one active profile before indexability can be enabled.');
+            }
+
+            if (in_array($this->input('type'), ['area', 'landmark'], true)) {
+                $parent = Location::query()->find($this->integer('parent_id'));
+                if (! $parent || ! $parent->parent_id || in_array($parent->type, ['area', 'landmark'], true)) {
+                    $validator->errors()->add('parent_id', 'An area or landmark must sit beneath a neighbourhood.');
+                }
             }
         }];
     }

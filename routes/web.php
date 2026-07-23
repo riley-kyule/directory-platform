@@ -87,8 +87,29 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 Route::get('/{city}-escorts/page/{page}', [PublicDirectoryController::class, 'city'])
-    ->whereNumber('page')->name('directory.cities.page');
+    ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->whereNumber('page')->name('directory.cities.page');
+Route::get('/{city}/{neighbourhood}/{micro}-escorts/page/{page}', [PublicDirectoryController::class, 'microLocation'])
+    ->where([
+        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        'micro' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+    ])->whereNumber('page')->name('directory.micro-locations.page');
 Route::get('/{city}/{neighbourhood}-escorts/page/{page}', [PublicDirectoryController::class, 'neighbourhood'])
-    ->whereNumber('page')->name('directory.neighbourhoods.page');
-Route::get('/{city}-escorts', [PublicDirectoryController::class, 'city'])->name('directory.cities.show');
-Route::get('/{city}/{neighbourhood}-escorts', [PublicDirectoryController::class, 'neighbourhood'])->name('directory.neighbourhoods.show');
+    ->where([
+        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+    ])->whereNumber('page')->name('directory.neighbourhoods.page');
+Route::get('/{city}/{neighbourhood}/{micro}-escorts', [PublicDirectoryController::class, 'microLocation'])
+    ->where([
+        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        'micro' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+    ])
+    ->name('directory.micro-locations.show');
+Route::get('/{city}-escorts', [PublicDirectoryController::class, 'city'])
+    ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('directory.cities.show');
+Route::get('/{city}/{neighbourhood}-escorts', [PublicDirectoryController::class, 'neighbourhood'])
+    ->where([
+        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+    ])->name('directory.neighbourhoods.show');

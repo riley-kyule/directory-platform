@@ -25,6 +25,7 @@
                         ['agency_profile_limit', 'Agency profile limit', 1, 100, 1],
                         ['new_profile_days', 'New profile window (days)', 1, 365, 1],
                         ['listing_rotation_hours', 'Listing rotation interval (hours)', 1, 168, 1],
+                        ['micro_location_min_profiles', 'Micro-location index threshold', 2, 100, 1],
                         ['maximum_file_megabytes', 'Maximum image size (MB)', 1, 50, 1],
                         ['minimum_width', 'Minimum image width (px)', 200, 5000, 1],
                         ['minimum_height', 'Minimum image height (px)', 200, 5000, 1],

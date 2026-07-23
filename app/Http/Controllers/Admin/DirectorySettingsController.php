@@ -8,9 +8,11 @@ use App\Http\Requests\UpdateDirectorySettingsRequest;
 use App\Http\Requests\UpdatePackageRequest;
 use App\Models\AuditLog;
 use App\Models\DirectorySetting;
+use App\Models\Location;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
 use App\Services\DirectorySettings;
+use App\Services\LocationInventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -18,7 +20,10 @@ use Illuminate\View\View;
 
 class DirectorySettingsController extends Controller
 {
-    public function __construct(private readonly DirectorySettings $settings) {}
+    public function __construct(
+        private readonly DirectorySettings $settings,
+        private readonly LocationInventoryService $locationInventory,
+    ) {}
 
     public function index(): View
     {
@@ -29,6 +34,7 @@ class DirectorySettingsController extends Controller
                 'agency_profile_limit' => $this->settings->integer('profiles.agency_limit'),
                 'new_profile_days' => $this->settings->integer('listings.new_profile_days'),
                 'listing_rotation_hours' => $this->settings->integer('listings.rotation_hours'),
+                'micro_location_min_profiles' => $this->settings->integer('locations.micro_min_profiles'),
                 'maximum_file_megabytes' => intdiv($this->settings->integer('media.maximum_file_kilobytes'), 1024),
                 'minimum_width' => $this->settings->integer('media.minimum_width'),
                 'minimum_height' => $this->settings->integer('media.minimum_height'),
@@ -51,6 +57,7 @@ class DirectorySettingsController extends Controller
             'profiles.agency_limit' => [$validated['agency_profile_limit'], 'integer', 'profiles'],
             'listings.new_profile_days' => [$validated['new_profile_days'], 'integer', 'listings'],
             'listings.rotation_hours' => [$validated['listing_rotation_hours'], 'integer', 'listings'],
+            'locations.micro_min_profiles' => [$validated['micro_location_min_profiles'], 'integer', 'locations'],
             'media.maximum_file_kilobytes' => [$validated['maximum_file_megabytes'] * 1024, 'integer', 'media'],
             'media.minimum_width' => [$validated['minimum_width'], 'integer', 'media'],
             'media.minimum_height' => [$validated['minimum_height'], 'integer', 'media'],
@@ -73,6 +80,10 @@ class DirectorySettingsController extends Controller
             }
             $this->audit($request->user()->id, 'settings.update', null, $previous, collect($values)->map(fn ($item) => (string) $item[0])->all());
         });
+        Location::query()
+            ->whereIn('type', ['area', 'landmark'])
+            ->select('id')
+            ->eachById(fn (Location $location) => $this->locationInventory->sync($location->id));
 
         return back()->with('status', 'Directory settings updated.');
     }

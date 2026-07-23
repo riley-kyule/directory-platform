@@ -18,6 +18,7 @@ class UpdateDirectorySettingsRequest extends FormRequest
             'agency_profile_limit' => ['required', 'integer', 'between:1,100'],
             'new_profile_days' => ['required', 'integer', 'between:1,365'],
             'listing_rotation_hours' => ['required', 'integer', 'between:1,168'],
+            'micro_location_min_profiles' => ['required', 'integer', 'between:2,100'],
             'maximum_file_megabytes' => ['required', 'integer', 'between:1,50'],
             'minimum_width' => ['required', 'integer', 'between:200,5000'],
             'minimum_height' => ['required', 'integer', 'between:200,5000'],

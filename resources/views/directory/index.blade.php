@@ -5,7 +5,13 @@
                 <nav class="mb-4 text-sm text-stone-500" aria-label="Breadcrumb">
                     <a href="{{ route('directory.home') }}" class="hover:text-stone-950">Home</a>
                     <span class="mx-2">/</span>
-                    <a href="{{ route('directory.cities.show', $location->parent->slug) }}" class="hover:text-stone-950">{{ $location->parent->name }}</a>
+                    @if ($location->parent->parent)
+                        <a href="{{ route('directory.cities.show', $location->parent->parent->slug) }}" class="hover:text-stone-950">{{ $location->parent->parent->name }}</a>
+                        <span class="mx-2">/</span>
+                        <a href="{{ route('directory.neighbourhoods.show', [$location->parent->parent->slug, $location->parent->slug]) }}" class="hover:text-stone-950">{{ $location->parent->name }}</a>
+                    @else
+                        <a href="{{ route('directory.cities.show', $location->parent->slug) }}" class="hover:text-stone-950">{{ $location->parent->name }}</a>
+                    @endif
                     <span class="mx-2">/</span><span>{{ $location->name }}</span>
                 </nav>
             @endif

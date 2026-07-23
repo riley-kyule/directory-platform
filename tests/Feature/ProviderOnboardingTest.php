@@ -176,6 +176,26 @@ class ProviderOnboardingTest extends TestCase
         $this->assertDatabaseCount('profiles', 0);
     }
 
+    public function test_provider_can_choose_a_micro_location_within_the_selected_sub_location(): void
+    {
+        $micro = Location::query()->create([
+            'parent_id' => $this->sublocation->id,
+            'country_code' => 'KE',
+            'type' => 'landmark',
+            'name' => 'Sarit Centre',
+            'slug' => 'sarit-centre',
+            'full_slug' => 'nairobi/westlands/sarit-centre',
+            'status' => 'published',
+        ]);
+        $provider = $this->provider(ProviderType::Independent);
+
+        $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData([
+            'micro_location_id' => $micro->id,
+        ]))->assertRedirect(route('onboarding.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame($micro->id, Profile::query()->firstOrFail()->micro_location_id);
+    }
+
     private function provider(ProviderType $type): User
     {
         return User::factory()->create([

@@ -59,6 +59,7 @@ class ProfileOnboardingRequest extends FormRequest
             'tiktok_handle' => ['nullable', 'string', 'max:64', 'regex:/^@?[A-Za-z0-9._]{1,30}$/'],
             'primary_location_id' => ['required', Rule::exists('locations', 'id')->where('status', 'published')],
             'sublocation_id' => ['required', Rule::exists('locations', 'id')->where('status', 'published')],
+            'micro_location_id' => ['nullable', Rule::exists('locations', 'id')->where('status', 'published')],
             'gender_option_id' => ['required', $this->taxonomyRule('gender')],
             'date_of_birth' => ['required', 'date', 'before_or_equal:'.now()->subYears(18)->toDateString()],
             'ethnicity_option_id' => ['required', $this->taxonomyRule('ethnicity')],
@@ -98,6 +99,18 @@ class ProfileOnboardingRequest extends FormRequest
 
                 if (! $isChild) {
                     $validator->errors()->add('sublocation_id', 'Choose a sub-location within the selected location.');
+                }
+            }
+
+            if ($this->filled('micro_location_id') && $this->filled('sublocation_id')) {
+                $isChild = Location::query()
+                    ->whereKey($this->integer('micro_location_id'))
+                    ->where('parent_id', $this->integer('sublocation_id'))
+                    ->whereIn('type', ['area', 'landmark'])
+                    ->exists();
+
+                if (! $isChild) {
+                    $validator->errors()->add('micro_location_id', 'Choose an area or landmark within the selected sub-location.');
                 }
             }
 

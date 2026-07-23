@@ -18,6 +18,7 @@ class DirectoryDefaultsSeeder extends Seeder
             ['key' => 'profiles.agency_limit', 'value' => '15', 'value_type' => 'integer', 'group' => 'profiles'],
             ['key' => 'listings.new_profile_days', 'value' => '14', 'value_type' => 'integer', 'group' => 'listings'],
             ['key' => 'listings.rotation_hours', 'value' => '24', 'value_type' => 'integer', 'group' => 'listings'],
+            ['key' => 'locations.micro_min_profiles', 'value' => '6', 'value_type' => 'integer', 'group' => 'locations'],
             ['key' => 'media.maximum_file_kilobytes', 'value' => '51200', 'value_type' => 'integer', 'group' => 'media'],
             ['key' => 'media.minimum_width', 'value' => '600', 'value_type' => 'integer', 'group' => 'media'],
             ['key' => 'media.minimum_height', 'value' => '600', 'value_type' => 'integer', 'group' => 'media'],

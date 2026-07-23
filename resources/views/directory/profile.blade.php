@@ -5,6 +5,9 @@
             <a href="{{ route('directory.home') }}" class="hover:text-stone-950">Home</a><span class="mx-2">/</span>
             <a href="{{ route('directory.cities.show', $profile->primaryLocation->slug) }}" class="hover:text-stone-950">{{ $profile->primaryLocation->name }}</a><span class="mx-2">/</span>
             <a href="{{ route('directory.neighbourhoods.show', [$profile->primaryLocation->slug, $profile->sublocation->slug]) }}" class="hover:text-stone-950">{{ $profile->sublocation->name }}</a><span class="mx-2">/</span>
+            @if ($profile->microLocation)
+                <a href="{{ route('directory.micro-locations.show', [$profile->primaryLocation->slug, $profile->sublocation->slug, $profile->microLocation->slug]) }}" class="hover:text-stone-950">{{ $profile->microLocation->name }}</a><span class="mx-2">/</span>
+            @endif
             <span>{{ $profile->display_name }}</span>
         </nav>
 
@@ -37,7 +40,7 @@
                         @if ($profile->last_activated_at?->gte(now()->subDays($newProfileDays)))<span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">New</span>@endif
                     </div>
                     <h1 class="mt-4 text-4xl font-black tracking-tight">{{ $profile->display_name }}</h1>
-                    <p class="mt-2 text-stone-500">{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p>
+                    <p class="mt-2 text-stone-500">@if($profile->microLocation){{ $profile->microLocation->name }}, @endif{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p>
 
                     <dl class="mt-7 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-stone-200 py-6 text-sm">
                         <div><dt class="text-stone-400">Age</dt><dd class="mt-1 font-bold">{{ $profile->date_of_birth->age }}</dd></div>
@@ -65,7 +68,7 @@
             <section class="mt-16 border-t border-stone-200 pt-10" aria-labelledby="related-profiles">
                 <div class="mb-6">
                     <h2 id="related-profiles" class="text-2xl font-black tracking-tight sm:text-3xl">More profiles near {{ $profile->display_name }}</h2>
-                    <p class="mt-1 text-sm text-stone-500">Other active profiles in {{ $profile->primaryLocation->name }}, with {{ $profile->sublocation->name }} shown first.</p>
+                    <p class="mt-1 text-sm text-stone-500">Other active profiles in {{ $profile->primaryLocation->name }}, with {{ $profile->microLocation?->name ?? $profile->sublocation->name }} shown first.</p>
                 </div>
                 <div class="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 lg:grid-cols-4">
                     @foreach ($relatedProfiles as $relatedProfile)

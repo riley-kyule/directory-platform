@@ -87,6 +87,7 @@ class ProviderOnboardingController extends Controller
                 'description' => $validated['description'],
                 'primary_location_id' => $validated['primary_location_id'],
                 'sublocation_id' => $validated['sublocation_id'],
+                'micro_location_id' => $validated['micro_location_id'] ?? null,
                 'gender_option_id' => $validated['gender_option_id'],
                 'date_of_birth' => $validated['date_of_birth'],
                 'ethnicity_option_id' => $validated['ethnicity_option_id'],
@@ -179,7 +180,16 @@ class ProviderOnboardingController extends Controller
             'profile' => null,
             'form' => [],
             'locations' => Location::query()->whereNull('parent_id')->where('status', 'published')->orderBy('name')->get(),
-            'sublocations' => Location::query()->whereNotNull('parent_id')->where('status', 'published')->orderBy('name')->get(),
+            'sublocations' => Location::query()
+                ->where('status', 'published')
+                ->whereHas('parent', fn ($query) => $query->whereNull('parent_id'))
+                ->orderBy('name')
+                ->get(),
+            'microLocations' => Location::query()
+                ->whereIn('type', ['area', 'landmark'])
+                ->where('status', 'published')
+                ->orderBy('name')
+                ->get(),
             'taxonomies' => $taxonomies,
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
         ];

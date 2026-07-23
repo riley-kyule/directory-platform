@@ -12,6 +12,7 @@ class DirectorySettings
         'profiles.agency_limit' => 15,
         'listings.new_profile_days' => 14,
         'listings.rotation_hours' => 24,
+        'locations.micro_min_profiles' => 6,
         'media.maximum_file_kilobytes' => 51200,
         'media.minimum_width' => 600,
         'media.minimum_height' => 600,

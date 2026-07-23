@@ -17,6 +17,7 @@ The project is in active development. Its current foundation provides account re
 - Separate VIP, Premium, Basic, and New listing sections
 - Stable randomized listing order with scheduled rotation
 - SEO titles, descriptions, canonicals, and inventory-aware robots rules
+- Three-level city, neighbourhood, and micro-location pages with higher micro-location indexing thresholds
 - Database-managed homepage and location copy with audited SEO/Admin editing
 - Safe Markdown content blocks below public listings
 - Public Call, SMS, WhatsApp, and Telegram profile actions

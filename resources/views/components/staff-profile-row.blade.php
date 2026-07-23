@@ -8,7 +8,7 @@
         <p class="truncate font-semibold text-gray-900">{{ $profile->display_name }}</p>
         <p class="truncate text-xs text-gray-500">{{ $profile->owner?->email ?? $profile->currentAgency->first()?->owner?->email ?? 'No active owner relationship' }}</p>
     </div>
-    <p class="text-sm text-gray-600">{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p>
+    <p class="text-sm text-gray-600">@if($profile->microLocation){{ $profile->microLocation->name }}, @endif{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p>
     <div><span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold capitalize text-gray-700">{{ str($profile->status->value)->replace('_', ' ') }}</span></div>
     <div class="text-sm sm:text-right">
         <p class="font-semibold text-gray-700">{{ $assignment?->package?->name ?? 'No package' }}</p>

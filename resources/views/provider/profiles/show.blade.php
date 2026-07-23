@@ -45,7 +45,7 @@
 
             <section class="grid gap-6 bg-white p-6 shadow-sm sm:rounded-lg md:grid-cols-2">
                 <div class="md:col-span-2"><h3 class="text-lg font-semibold text-gray-900">Profile information</h3></div>
-                <div><p class="text-sm text-gray-500">Location</p><p class="font-medium">{{ $profile->primaryLocation->name }} / {{ $profile->sublocation->name }}</p></div>
+                <div><p class="text-sm text-gray-500">Location</p><p class="font-medium">{{ $profile->primaryLocation->name }} / {{ $profile->sublocation->name }}@if($profile->microLocation) / {{ $profile->microLocation->name }}@endif</p></div>
                 <div><p class="text-sm text-gray-500">Gender</p><p class="font-medium">{{ $profile->gender->label }}</p></div>
                 <div><p class="text-sm text-gray-500">Ethnicity</p><p class="font-medium">{{ $profile->ethnicity->label }}</p></div>
                 <div><p class="text-sm text-gray-500">Build</p><p class="font-medium">{{ $profile->build->label }}</p></div>

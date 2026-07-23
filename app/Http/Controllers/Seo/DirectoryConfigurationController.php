@@ -86,7 +86,7 @@ class DirectoryConfigurationController extends Controller
                 'faq_content' => ! empty($validated['faq_content']) ? json_encode(['content' => $validated['faq_content']]) : null,
                 'seo_title' => $validated['seo_title'] ?? '',
                 'meta_description' => $validated['meta_description'] ?? '',
-                'canonical_path' => $parent ? '/'.$parent->slug.'/'.$slug.'-escorts' : '/'.$slug.'-escorts',
+                'canonical_path' => '/'.$fullSlug.'-escorts',
                 'content_status' => $validated['status'] === 'published' ? 'approved' : 'draft',
                 'last_reviewed_at' => $validated['status'] === 'published' ? now() : null,
                 'reviewed_by' => $validated['status'] === 'published' ? $request->user()->id : null,

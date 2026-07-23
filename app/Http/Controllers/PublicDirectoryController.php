@@ -64,13 +64,31 @@ class PublicDirectoryController extends Controller
         return $this->locationPage($location, $page);
     }
 
+    public function microLocation(string $city, string $neighbourhood, string $micro, int $page = 1): View
+    {
+        $location = Location::query()
+            ->where('slug', $micro)
+            ->whereIn('type', ['area', 'landmark'])
+            ->where('status', 'published')
+            ->whereHas('parent', fn (Builder $query) => $query
+                ->where('slug', $neighbourhood)
+                ->where('status', 'published')
+                ->whereHas('parent', fn (Builder $query) => $query
+                    ->where('slug', $city)
+                    ->where('status', 'published')))
+            ->with(['content', 'parent.parent'])
+            ->firstOrFail();
+
+        return $this->locationPage($location, $page);
+    }
+
     public function profile(string $profile): View
     {
         $profile = Profile::query()
             ->publiclyVisible()
             ->where('slug', $profile)
             ->with([
-                'primaryLocation', 'sublocation', 'gender', 'ethnicity', 'build', 'bustSize',
+                'primaryLocation', 'sublocation', 'microLocation', 'gender', 'ethnicity', 'build', 'bustSize',
                 'owner', 'currentAgency.owner', 'services', 'languages', 'details.hairColor', 'details.hairLength',
                 'details.sexualOrientation', 'rates.period', 'currentPackageAssignment.package',
                 'contacts' => fn ($query) => $query->where('is_public', true)->orderBy('sort_order'),
@@ -82,7 +100,7 @@ class PublicDirectoryController extends Controller
             'profile' => $profile,
             'relatedProfiles' => $this->listings->relatedTo($profile),
             'contactLinks' => $this->contactLinks->for($profile),
-            'metaTitle' => $profile->display_name.' — '.$profile->sublocation->name.', '.$profile->primaryLocation->name,
+            'metaTitle' => $profile->display_name.' — '.($profile->microLocation?->name ?? $profile->sublocation->name).', '.$profile->primaryLocation->name,
             'metaDescription' => str($profile->description)->squish()->limit(155),
             'canonicalUrl' => route('directory.profiles.show', $profile->slug),
             'robots' => 'index,follow',
@@ -105,8 +123,7 @@ class PublicDirectoryController extends Controller
         abort_if($page > $totalPages, 404);
 
         $sections = collect($queries)->map(fn (Builder $query) => $query->forPage($page, $perPage)->get())->all();
-        $basePath = $location->content?->canonical_path
-            ?? ($location->parent ? '/'.$location->parent->slug.'/'.$location->slug.'-escorts' : '/'.$location->slug.'-escorts');
+        $basePath = $location->content?->canonical_path ?? '/'.$location->full_slug.'-escorts';
         $canonicalPath = $page === 1 ? $basePath : $basePath.'/page/'.$page;
         $globalContent = PageContent::query()->where('page_key', 'homepage')->firstOrFail();
 

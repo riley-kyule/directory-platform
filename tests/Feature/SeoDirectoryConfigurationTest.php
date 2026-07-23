@@ -84,6 +84,35 @@ class SeoDirectoryConfigurationTest extends TestCase
         ]);
     }
 
+    public function test_micro_location_receives_three_level_canonical_path(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData());
+        $city = Location::query()->where('name', 'Nairobi')->firstOrFail();
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData([
+            'parent_id' => $city->id,
+            'type' => 'neighbourhood',
+            'name' => 'Westlands',
+            'seo_title' => 'Westlands Escorts and Independent Profiles',
+        ]));
+        $neighbourhood = Location::query()->where('name', 'Westlands')->firstOrFail();
+
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData([
+            'parent_id' => $neighbourhood->id,
+            'type' => 'landmark',
+            'name' => 'Sarit Centre',
+            'seo_title' => 'Sarit Centre Escorts and Independent Profiles',
+        ]))->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+
+        $micro = Location::query()->where('name', 'Sarit Centre')->firstOrFail();
+        $this->assertSame('nairobi/westlands/sarit-centre', $micro->full_slug);
+        $this->assertFalse($micro->is_indexable);
+        $this->assertDatabaseHas('location_contents', [
+            'location_id' => $micro->id,
+            'canonical_path' => '/nairobi/westlands/sarit-centre-escorts',
+        ]);
+    }
+
     public function test_protected_top_level_slug_is_rejected(): void
     {
         $this->actingAs($this->staff('seo'))
