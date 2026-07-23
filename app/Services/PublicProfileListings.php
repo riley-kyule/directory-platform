@@ -67,6 +67,7 @@ class PublicProfileListings
                 'primaryLocation',
                 'sublocation',
                 'owner',
+                'currentAgency.owner',
                 'images' => fn ($query) => $query->where('status', 'approved')->limit(1),
                 'contacts' => fn ($query) => $query->where('is_public', true),
                 'currentPackageAssignment.package',

@@ -25,6 +25,11 @@
                             {{ __('Profile reviews') }}
                         </x-nav-link>
                     @endcan
+                    @can('profiles.view-private')
+                        <x-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.*')">
+                            {{ __('Manage listings') }}
+                        </x-nav-link>
+                    @endcan
                     @can('seo.locations')
                         <x-nav-link :href="route('seo.directory.index')" :active="request()->routeIs('seo.*')">
                             {{ __('Directory configuration') }}
@@ -93,6 +98,11 @@
             @can('profiles.activate')
                 <x-responsive-nav-link :href="route('staff.profiles.index')" :active="request()->routeIs('staff.profiles.*')">
                     {{ __('Profile reviews') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('profiles.view-private')
+                <x-responsive-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.*')">
+                    {{ __('Manage listings') }}
                 </x-responsive-nav-link>
             @endcan
             @can('seo.locations')

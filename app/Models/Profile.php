@@ -48,6 +48,11 @@ class Profile extends Model
             ->withTimestamps();
     }
 
+    public function currentAgency(): BelongsToMany
+    {
+        return $this->agency()->wherePivotNull('unassigned_at');
+    }
+
     public function contacts(): HasMany
     {
         return $this->hasMany(ProfileContactMethod::class);

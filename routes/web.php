@@ -7,6 +7,7 @@ use App\Http\Controllers\PublicAgencyController;
 use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\Staff\ProfileManagementController;
 use App\Http\Controllers\Staff\ProfileReviewController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +47,9 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {
+        Route::get('/directory', [ProfileManagementController::class, 'index'])->name('directory.index');
+        Route::get('/directory/{profile}', [ProfileManagementController::class, 'show'])->name('directory.show');
+        Route::patch('/directory/{profile}', [ProfileManagementController::class, 'update'])->name('directory.update');
         Route::get('/profiles', [ProfileReviewController::class, 'index'])->name('profiles.index');
         Route::get('/profiles/{packageRequest}', [ProfileReviewController::class, 'show'])->name('profiles.show');
         Route::patch('/profiles/{packageRequest}', [ProfileReviewController::class, 'update'])->name('profiles.update');
