@@ -22,6 +22,7 @@ The project is in active development. Its current foundation provides account re
 - Safe Markdown content blocks below public listings
 - Public Call, SMS, WhatsApp, and Telegram profile actions
 - Public agency directory and active-profile agency pages
+- Privacy-safe public search with location, profile attribute, availability, and service filters
 - Privacy-safe related profiles prioritized by sub-location
 - Dynamic, visibility-aware XML sitemaps and robots discovery
 - SEO-managed redirects, 410 removals, loop protection, and audited activation controls

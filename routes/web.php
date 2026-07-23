@@ -9,6 +9,7 @@ use App\Http\Controllers\ProviderOnboardingController;
 use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
 use App\Http\Controllers\PublicDirectoryController;
+use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Seo\RedirectManagementController;
 use App\Http\Controllers\SitemapController;
@@ -20,6 +21,7 @@ Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.hom
 Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->name('directory.profiles.show');
 Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('directory.agencies.index');
 Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->name('directory.agencies.show');
+Route::get('/search', [PublicSearchController::class, 'index'])->name('directory.search');
 Route::get('/terms', [PolicyPageController::class, 'show'])->defaults('policyType', 'terms')->name('policies.terms');
 Route::get('/privacy', [PolicyPageController::class, 'show'])->defaults('policyType', 'privacy')->name('policies.privacy');
 Route::get('/provider-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'provider')->name('policies.provider');

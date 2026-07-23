@@ -109,6 +109,58 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertDontSee($this->profile->date_of_birth->toDateString());
     }
 
+    public function test_search_is_noindex_and_matches_only_public_profile_text(): void
+    {
+        $this->get(route('directory.search', ['q' => 'Jane Public']))
+            ->assertOk()
+            ->assertSee('Jane Public')
+            ->assertSee('<meta name="robots" content="noindex,follow">', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/search">', false)
+            ->assertDontSee($this->profile->date_of_birth->toDateString());
+
+        $this->profile->update(['status' => ProfileStatus::Expired]);
+        $this->get(route('directory.search', ['q' => 'Jane Public']))
+            ->assertOk()
+            ->assertSee('No matching active profiles')
+            ->assertDontSee('Call Jane Public');
+    }
+
+    public function test_search_filters_use_public_slugs_and_validate_location_hierarchy(): void
+    {
+        $service = TaxonomyOption::query()->ofType('service')->where('slug', 'massage')->firstOrFail();
+        $this->profile->services()->attach($service);
+
+        $this->get(route('directory.search', [
+            'city' => 'nairobi',
+            'neighbourhood' => 'westlands',
+            'gender' => 'woman',
+            'services' => ['massage'],
+            'availability' => 'both',
+        ]))->assertOk()->assertSee('Jane Public');
+
+        $otherCity = Location::query()->create([
+            'country_code' => 'KE', 'type' => 'city', 'name' => 'Mombasa', 'slug' => 'mombasa',
+            'full_slug' => 'mombasa', 'status' => 'published',
+        ]);
+        Location::query()->create([
+            'parent_id' => $otherCity->id, 'country_code' => 'KE', 'type' => 'neighbourhood',
+            'name' => 'Nyali', 'slug' => 'nyali', 'full_slug' => 'mombasa/nyali', 'status' => 'published',
+        ]);
+
+        $this->get(route('directory.search', [
+            'city' => 'nairobi',
+            'neighbourhood' => 'nyali',
+        ]))->assertSessionHasErrors('neighbourhood');
+    }
+
+    public function test_search_query_is_escaped_when_rendered(): void
+    {
+        $this->get(route('directory.search', ['q' => '<script>alert(1)</script>']))
+            ->assertOk()
+            ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)
+            ->assertDontSee('<script>alert(1)</script>', false);
+    }
+
     public function test_non_public_profile_returns_not_found(): void
     {
         $this->profile->update(['status' => ProfileStatus::Expired]);

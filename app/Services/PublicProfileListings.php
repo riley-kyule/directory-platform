@@ -60,6 +60,40 @@ class PublicProfileListings
             ->get();
     }
 
+    /** @param array<string, mixed> $filters */
+    public function search(array $filters): Builder
+    {
+        return $this->baseQuery()
+            ->when($filters['q'] ?? null, function (Builder $query, string $term): void {
+                $escaped = addcslashes($term, '\\%_');
+                $query->where(fn (Builder $query) => $query
+                    ->where('display_name', 'like', '%'.$escaped.'%')
+                    ->orWhere('description', 'like', '%'.$escaped.'%'));
+            })
+            ->when($filters['city'] ?? null, fn (Builder $query, string $slug) => $query
+                ->whereHas('primaryLocation', fn (Builder $query) => $query->where('slug', $slug)))
+            ->when($filters['neighbourhood'] ?? null, fn (Builder $query, string $slug) => $query
+                ->whereHas('sublocation', fn (Builder $query) => $query->where('slug', $slug)))
+            ->when($filters['gender'] ?? null, fn (Builder $query, string $slug) => $query
+                ->whereHas('gender', fn (Builder $query) => $query->where('slug', $slug)))
+            ->when($filters['ethnicity'] ?? null, fn (Builder $query, string $slug) => $query
+                ->whereHas('ethnicity', fn (Builder $query) => $query->where('slug', $slug)))
+            ->when($filters['build'] ?? null, fn (Builder $query, string $slug) => $query
+                ->whereHas('build', fn (Builder $query) => $query->where('slug', $slug)))
+            ->when($filters['bust_size'] ?? null, fn (Builder $query, string $slug) => $query
+                ->whereHas('bustSize', fn (Builder $query) => $query->where('slug', $slug)))
+            ->when($filters['availability'] ?? null, function (Builder $query, string $availability): void {
+                if (in_array($availability, ['incall', 'both'], true)) {
+                    $query->where('allows_incall', true);
+                }
+                if (in_array($availability, ['outcall', 'both'], true)) {
+                    $query->where('allows_outcall', true);
+                }
+            })
+            ->when($filters['services'] ?? [], fn (Builder $query, array $slugs) => $query
+                ->whereHas('services', fn (Builder $query) => $query->whereIn('slug', $slugs)));
+    }
+
     private function baseQuery(?Location $location = null): Builder
     {
         return Profile::query()

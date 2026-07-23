@@ -18,6 +18,7 @@
                     <span class="text-lg font-semibold tracking-tight">{{ config('app.name') }}</span>
                 </a>
                 <nav class="flex items-center gap-2 text-sm font-medium">
+                    <a href="{{ route('directory.search') }}" class="rounded-full px-4 py-2 hover:bg-white/10">Search</a>
                     <a href="{{ route('directory.agencies.index') }}" class="hidden rounded-full px-4 py-2 hover:bg-white/10 sm:inline-flex">Agencies</a>
                     @auth
                         <a href="{{ route('dashboard') }}" class="rounded-full px-4 py-2 hover:bg-white/10">Dashboard</a>
