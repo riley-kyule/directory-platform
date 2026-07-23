@@ -21,7 +21,10 @@
                             <div><dt class="text-sm text-gray-500">Status</dt><dd class="font-medium capitalize">{{ str($user->profile->status->value)->replace('_', ' ') }}</dd></div>
                             <div><dt class="text-sm text-gray-500">Requested package</dt><dd class="font-medium">{{ $user->profile->packageRequests->last()?->requestedPackage?->name ?? '—' }}</dd></div>
                         </dl>
-                        <a href="{{ route('profiles.media.index', $user->profile) }}" class="mt-5 inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500">Manage media</a>
+                        <div class="mt-5 flex flex-wrap gap-4">
+                            <a href="{{ route('provider.profiles.show', $user->profile) }}" class="inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500">View profile</a>
+                            <a href="{{ route('profiles.media.index', $user->profile) }}" class="inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500">{{ in_array($user->profile->status, [\App\Enums\ProfileStatus::Draft, \App\Enums\ProfileStatus::Active], true) ? 'Manage media' : 'View media' }}</a>
+                        </div>
                         @if ($user->profile->status === \App\Enums\ProfileStatus::Draft)
                             <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}" class="mt-5">
                                 @csrf
@@ -69,7 +72,8 @@
                                     <div><p class="font-medium">{{ $profile->display_name }}</p><p class="text-sm capitalize text-gray-500">{{ str($profile->status->value)->replace('_', ' ') }}</p></div>
                                     <div class="text-right">
                                         <span class="text-sm text-gray-600">{{ $profile->packageRequests->last()?->requestedPackage?->name ?? 'No package' }}</span>
-                                        <a href="{{ route('profiles.media.index', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">Manage media</a>
+                                        <a href="{{ route('provider.profiles.show', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">View profile</a>
+                                        <a href="{{ route('profiles.media.index', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">{{ in_array($profile->status, [\App\Enums\ProfileStatus::Draft, \App\Enums\ProfileStatus::Active], true) ? 'Manage media' : 'View media' }}</a>
                                         @if ($profile->status === \App\Enums\ProfileStatus::Draft)
                                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="mt-2">
                                                 @csrf

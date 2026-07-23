@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProviderOnboardingController;
+use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
 use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
@@ -44,6 +45,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [ProfileMediaController::class, 'store'])->name('store');
         Route::get('/{image}/{slot}', [ProfileMediaController::class, 'preview'])->name('preview');
         Route::delete('/{image}', [ProfileMediaController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('my-profiles/{profile}')->name('provider.profiles.')->group(function () {
+        Route::get('/', [ProviderProfileController::class, 'show'])->name('show');
+        Route::get('/edit', [ProviderProfileController::class, 'edit'])->name('edit');
+        Route::patch('/', [ProviderProfileController::class, 'update'])->name('update');
+        Route::post('/renewal', [ProviderProfileController::class, 'requestRenewal'])->name('renewal.store');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

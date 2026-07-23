@@ -170,6 +170,8 @@ class ProviderOnboardingController extends Controller
         $taxonomies = TaxonomyOption::query()->enabled()->get()->groupBy('type');
 
         return [
+            'profile' => null,
+            'form' => [],
             'locations' => Location::query()->whereNull('parent_id')->where('status', 'published')->orderBy('name')->get(),
             'sublocations' => Location::query()->whereNotNull('parent_id')->where('status', 'published')->orderBy('name')->get(),
             'taxonomies' => $taxonomies,

@@ -24,6 +24,7 @@ The project is in active development. Its current foundation provides account re
 - Privacy-safe related profiles prioritized by sub-location
 - Dynamic, visibility-aware XML sitemaps and robots discovery
 - Admin/CSR listing workspace with private profiles and audited lifecycle actions
+- Owner profile editing, private-profile viewing, and staff-reviewed renewal requests
 - Media-processing metadata and package image limits
 - Policy-acceptance and audit-log foundations
 - Database-backed sessions, cache, and queues
@@ -78,4 +79,4 @@ If you discover a security issue, report it privately to the project maintainer 
 
 ## Status
 
-This repository contains the Phase 1 application foundation, manual provider activation workflow, secure media pipeline, SEO directory configuration, and the first public directory experience. Further moderation, policy, agency-directory, and administrative tooling remains under development.
+This repository contains the Phase 1 application foundation, manual provider activation and renewal workflows, secure media pipeline, SEO directory configuration, and the first public directory experience. Further moderation, policy, search, and administrative tooling remains under development.
