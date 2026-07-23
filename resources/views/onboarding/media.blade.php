@@ -13,6 +13,7 @@
                 @if ($canManage && $profile->images->count() < $limit)
                     <form method="POST" enctype="multipart/form-data" action="{{ route('profiles.media.store', $profile) }}" class="mt-6 flex flex-wrap items-end gap-4">@csrf
                         <div class="min-w-0 flex-1"><x-input-label for="image" value="Choose image" /><input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" required class="mt-1 block w-full text-sm"></div>
+                        <x-policy-acceptances :policies="$requiredPolicies" class="w-full" />
                         <x-primary-button>Upload securely</x-primary-button>
                     </form>
                 @elseif (! $canManage)

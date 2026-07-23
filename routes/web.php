@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\DirectorySettingsController;
+use App\Http\Controllers\Admin\PolicyManagementController;
+use App\Http\Controllers\PolicyPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProviderOnboardingController;
@@ -17,6 +19,11 @@ Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.hom
 Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->name('directory.profiles.show');
 Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('directory.agencies.index');
 Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->name('directory.agencies.show');
+Route::get('/terms', [PolicyPageController::class, 'show'])->defaults('policyType', 'terms')->name('policies.terms');
+Route::get('/privacy', [PolicyPageController::class, 'show'])->defaults('policyType', 'privacy')->name('policies.privacy');
+Route::get('/provider-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'provider')->name('policies.provider');
+Route::get('/media-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'media')->name('policies.media');
+Route::get('/agency-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'agency')->name('policies.agency');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemaps.index');
 Route::get('/sitemaps/editorial.xml', [SitemapController::class, 'editorial'])->name('sitemaps.editorial');
@@ -61,6 +68,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/packages/{package}', [DirectorySettingsController::class, 'updatePackage'])->name('packages.update');
         Route::post('/durations', [DirectorySettingsController::class, 'storeDuration'])->name('durations.store');
         Route::patch('/durations/{duration}', [DirectorySettingsController::class, 'updateDuration'])->name('durations.update');
+    });
+
+    Route::prefix('admin/policies')->name('admin.policies.')->group(function () {
+        Route::get('/', [PolicyManagementController::class, 'index'])->name('index');
+        Route::get('/{policyType}/edit', [PolicyManagementController::class, 'edit'])->name('edit');
+        Route::put('/{policyType}', [PolicyManagementController::class, 'save'])->name('save');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

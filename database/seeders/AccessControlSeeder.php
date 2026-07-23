@@ -21,7 +21,7 @@ class AccessControlSeeder extends Seeder
                 'seo.content', 'seo.metadata', 'seo.redirects', 'seo.slugs',
                 'seo.locations', 'seo.publish-locations',
             ],
-            'administration' => ['roles.manage', 'settings.manage', 'audit.view'],
+            'administration' => ['roles.manage', 'settings.manage', 'policies.manage', 'audit.view'],
         ];
 
         $permissions = collect($permissionGroups)->flatMap(function (array $slugs, string $group) {
@@ -55,7 +55,7 @@ class AccessControlSeeder extends Seeder
         ])->pluck('id')->all());
         $roles['seo']->permissions()->sync($permissions->only([
             'media.upload', 'media.remove', 'seo.content', 'seo.metadata', 'seo.redirects',
-            'seo.slugs', 'seo.locations', 'seo.publish-locations',
+            'seo.slugs', 'seo.locations', 'seo.publish-locations', 'policies.manage',
         ])->pluck('id')->all());
         $roles['subscriber']->permissions()->sync([]);
     }

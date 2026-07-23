@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\PolicyAcceptanceService;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::before(function (User $user, string $ability): ?bool {
             return $user->hasPermission($ability) ? true : null;
+        });
+
+        View::composer('layouts.public', function ($view): void {
+            $view->with('publishedPolicies', app(PolicyAcceptanceService::class)->latestPublished());
         });
     }
 }

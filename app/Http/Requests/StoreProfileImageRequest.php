@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Profile;
 use App\Services\DirectorySettings;
+use App\Services\PolicyAcceptanceService;
 use App\Services\ProfileMediaAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Dimensions;
@@ -36,12 +37,24 @@ class StoreProfileImageRequest extends FormRequest
                     ->maxWidth($settings->integer('media.maximum_dimension'))
                     ->maxHeight($settings->integer('media.maximum_dimension')),
             ],
+            'policy_acceptances' => ['nullable', 'array'],
+            'policy_acceptances.*' => ['integer'],
         ];
     }
 
     public function after(): array
     {
         return [function (Validator $validator): void {
+            $profile = $this->route('profile');
+            if ($profile instanceof Profile && ! app(PolicyAcceptanceService::class)->allRequiredSelected(
+                'media_submission',
+                $this->input('policy_acceptances', []),
+                $this->user(),
+                $profile,
+            )) {
+                $validator->errors()->add('policy_acceptances', 'Accept the current media policy before uploading.');
+            }
+
             $file = $this->file('image');
             if (! $file || ! $file->isValid()) {
                 return;

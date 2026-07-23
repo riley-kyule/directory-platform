@@ -28,7 +28,8 @@ The project is in active development. Its current foundation provides account re
 - Owner profile editing, private-profile viewing, and staff-reviewed renewal requests
 - Admin-managed packages, durations, listing rules, agency limits, and media constraints
 - Media-processing metadata and package image limits
-- Policy-acceptance and audit-log foundations
+- Admin/SEO policy drafting, immutable publication, and public policy pages
+- Versioned policy acceptance evidence across registration, profile submission, media upload, and renewal
 - Database-backed sessions, cache, and queues
 - Automated feature and domain tests
 
@@ -81,4 +82,4 @@ If you discover a security issue, report it privately to the project maintainer 
 
 ## Status
 
-This repository contains the Phase 1 application foundation, manual provider activation and renewal workflows, secure media pipeline, SEO directory configuration, and the first public directory experience. Further moderation, policy, search, and administrative tooling remains under development.
+This repository contains the Phase 1 application foundation, manual provider activation and renewal workflows, secure media pipeline, SEO directory configuration, policy lifecycle management, and the first public directory experience. Further moderation, search, and administrative tooling remains under development.

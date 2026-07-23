@@ -8,6 +8,7 @@ use App\Enums\ProfileStatus;
 use App\Enums\ProviderType;
 use App\Models\Location;
 use App\Models\Package;
+use App\Models\PolicyVersion;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
@@ -105,6 +106,43 @@ class ProviderOnboardingTest extends TestCase
 
         $this->assertSame(ProfileStatus::PendingReview, $profile->refresh()->status);
         $this->assertSame(OnboardingStatus::Submitted, $provider->refresh()->onboarding_status);
+    }
+
+    public function test_profile_submission_records_required_provider_policy_acceptance(): void
+    {
+        $provider = $this->provider(ProviderType::Independent);
+        $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData());
+        $profile = Profile::query()->firstOrFail();
+        $this->processedImage($profile);
+        $content = str_repeat('Provider publishing and conduct standards apply to every submitted profile. ', 3);
+        $policy = PolicyVersion::query()->create([
+            'policy_type' => 'provider',
+            'version' => '2026-07',
+            'title' => 'Provider Policy',
+            'content' => $content,
+            'content_hash' => hash('sha256', $content),
+            'published_at' => now(),
+            'requires_reacceptance' => true,
+        ]);
+
+        $this->actingAs($provider)
+            ->post(route('onboarding.profiles.submit', $profile))
+            ->assertSessionHasErrors('policy_acceptances');
+        $this->assertSame(ProfileStatus::Draft, $profile->refresh()->status);
+
+        $this->actingAs($provider)
+            ->post(route('onboarding.profiles.submit', $profile), [
+                'policy_acceptances' => [$policy->id],
+            ])
+            ->assertRedirect(route('onboarding.index'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('policy_acceptances', [
+            'policy_version_id' => $policy->id,
+            'user_id' => $provider->id,
+            'profile_id' => $profile->id,
+            'action' => 'profile_submission',
+        ]);
     }
 
     public function test_another_provider_cannot_submit_someone_elses_draft(): void

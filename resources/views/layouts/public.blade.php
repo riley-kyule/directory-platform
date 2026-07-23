@@ -35,6 +35,9 @@
             <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-10 text-sm text-stone-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
                 <p>&copy; {{ now()->year }} {{ config('app.name') }}. Adults only.</p>
                 <div class="flex flex-wrap gap-5">
+                    @foreach ($publishedPolicies as $policy)
+                        <a href="{{ $policy->publicRoute() }}" class="hover:text-stone-900">{{ $policy->title }}</a>
+                    @endforeach
                     <a href="{{ route('register') }}" class="hover:text-stone-900">Create an account</a>
                     <a href="{{ route('login') }}" class="hover:text-stone-900">Provider login</a>
                 </div>

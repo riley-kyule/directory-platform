@@ -6,6 +6,7 @@ use App\Http\Requests\StoreProfileImageRequest;
 use App\Jobs\ProcessProfileImage;
 use App\Models\Profile;
 use App\Models\ProfileImage;
+use App\Services\PolicyAcceptanceService;
 use App\Services\ProfileImageLimit;
 use App\Services\ProfileMediaAccess;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ class ProfileMediaController extends Controller
     public function __construct(
         private readonly ProfileMediaAccess $access,
         private readonly ProfileImageLimit $imageLimit,
+        private readonly PolicyAcceptanceService $policies,
     ) {}
 
     public function index(Profile $profile): View
@@ -30,6 +32,7 @@ class ProfileMediaController extends Controller
             'profile' => $profile->load('images'),
             'limit' => $this->imageLimit->for($profile),
             'canManage' => $this->access->canManage(request()->user(), $profile),
+            'requiredPolicies' => $this->policies->outstanding('media_submission', request()->user(), $profile),
         ]);
     }
 
@@ -37,8 +40,14 @@ class ProfileMediaController extends Controller
     {
         $file = $request->file('image');
         $dimensions = getimagesize($file->getRealPath());
+        $accepted = $this->policies->acceptedSelection(
+            'media_submission',
+            $request->validated('policy_acceptances', []),
+            $request->user(),
+            $profile,
+        );
 
-        $image = DB::transaction(function () use ($profile, $file, $dimensions): ProfileImage {
+        $image = DB::transaction(function () use ($request, $profile, $file, $dimensions, $accepted): ProfileImage {
             $profile = Profile::query()->lockForUpdate()->findOrFail($profile->id);
             $limit = $this->imageLimit->for($profile);
             $currentCount = $profile->images()->whereNotIn('status', ['rejected', 'private'])->count();
@@ -51,7 +60,7 @@ class ProfileMediaController extends Controller
             $quarantinePath = $profile->public_id.'/'.$publicId.'.upload';
             Storage::disk('quarantine')->putFileAs($profile->public_id, $file, $publicId.'.upload');
 
-            return $profile->images()->create([
+            $image = $profile->images()->create([
                 'public_id' => $publicId,
                 'storage_directory' => $quarantinePath,
                 'sort_order' => ($profile->images()->max('sort_order') ?? 0) + 10,
@@ -63,6 +72,9 @@ class ProfileMediaController extends Controller
                 'file_size' => $file->getSize(),
                 'exact_hash' => $hash,
             ]);
+            $this->policies->record($request->user(), 'media_submission', $accepted, $request, $profile);
+
+            return $image;
         });
 
         ProcessProfileImage::dispatch($image->id)->afterCommit();

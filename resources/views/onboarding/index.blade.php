@@ -28,6 +28,7 @@
                         @if ($user->profile->status === \App\Enums\ProfileStatus::Draft)
                             <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}" class="mt-5">
                                 @csrf
+                                <x-policy-acceptances :policies="$submissionPolicies->get($user->profile->id, collect())" class="mb-4" />
                                 <x-primary-button>Submit for review</x-primary-button>
                             </form>
                         @endif
@@ -77,6 +78,7 @@
                                         @if ($profile->status === \App\Enums\ProfileStatus::Draft)
                                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="mt-2">
                                                 @csrf
+                                                <x-policy-acceptances :policies="$submissionPolicies->get($profile->id, collect())" class="my-3 text-left" />
                                                 <button class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Submit for review</button>
                                             </form>
                                         @endif

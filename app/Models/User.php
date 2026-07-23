@@ -64,6 +64,11 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class, 'actor_user_id');
     }
 
+    public function policyAcceptances(): HasMany
+    {
+        return $this->hasMany(PolicyAcceptance::class);
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->roles()->where('slug', $role)->exists();

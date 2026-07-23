@@ -16,15 +16,21 @@ use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
 use App\Services\DirectorySettings;
+use App\Services\PolicyAcceptanceService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProviderOnboardingController extends Controller
 {
-    public function __construct(private readonly DirectorySettings $settings) {}
+    public function __construct(
+        private readonly DirectorySettings $settings,
+        private readonly PolicyAcceptanceService $policies,
+    ) {}
 
     public function index(): View
     {
@@ -32,10 +38,16 @@ class ProviderOnboardingController extends Controller
         abort_unless($user->account_type === AccountType::Provider, 403);
 
         $user->load(['profile.packageRequests.requestedPackage', 'agency.profiles.packageRequests.requestedPackage']);
+        $profiles = collect([$user->profile])
+            ->merge($user->agency?->profiles ?? [])
+            ->filter();
 
         return view('onboarding.index', [
             'user' => $user,
             'agencyProfileLimit' => $this->settings->integer('profiles.agency_limit'),
+            'submissionPolicies' => $profiles->mapWithKeys(fn (Profile $profile) => [
+                $profile->id => $this->policies->outstanding('profile_submission', $user, $profile),
+            ]),
         ]);
     }
 
@@ -152,9 +164,9 @@ class ProviderOnboardingController extends Controller
         return redirect()->route('onboarding.index')->with('status', 'Profile draft saved. Add media, then submit it for review.');
     }
 
-    public function submitProfile(Profile $profile): RedirectResponse
+    public function submitProfile(Request $request, Profile $profile): RedirectResponse
     {
-        $user = request()->user();
+        $user = $request->user();
         abort_unless($this->ownsProfile($user, $profile), 403);
         abort_unless($profile->status === ProfileStatus::Draft, 409, 'Only a draft profile can be submitted.');
         abort_unless($profile->packageRequests()->where('status', PackageRequestStatus::Pending)->exists(), 409, 'Choose a package before submitting.');
@@ -162,11 +174,25 @@ class ProviderOnboardingController extends Controller
             return back()->withErrors(['media' => 'Upload at least one image and wait for processing to finish before submitting.']);
         }
 
-        $profile->update(['status' => ProfileStatus::PendingReview]);
-        $user->update([
-            'onboarding_status' => OnboardingStatus::Submitted,
-            'last_onboarding_activity_at' => now(),
-        ]);
+        $selected = $request->validate([
+            'policy_acceptances' => ['nullable', 'array'],
+            'policy_acceptances.*' => ['integer'],
+        ])['policy_acceptances'] ?? [];
+        if (! $this->policies->allRequiredSelected('profile_submission', $selected, $user, $profile)) {
+            throw ValidationException::withMessages([
+                'policy_acceptances' => 'Accept every required provider policy before submitting this profile.',
+            ]);
+        }
+        $accepted = $this->policies->acceptedSelection('profile_submission', $selected, $user, $profile);
+
+        DB::transaction(function () use ($request, $profile, $user, $accepted): void {
+            $profile->update(['status' => ProfileStatus::PendingReview]);
+            $user->update([
+                'onboarding_status' => OnboardingStatus::Submitted,
+                'last_onboarding_activity_at' => now(),
+            ]);
+            $this->policies->record($user, 'profile_submission', $accepted, $request, $profile);
+        });
 
         return redirect()->route('onboarding.index')->with('status', 'Profile submitted for staff review.');
     }

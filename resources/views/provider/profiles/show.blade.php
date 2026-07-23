@@ -70,6 +70,7 @@
                             </select>
                             <x-input-error :messages="$errors->get('requested_package_id')" class="mt-2" />
                         </div>
+                        <x-policy-acceptances :policies="$renewalPolicies" class="sm:basis-full" />
                         <x-primary-button>Request renewal</x-primary-button>
                     </form>
                 </section>
