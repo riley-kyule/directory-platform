@@ -16,13 +16,19 @@ class PolicyAcceptanceService
     /** @return Collection<string, PolicyVersion> */
     public function latestPublished(): Collection
     {
-        return Cache::rememberForever('policies:latest-published', fn () => PolicyVersion::query()
+        $ids = Cache::rememberForever(PolicyVersion::CACHE_KEY, fn () => PolicyVersion::query()
             ->published()
             ->latest('published_at')
             ->latest('id')
-            ->get()
+            ->get(['id', 'policy_type'])
             ->unique('policy_type')
-            ->keyBy('policy_type'));
+            ->mapWithKeys(fn (PolicyVersion $policy) => [$policy->policy_type => $policy->id])
+            ->all());
+
+        return PolicyVersion::query()
+            ->whereIn('id', array_values($ids))
+            ->get()
+            ->keyBy('policy_type');
     }
 
     /** @return Collection<int, PolicyVersion> */

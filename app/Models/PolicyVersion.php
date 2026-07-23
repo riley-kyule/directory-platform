@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Cache;
 
 class PolicyVersion extends Model
 {
+    public const CACHE_KEY = 'policies:latest-published:v2';
+
     public const TYPES = [
         'terms' => 'Terms of Use',
         'privacy' => 'Privacy Policy',
@@ -22,8 +24,8 @@ class PolicyVersion extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => Cache::forget('policies:latest-published'));
-        static::deleted(fn () => Cache::forget('policies:latest-published'));
+        static::saved(fn () => Cache::forget(self::CACHE_KEY));
+        static::deleted(fn () => Cache::forget(self::CACHE_KEY));
     }
 
     public function scopePublished(Builder $query): Builder
