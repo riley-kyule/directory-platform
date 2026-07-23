@@ -35,6 +35,7 @@ class LaunchReadinessCheck extends Command
                 ['APP_ENV is production', app()->environment('production')],
                 ['Debug mode is disabled', ! config('app.debug')],
                 ['Canonical application URL uses HTTPS', str_starts_with(config('app.url'), 'https://')],
+                ['Google Admin SSO is configured', filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect'))],
                 ['Database is not SQLite', DB::getDriverName() !== 'sqlite'],
                 ['Queue connection is asynchronous', config('queue.default') !== 'sync'],
                 ['Session storage is shared/persistent', in_array(config('session.driver'), ['database', 'redis'], true)],

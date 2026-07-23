@@ -31,7 +31,7 @@ use Illuminate\Support\Str;
     'last_seen_at',
     'status',
 ])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'google_subject'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -106,6 +106,8 @@ class User extends Authenticatable
             'onboarding_completed_at' => 'datetime',
             'last_onboarding_activity_at' => 'datetime',
             'last_seen_at' => 'datetime',
+            'google_sso_linked_at' => 'datetime',
+            'google_sso_last_login_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'array',

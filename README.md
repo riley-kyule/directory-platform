@@ -10,6 +10,7 @@ The project is in active development. Its current foundation provides account re
 - Independent and agency provider classifications
 - Admin, CSR, SEO, and subscriber roles
 - Granular permission assignments
+- Google SSO for pre-existing Admin accounts with verified-email identity linking
 - Optional Admin-controlled authenticator MFA and single-use recovery codes for privileged sessions
 - Profile and agency ownership structures
 - Configurable listing packages and durations
@@ -111,13 +112,15 @@ php artisan optimize
 composer launch-check
 ```
 
-The launch check fails closed when key security, policy, enabled MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
+The launch check fails closed when key security, Google Admin SSO, policy, enabled MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
 
 ## Security
 
 Never commit environment files, credentials, production data, private uploads, or generated application keys. Configure deployment secrets through the hosting environment.
 
 Privileged authenticator MFA is disabled by default and can be enabled from the Admin directory settings. When enabled, Admin, CSR, and SEO accounts must enroll and pass an MFA challenge. Disabling enforcement preserves existing enrollment and recovery-code data so the control can be re-enabled without resetting accounts.
+
+Google Admin SSO requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the callback URI registered as `GOOGLE_REDIRECT_URI`. Set `GOOGLE_ADMIN_ALLOWED_DOMAINS` to a comma-separated list when sign-in must be restricted further. Google sign-in never creates users or grants roles: the verified Google email must already belong to an Admin account, and the Google subject identifier is permanently linked on first successful sign-in.
 
 If you discover a security issue, report it privately to the project maintainer rather than opening a public issue.
 

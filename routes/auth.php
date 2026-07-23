@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\GoogleAdminSsoController;
 use App\Http\Controllers\Auth\MfaController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
@@ -22,6 +23,14 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    Route::get('auth/google/redirect', [GoogleAdminSsoController::class, 'redirect'])
+        ->middleware('throttle:10,1')
+        ->name('auth.google.redirect');
+
+    Route::get('auth/google/callback', [GoogleAdminSsoController::class, 'callback'])
+        ->middleware('throttle:10,1')
+        ->name('auth.google.callback');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
