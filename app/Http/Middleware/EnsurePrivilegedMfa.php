@@ -2,16 +2,19 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\DirectorySettings;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsurePrivilegedMfa
 {
+    public function __construct(private readonly DirectorySettings $settings) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (! config('security.privileged_mfa_enforced') || ! $user || ! $user->isPrivileged()) {
+        if (! $this->settings->boolean('security.privileged_mfa_enforced') || ! $user || ! $user->isPrivileged()) {
             return $next($request);
         }
 

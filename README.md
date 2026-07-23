@@ -10,7 +10,7 @@ The project is in active development. Its current foundation provides account re
 - Independent and agency provider classifications
 - Admin, CSR, SEO, and subscriber roles
 - Granular permission assignments
-- Mandatory authenticator MFA and single-use recovery codes for Admin, CSR, and SEO sessions
+- Optional Admin-controlled authenticator MFA and single-use recovery codes for privileged sessions
 - Profile and agency ownership structures
 - Configurable listing packages and durations
 - Structured locations, attributes, services, contacts, and rates
@@ -111,13 +111,13 @@ php artisan optimize
 composer launch-check
 ```
 
-The launch check fails closed when key security, policy, MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
+The launch check fails closed when key security, policy, enabled MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
 
 ## Security
 
 Never commit environment files, credentials, production data, private uploads, or generated application keys. Configure deployment secrets through the hosting environment.
 
-Privileged MFA is enabled by default. Set `PRIVILEGED_MFA_ENFORCED=false` only for a deliberately isolated environment; production should leave it enabled.
+Privileged authenticator MFA is disabled by default and can be enabled from the Admin directory settings. When enabled, Admin, CSR, and SEO accounts must enroll and pass an MFA challenge. Disabling enforcement preserves existing enrollment and recovery-code data so the control can be re-enabled without resetting accounts.
 
 If you discover a security issue, report it privately to the project maintainer rather than opening a public issue.
 

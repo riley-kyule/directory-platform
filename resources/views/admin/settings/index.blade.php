@@ -21,6 +21,13 @@
                 <form method="POST" action="{{ route('admin.settings.update') }}" class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     @csrf
                     @method('PATCH')
+                    <label class="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-4 sm:col-span-2 lg:col-span-3">
+                        <input type="checkbox" name="privileged_mfa_enforced" value="1" @checked(old('privileged_mfa_enforced', $settings['privileged_mfa_enforced'])) class="mt-1 rounded border-gray-300 text-indigo-600">
+                        <span>
+                            <strong class="block text-sm text-gray-900">Require authenticator MFA for privileged roles</strong>
+                            <span class="mt-1 block text-sm text-gray-600">Optional. When enabled, Admin, CSR, and SEO accounts must enroll and complete an authenticator challenge. Leave disabled when privileged authentication is handled through an approved SSO provider.</span>
+                        </span>
+                    </label>
                     @foreach ([
                         ['agency_profile_limit', 'Agency profile limit', 1, 100, 1],
                         ['new_profile_days', 'New profile window (days)', 1, 365, 1],

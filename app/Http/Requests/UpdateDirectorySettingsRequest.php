@@ -7,6 +7,11 @@ use Illuminate\Validation\Validator;
 
 class UpdateDirectorySettingsRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['privileged_mfa_enforced' => $this->boolean('privileged_mfa_enforced')]);
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->hasPermission('settings.manage') ?? false;
@@ -15,6 +20,7 @@ class UpdateDirectorySettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'privileged_mfa_enforced' => ['required', 'boolean'],
             'agency_profile_limit' => ['required', 'integer', 'between:1,100'],
             'new_profile_days' => ['required', 'integer', 'between:1,365'],
             'listing_rotation_hours' => ['required', 'integer', 'between:1,168'],

@@ -31,6 +31,7 @@ class DirectorySettingsController extends Controller
 
         return view('admin.settings.index', [
             'settings' => [
+                'privileged_mfa_enforced' => $this->settings->boolean('security.privileged_mfa_enforced'),
                 'agency_profile_limit' => $this->settings->integer('profiles.agency_limit'),
                 'new_profile_days' => $this->settings->integer('listings.new_profile_days'),
                 'listing_rotation_hours' => $this->settings->integer('listings.rotation_hours'),
@@ -54,6 +55,7 @@ class DirectorySettingsController extends Controller
         $validated = $request->validated();
 
         $values = [
+            'security.privileged_mfa_enforced' => [$validated['privileged_mfa_enforced'] ? 1 : 0, 'boolean', 'security'],
             'profiles.agency_limit' => [$validated['agency_profile_limit'], 'integer', 'profiles'],
             'listings.new_profile_days' => [$validated['new_profile_days'], 'integer', 'listings'],
             'listings.rotation_hours' => [$validated['listing_rotation_hours'], 'integer', 'listings'],

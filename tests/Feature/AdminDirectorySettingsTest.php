@@ -34,6 +34,7 @@ class AdminDirectorySettingsTest extends TestCase
             ->get(route('admin.settings.index'))
             ->assertOk()
             ->assertSee('Directory operation')
+            ->assertSee('Require authenticator MFA')
             ->assertSee('Packages')
             ->assertSee('Package durations');
 
@@ -57,6 +58,18 @@ class AdminDirectorySettingsTest extends TestCase
             'action' => 'settings.update',
             'target_type' => 'directory-configuration',
         ]);
+    }
+
+    public function test_admin_can_enable_optional_privileged_mfa(): void
+    {
+        $this->assertFalse(app(DirectorySettings::class)->boolean('security.privileged_mfa_enforced'));
+
+        $this->actingAs($this->admin())->patch(route('admin.settings.update'), $this->validSettings([
+            'privileged_mfa_enforced' => true,
+        ]))->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('1', DirectorySetting::query()->findOrFail('security.privileged_mfa_enforced')->value);
+        $this->assertTrue(app(DirectorySettings::class)->boolean('security.privileged_mfa_enforced'));
     }
 
     public function test_admin_can_change_package_presentation_and_image_limit(): void
@@ -138,12 +151,13 @@ class AdminDirectorySettingsTest extends TestCase
         return $admin;
     }
 
-    /** @param array<string, int|float> $overrides
-     * @return array<string, int|float>
+    /** @param array<string, bool|int|float> $overrides
+     * @return array<string, bool|int|float>
      */
     private function validSettings(array $overrides = []): array
     {
         return array_replace([
+            'privileged_mfa_enforced' => false,
             'agency_profile_limit' => 15,
             'new_profile_days' => 14,
             'listing_rotation_hours' => 24,

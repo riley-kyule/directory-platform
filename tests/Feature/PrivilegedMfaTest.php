@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DirectorySetting;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\TotpService;
@@ -16,8 +17,11 @@ class PrivilegedMfaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config()->set('security.privileged_mfa_enforced', true);
         $this->seed(AccessControlSeeder::class);
+        DirectorySetting::query()
+            ->whereKey('security.privileged_mfa_enforced')
+            ->firstOrFail()
+            ->update(['value' => '1']);
     }
 
     public function test_subscribers_are_not_forced_through_staff_mfa(): void

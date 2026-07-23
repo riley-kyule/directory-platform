@@ -15,6 +15,7 @@ class DirectoryDefaultsSeeder extends Seeder
     public function run(): void
     {
         foreach ([
+            ['key' => 'security.privileged_mfa_enforced', 'value' => '0', 'value_type' => 'boolean', 'group' => 'security'],
             ['key' => 'profiles.agency_limit', 'value' => '15', 'value_type' => 'integer', 'group' => 'profiles'],
             ['key' => 'listings.new_profile_days', 'value' => '14', 'value_type' => 'integer', 'group' => 'listings'],
             ['key' => 'listings.rotation_hours', 'value' => '24', 'value_type' => 'integer', 'group' => 'listings'],
