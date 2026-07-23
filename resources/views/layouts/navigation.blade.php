@@ -55,6 +55,11 @@
                             {{ __('Admin settings') }}
                         </x-nav-link>
                     @endcan
+                    @can('system.health')
+                        <x-nav-link :href="route('admin.system-health')" :active="request()->routeIs('admin.system-health')">
+                            {{ __('System health') }}
+                        </x-nav-link>
+                    @endcan
                     @can('policies.manage')
                         <x-nav-link :href="route('admin.policies.index')" :active="request()->routeIs('admin.policies.*')">
                             {{ __('Policies') }}
@@ -153,6 +158,11 @@
             @can('settings.manage')
                 <x-responsive-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
                     {{ __('Admin settings') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('system.health')
+                <x-responsive-nav-link :href="route('admin.system-health')" :active="request()->routeIs('admin.system-health')">
+                    {{ __('System health') }}
                 </x-responsive-nav-link>
             @endcan
             @can('policies.manage')

@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 Schedule::command('profiles:expire')->everyMinute()->withoutOverlapping();
 Schedule::command('profiles:rotate-listing-order --scheduled')->hourly()->withoutOverlapping();
+Schedule::command('system:heartbeat scheduler')->everyMinute()->withoutOverlapping();
+Schedule::command('verification:refresh-statuses')->daily()->withoutOverlapping();
+Schedule::command('system:backup --prune')->dailyAt('02:30')->withoutOverlapping()->onOneServer();

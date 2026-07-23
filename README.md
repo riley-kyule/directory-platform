@@ -37,6 +37,8 @@ The project is in active development. Its current foundation provides account re
 - Admin/SEO policy drafting, immutable publication, and public policy pages
 - Versioned policy acceptance evidence across registration, profile submission, media upload, and renewal
 - Database-backed sessions, cache, and queues
+- Readiness monitoring for database, cache, scheduler, queues, disk, and backup freshness
+- Scheduled native database backups with compression, checksum records, verification, and retention pruning
 - Automated feature and domain tests
 
 ## Technology
@@ -79,6 +81,37 @@ npm run build
 composer audit --locked --no-interaction
 npm audit --omit=dev --package-lock-only
 ```
+
+## Production operations
+
+Run one scheduler trigger every minute and supervise at least one persistent queue worker:
+
+```bash
+* * * * * cd /var/www/directory-platform && php artisan schedule:run
+php artisan queue:work --queue=media,default --tries=3 --timeout=120
+```
+
+The scheduler records its heartbeat every minute, refreshes expired verification states daily, expires package listings immediately, rotates listing order, and creates a verified database backup nightly. `composer backup` creates an on-demand backup. MySQL/MariaDB requires `mysqldump`, PostgreSQL requires `pg_dump`, and SQLite requires `sqlite3`.
+
+Configure `OPS_BACKUP_DISK` as private, encrypted, off-host storage in production. Database backups do not replace a separate versioned backup of private and public media. Restrict temporary storage to the application user and use encrypted host volumes. Test restoration into an isolated environment on a schedule; verify the checksum, import the archive, run migrations in dry-run review, execute the automated test suite, and record the drill outside the production database.
+
+Monitoring endpoints:
+
+- `/up` — process liveness
+- `/health/ready` — status-only readiness response
+- `/admin/system-health` — Admin-only operational detail
+
+Before a production release, run:
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+php artisan migrate --force
+php artisan optimize
+composer launch-check
+```
+
+The launch check fails closed when key security, policy, MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
 
 ## Security
 

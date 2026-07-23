@@ -19,6 +19,7 @@ use App\Http\Controllers\Staff\ModerationController;
 use App\Http\Controllers\Staff\ProfileManagementController;
 use App\Http\Controllers\Staff\ProfileReviewController;
 use App\Http\Controllers\Staff\VerificationController;
+use App\Http\Controllers\SystemHealthController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.home');
@@ -36,6 +37,7 @@ Route::get('/provider-policy', [PolicyPageController::class, 'show'])->defaults(
 Route::get('/media-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'media')->name('policies.media');
 Route::get('/agency-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'agency')->name('policies.agency');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+Route::get('/health/ready', [SystemHealthController::class, 'ready'])->middleware('throttle:30,1')->name('health.ready');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemaps.index');
 Route::get('/sitemaps/editorial.xml', [SitemapController::class, 'editorial'])->name('sitemaps.editorial');
 Route::get('/sitemaps/locations-{page}.xml', [SitemapController::class, 'locations'])->whereNumber('page')->name('sitemaps.locations');
@@ -81,6 +83,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/durations', [DirectorySettingsController::class, 'storeDuration'])->name('durations.store');
         Route::patch('/durations/{duration}', [DirectorySettingsController::class, 'updateDuration'])->name('durations.update');
     });
+    Route::get('/admin/system-health', [SystemHealthController::class, 'index'])->name('admin.system-health');
 
     Route::prefix('admin/policies')->name('admin.policies.')->group(function () {
         Route::get('/', [PolicyManagementController::class, 'index'])->name('index');

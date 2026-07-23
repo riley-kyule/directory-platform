@@ -23,7 +23,7 @@ class AccessControlSeeder extends Seeder
                 'seo.content', 'seo.metadata', 'seo.redirects', 'seo.slugs',
                 'seo.locations', 'seo.publish-locations',
             ],
-            'administration' => ['roles.manage', 'settings.manage', 'policies.manage', 'audit.view'],
+            'administration' => ['roles.manage', 'settings.manage', 'policies.manage', 'audit.view', 'system.health'],
         ];
 
         $permissions = collect($permissionGroups)->flatMap(function (array $slugs, string $group) {
