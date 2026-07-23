@@ -75,6 +75,18 @@ class PublicAgencyDirectoryTest extends TestCase
             ->assertDontSee('Former Jane');
     }
 
+    public function test_agency_profile_activity_uses_the_agency_owner_account(): void
+    {
+        $agency = $this->agency('Online Agency', 'active');
+        $agency->owner()->update(['last_seen_at' => now()]);
+        $this->attach($agency, $this->profile('Online Agency Jane'));
+
+        $this->get(route('directory.agencies.show', $agency->slug))
+            ->assertOk()
+            ->assertSee('Online Agency Jane')
+            ->assertSee('Online');
+    }
+
     public function test_agency_without_any_public_profiles_returns_not_found(): void
     {
         $agency = $this->agency('Private Agency', 'active');

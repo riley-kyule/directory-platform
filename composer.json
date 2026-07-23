@@ -43,12 +43,14 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=512M artisan serve\" \"php -d memory_limit=512M artisan queue:listen --queue=media,default --tries=3 --timeout=120\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
+        "serve": "php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=512M artisan serve",
+        "queue": "php -d memory_limit=512M artisan queue:work --queue=media,default --tries=3 --timeout=120",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

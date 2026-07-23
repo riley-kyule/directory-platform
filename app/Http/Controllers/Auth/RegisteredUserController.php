@@ -61,6 +61,7 @@ class RegisteredUserController extends Controller
                 ? now()
                 : null,
             'last_onboarding_activity_at' => now(),
+            'last_seen_at' => now(),
         ]);
 
         $subscriberRole = Role::query()->firstOrCreate(

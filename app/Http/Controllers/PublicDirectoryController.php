@@ -68,7 +68,7 @@ class PublicDirectoryController extends Controller
             ->where('slug', $profile)
             ->with([
                 'primaryLocation', 'sublocation', 'gender', 'ethnicity', 'build', 'bustSize',
-                'owner', 'services', 'languages', 'details.hairColor', 'details.hairLength',
+                'owner', 'currentAgency.owner', 'services', 'languages', 'details.hairColor', 'details.hairLength',
                 'details.sexualOrientation', 'rates.period', 'currentPackageAssignment.package',
                 'contacts' => fn ($query) => $query->where('is_public', true)->orderBy('sort_order'),
                 'images' => fn ($query) => $query->where('status', 'approved')->orderBy('sort_order'),

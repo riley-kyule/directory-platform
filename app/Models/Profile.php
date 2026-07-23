@@ -135,15 +135,17 @@ class Profile extends Model
 
     public function activityLabel(): ?string
     {
-        if (! $this->owner?->last_seen_at) {
+        $account = $this->owner ?? $this->currentAgency->first()?->owner;
+
+        if (! $account?->last_seen_at) {
             return null;
         }
 
-        if ($this->owner->last_seen_at->gte(now()->subMinutes(config('directory.activity.online_minutes')))) {
+        if ($account->last_seen_at->gte(now()->subMinutes(config('directory.activity.online_minutes')))) {
             return 'online';
         }
 
-        if ($this->owner->last_seen_at->gte(now()->subMinutes(config('directory.activity.recently_active_minutes')))) {
+        if ($account->last_seen_at->gte(now()->subMinutes(config('directory.activity.recently_active_minutes')))) {
             return 'recently_active';
         }
 

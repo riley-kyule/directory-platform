@@ -165,6 +165,17 @@ class ProviderOnboardingTest extends TestCase
         $this->assertCount(1, $profile->packageRequests);
     }
 
+    public function test_profile_phone_requires_international_e164_format(): void
+    {
+        $provider = $this->provider(ProviderType::Independent);
+
+        $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData([
+            'phone' => '0700000001',
+        ]))->assertSessionHasErrors('phone');
+
+        $this->assertDatabaseCount('profiles', 0);
+    }
+
     private function provider(ProviderType $type): User
     {
         return User::factory()->create([

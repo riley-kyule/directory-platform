@@ -47,7 +47,7 @@ class ProfileOnboardingRequest extends FormRequest
         return [
             'display_name' => ['required', 'string', 'min:2', 'max:120'],
             'description' => ['required', 'string', 'min:40', 'max:10000'],
-            'phone' => ['required', 'regex:/^\+?[1-9][0-9]{7,14}$/'],
+            'phone' => ['required', 'regex:/^\+[1-9][0-9]{7,14}$/'],
             'whatsapp_enabled' => ['boolean'],
             'telegram_phone_enabled' => ['boolean'],
             'telegram_username' => ['nullable', 'string', 'max:64', 'regex:/^@?[A-Za-z0-9_]{5,32}$/'],

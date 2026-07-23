@@ -153,6 +153,7 @@ class SeoDirectoryConfigurationTest extends TestCase
         $location = Location::query()->firstOrFail();
 
         $this->actingAs($seo)->patch(route('seo.locations.content.update', $location), [
+            'status' => 'published',
             'heading' => 'Independent Nairobi Profiles',
             'intro_content' => str_repeat('Updated original introduction for Nairobi visitors. ', 3),
             'bottom_content' => "## Choosing a Nairobi profile\n\nReview each listing before making contact.",
@@ -171,6 +172,46 @@ class SeoDirectoryConfigurationTest extends TestCase
             ->assertSee('Independent Nairobi Profiles')
             ->assertSee('<h2>Choosing a Nairobi profile</h2>', false);
         $this->assertDatabaseHas('audit_logs', ['action' => 'locations.content-update', 'target_id' => $location->id]);
+    }
+
+    public function test_draft_location_can_be_completed_and_published_later(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), [
+            'country_code' => 'KE',
+            'type' => 'city',
+            'name' => 'Mombasa',
+            'status' => 'draft',
+        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+
+        $location = Location::query()->where('slug', 'mombasa')->firstOrFail();
+        $this->assertSame('draft', $location->status);
+        $this->assertDatabaseHas('location_contents', [
+            'location_id' => $location->id,
+            'content_status' => 'draft',
+            'canonical_path' => '/mombasa-escorts',
+        ]);
+        $this->actingAs($seo)->get(route('seo.locations.content.edit', $location))
+            ->assertOk()
+            ->assertSee('Publication status');
+
+        $this->actingAs($seo)->patch(route('seo.locations.content.update', $location), [
+            'status' => 'published',
+            'heading' => 'Mombasa Escorts',
+            'intro_content' => str_repeat('Original Mombasa directory information for visitors. ', 3),
+            'bottom_content' => '## About Mombasa listings',
+            'seo_title' => 'Mombasa Escorts and Independent Profiles',
+            'meta_description' => 'Browse active independent profiles in Mombasa with useful location and directory information.',
+            'canonical_path' => '/mombasa-escorts',
+        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame('published', $location->refresh()->status);
+        $this->assertDatabaseHas('location_contents', [
+            'location_id' => $location->id,
+            'content_status' => 'approved',
+            'reviewed_by' => $seo->id,
+        ]);
+        $this->get('/mombasa-escorts')->assertOk()->assertSee('Mombasa Escorts');
     }
 
     public function test_subscriber_cannot_update_managed_page_content(): void

@@ -28,6 +28,7 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertTrue($user->refresh()->last_seen_at->isCurrentMinute());
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -50,5 +51,18 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
         $response->assertRedirect('/');
+    }
+
+    public function test_authenticated_activity_refreshes_last_seen_at_without_writing_on_every_request(): void
+    {
+        $user = User::factory()->create(['last_seen_at' => now()->subMinutes(10)]);
+
+        $this->actingAs($user)->get('/dashboard')->assertOk();
+        $refreshedAt = $user->refresh()->last_seen_at;
+        $this->assertTrue($refreshedAt->isCurrentMinute());
+
+        $this->travel(2)->minutes();
+        $this->actingAs($user)->get('/dashboard')->assertOk();
+        $this->assertTrue($user->refresh()->last_seen_at->equalTo($refreshedAt));
     }
 }

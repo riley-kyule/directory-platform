@@ -47,16 +47,18 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate --seed
 npm run build
-php artisan serve
+composer serve
 ```
 
 Run the database queue worker in a second terminal so quarantined media is processed and published after approval:
 
 ```bash
-php artisan queue:work --queue=media,default
+composer queue
 ```
 
 The public directory will be available at `http://127.0.0.1:8000` by default. Location pages use routes such as `/nairobi-escorts` and `/nairobi/westlands-escorts` after those locations have been created by an SEO or Admin account.
+
+The development commands raise PHP's upload, POST, and memory limits so the configured 50 MB image allowance and high-resolution image processing can operate. Production PHP-FPM or web-server configuration must provide at least `upload_max_filesize=50M`, `post_max_size=55M`, and `memory_limit=512M`.
 
 ## Quality checks
 

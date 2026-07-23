@@ -107,7 +107,7 @@ class SitemapController extends Controller
 
     private function chunkSize(): int
     {
-        return config('directory.sitemap_chunk_size');
+        return max(1, min(50_000, (int) config('directory.sitemap_chunk_size')));
     }
 
     /** @param Collection<int, array{url: string, lastmod: mixed}> $urls */
