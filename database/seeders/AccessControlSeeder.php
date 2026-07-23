@@ -18,6 +18,7 @@ class AccessControlSeeder extends Seeder
             'packages' => ['packages.manage', 'packages.assign'],
             'media' => ['media.upload', 'media.review', 'media.remove'],
             'moderation' => ['moderation.view', 'moderation.manage', 'moderation.appeals'],
+            'verification' => ['verification.view', 'verification.manage'],
             'seo' => [
                 'seo.content', 'seo.metadata', 'seo.redirects', 'seo.slugs',
                 'seo.locations', 'seo.publish-locations',
@@ -54,6 +55,7 @@ class AccessControlSeeder extends Seeder
             'profiles.deactivate', 'profiles.ban', 'profiles.renew', 'profiles.transfer',
             'packages.assign', 'media.upload', 'media.review', 'media.remove', 'audit.view',
             'moderation.view', 'moderation.manage', 'moderation.appeals',
+            'verification.view', 'verification.manage',
         ])->pluck('id')->all());
         $roles['seo']->permissions()->sync($permissions->only([
             'media.upload', 'media.remove', 'seo.content', 'seo.metadata', 'seo.redirects',

@@ -18,6 +18,7 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Staff\ModerationController;
 use App\Http\Controllers\Staff\ProfileManagementController;
 use App\Http\Controllers\Staff\ProfileReviewController;
+use App\Http\Controllers\Staff\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.home');
@@ -92,6 +93,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/moderation/{report:public_id}', [ModerationController::class, 'show'])->name('moderation.show');
         Route::patch('/moderation/{report:public_id}', [ModerationController::class, 'update'])->name('moderation.update');
         Route::patch('/moderation-appeals/{appeal:public_id}', [ModerationController::class, 'reviewAppeal'])->name('moderation.appeals.review');
+        Route::get('/verification', [VerificationController::class, 'index'])->name('verification.index');
+        Route::post('/verification', [VerificationController::class, 'store'])->name('verification.store');
         Route::get('/directory', [ProfileManagementController::class, 'index'])->name('directory.index');
         Route::get('/directory/{profile}', [ProfileManagementController::class, 'show'])->name('directory.show');
         Route::patch('/directory/{profile}', [ProfileManagementController::class, 'update'])->name('directory.update');

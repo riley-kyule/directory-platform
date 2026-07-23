@@ -30,6 +30,11 @@
                             {{ __('Moderation') }}
                         </x-nav-link>
                     @endcan
+                    @can('verification.view')
+                        <x-nav-link :href="route('staff.verification.index')" :active="request()->routeIs('staff.verification.*')">
+                            {{ __('Verification') }}
+                        </x-nav-link>
+                    @endcan
                     @can('profiles.view-private')
                         <x-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.*')">
                             {{ __('Manage listings') }}
@@ -123,6 +128,11 @@
             @can('moderation.view')
                 <x-responsive-nav-link :href="route('staff.moderation.index')" :active="request()->routeIs('staff.moderation.*')">
                     {{ __('Moderation') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('verification.view')
+                <x-responsive-nav-link :href="route('staff.verification.index')" :active="request()->routeIs('staff.verification.*')">
+                    {{ __('Verification') }}
                 </x-responsive-nav-link>
             @endcan
             @can('profiles.view-private')

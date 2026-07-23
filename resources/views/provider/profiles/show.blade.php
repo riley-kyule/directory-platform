@@ -17,6 +17,7 @@
                     <div>
                         <p class="text-sm font-medium uppercase tracking-wide text-gray-500">Profile status</p>
                         <p class="mt-1 text-lg font-semibold capitalize text-gray-900">{{ str($profile->status->value)->replace('_', ' ') }}</p>
+                        <p class="mt-1 text-sm capitalize text-gray-500">Verification: {{ str($profile->verification_status)->replace('_', ' ') }}</p>
                         <p class="mt-1 text-sm text-gray-600">
                             {{ $profile->currentPackageAssignment?->package?->name ?? $profile->packageRequests->last()?->requestedPackage?->name ?? 'No package selected' }}
                             @if ($profile->expires_at) · {{ $profile->expires_at->isPast() ? 'Expired' : 'Expires' }} {{ $profile->expires_at->format('j M Y') }} @endif

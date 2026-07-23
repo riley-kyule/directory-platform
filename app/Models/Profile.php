@@ -128,6 +128,11 @@ class Profile extends Model
         return $this->hasMany(ModerationAppeal::class);
     }
 
+    public function verificationChecks(): HasMany
+    {
+        return $this->hasMany(VerificationCheck::class);
+    }
+
     public function currentPackageAssignment(): HasOne
     {
         return $this->hasOne(ProfilePackageAssignment::class)
