@@ -85,6 +85,11 @@ class User extends Authenticatable
             ->exists();
     }
 
+    public function isPrivileged(): bool
+    {
+        return $this->roles()->whereIn('slug', ['admin', 'csr', 'seo'])->exists();
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -102,6 +107,9 @@ class User extends Authenticatable
             'last_onboarding_activity_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'array',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 }

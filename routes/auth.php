@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\MfaController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -36,6 +37,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('mfa/setup', [MfaController::class, 'setup'])->name('mfa.setup');
+    Route::post('mfa/setup', [MfaController::class, 'confirm'])->middleware('throttle:6,1')->name('mfa.confirm');
+    Route::get('mfa/challenge', [MfaController::class, 'challenge'])->name('mfa.challenge');
+    Route::post('mfa/challenge', [MfaController::class, 'verify'])->middleware('throttle:10,1')->name('mfa.verify');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

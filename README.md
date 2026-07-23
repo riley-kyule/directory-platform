@@ -10,6 +10,7 @@ The project is in active development. Its current foundation provides account re
 - Independent and agency provider classifications
 - Admin, CSR, SEO, and subscriber roles
 - Granular permission assignments
+- Mandatory authenticator MFA and single-use recovery codes for Admin, CSR, and SEO sessions
 - Profile and agency ownership structures
 - Configurable listing packages and durations
 - Structured locations, attributes, services, contacts, and rates
@@ -82,6 +83,8 @@ npm audit --omit=dev --package-lock-only
 ## Security
 
 Never commit environment files, credentials, production data, private uploads, or generated application keys. Configure deployment secrets through the hosting environment.
+
+Privileged MFA is enabled by default. Set `PRIVILEGED_MFA_ENFORCED=false` only for a deliberately isolated environment; production should leave it enabled.
 
 If you discover a security issue, report it privately to the project maintainer rather than opening a public issue.
 
