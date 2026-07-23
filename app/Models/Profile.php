@@ -108,6 +108,11 @@ class Profile extends Model
         return $this->hasMany(ProfileImage::class)->orderBy('sort_order');
     }
 
+    public function slugHistory(): HasMany
+    {
+        return $this->hasMany(ProfileSlugHistory::class);
+    }
+
     public function currentPackageAssignment(): HasOne
     {
         return $this->hasOne(ProfilePackageAssignment::class)

@@ -10,6 +10,7 @@ use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
 use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
+use App\Http\Controllers\Seo\RedirectManagementController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Staff\ProfileManagementController;
 use App\Http\Controllers\Staff\ProfileReviewController;
@@ -94,6 +95,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/pages/homepage', [DirectoryConfigurationController::class, 'updateHomepage'])->name('pages.homepage.update');
         Route::patch('/pages/agencies', [DirectoryConfigurationController::class, 'updateAgencyDirectory'])->name('pages.agencies.update');
         Route::post('/taxonomies', [DirectoryConfigurationController::class, 'storeTaxonomy'])->name('taxonomies.store');
+        Route::get('/redirects', [RedirectManagementController::class, 'index'])->name('redirects.index');
+        Route::post('/redirects', [RedirectManagementController::class, 'store'])->name('redirects.store');
+        Route::patch('/redirects/{redirect}/toggle', [RedirectManagementController::class, 'toggle'])->name('redirects.toggle');
+        Route::patch('/profiles/{profile}/slug', [RedirectManagementController::class, 'updateProfileSlug'])->name('profiles.slug.update');
     });
 });
 
@@ -126,3 +131,5 @@ Route::get('/{city}/{neighbourhood}-escorts', [PublicDirectoryController::class,
         'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
         'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
     ])->name('directory.neighbourhoods.show');
+
+Route::fallback(fn () => response('', 404));

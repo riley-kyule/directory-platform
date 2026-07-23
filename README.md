@@ -24,6 +24,8 @@ The project is in active development. Its current foundation provides account re
 - Public agency directory and active-profile agency pages
 - Privacy-safe related profiles prioritized by sub-location
 - Dynamic, visibility-aware XML sitemaps and robots discovery
+- SEO-managed redirects, 410 removals, loop protection, and audited activation controls
+- Explicit profile slug changes with permanent old-URL history and redirect-chain flattening
 - Admin/CSR listing workspace with private profiles and audited lifecycle actions
 - Owner profile editing, private-profile viewing, and staff-reviewed renewal requests
 - Admin-managed packages, durations, listing rules, agency limits, and media constraints
