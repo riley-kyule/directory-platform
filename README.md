@@ -114,6 +114,17 @@ composer launch-check
 
 The launch check fails closed when key security, Google Admin SSO, policy, enabled MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
 
+On shared cPanel hosting with SSH but no root, `deploy/` has ready-to-run scripts for exactly this atomic-release-plus-rollback pattern, using plain symlinks in the account's home directory instead of systemd/WHM:
+
+```bash
+./deploy/bootstrap.sh    # once: creates releases/+shared/, backs up an existing public_html
+# put a production .env at ~/directory-platform/shared/.env, then:
+DEPLOY_REPO_URL=git@github.com:riley-kyule/directory-platform.git ./deploy/deploy.sh
+./deploy/rollback.sh     # or ./deploy/rollback.sh <release-timestamp>
+```
+
+Requires non-interactive git access from the server (an SSH deploy key or a token-embedded HTTPS remote), PHP 8.3+ selected in MultiPHP Manager with the upload/memory limits above set in MultiPHP INI Editor, and Node available for `npm ci && npm run build` (build assets locally/in CI instead if the plan has no Node). `deploy.sh` runs `composer launch-check` before activating a release and leaves the previous one live if it fails. `rollback.sh` only ever moves symlinks and re-warms caches — it never touches the database; see the destructive-rollback guidance above. Each script's own header comment has the full details.
+
 ## Security
 
 Never commit environment files, credentials, production data, private uploads, or generated application keys. Configure deployment secrets through the hosting environment.
