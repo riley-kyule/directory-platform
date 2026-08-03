@@ -65,6 +65,16 @@ class PublicProfileListings
     {
         return $this->baseQuery()
             ->when($filters['q'] ?? null, function (Builder $query, string $term): void {
+                if ($query->getConnection()->getDriverName() === 'mysql') {
+                    $query->whereFullText(
+                        ['display_name', 'description'],
+                        $this->fullTextPrefixQuery($term),
+                        ['mode' => 'boolean'],
+                    );
+
+                    return;
+                }
+
                 $escaped = addcslashes($term, '\\%_');
                 $query->where(fn (Builder $query) => $query
                     ->where('display_name', 'like', '%'.$escaped.'%')
@@ -92,6 +102,21 @@ class PublicProfileListings
             })
             ->when($filters['services'] ?? [], fn (Builder $query, array $slugs) => $query
                 ->whereHas('services', fn (Builder $query) => $query->whereIn('slug', $slugs)));
+    }
+
+    /**
+     * Build a MySQL boolean-mode fulltext expression that requires every
+     * word in the term as a prefix match (e.g. "jane doe" -> "+jane* +doe*").
+     * This trades infix matching (what the old LIKE '%term%' allowed) for an
+     * index-backed prefix search, which is the standard fulltext trade-off.
+     */
+    private function fullTextPrefixQuery(string $term): string
+    {
+        return collect(preg_split('/\s+/', trim($term)))
+            ->map(fn (string $word) => preg_replace('/[+\-<>()~*"@]+/', '', $word))
+            ->filter(fn (string $word) => $word !== '')
+            ->map(fn (string $word) => '+'.$word.'*')
+            ->implode(' ');
     }
 
     private function baseQuery(?Location $location = null): Builder
