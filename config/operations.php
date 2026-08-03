@@ -9,4 +9,5 @@ return [
     'backup_disk' => env('OPS_BACKUP_DISK', 'local'),
     'backup_directory' => env('OPS_BACKUP_DIRECTORY', 'backups'),
     'backup_retention_days' => (int) env('OPS_BACKUP_RETENTION_DAYS', 14),
+    'restore_drill_stale_days' => (int) env('OPS_RESTORE_DRILL_STALE_DAYS', 30),
 ];

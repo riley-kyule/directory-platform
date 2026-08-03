@@ -86,11 +86,61 @@ class OperationsReadinessTest extends TestCase
             'verified_at' => now(),
         ]);
 
+        SystemHeartbeat::query()->create([
+            'name' => 'restore_drill',
+            'last_seen_at' => now(),
+            'metadata' => ['pending_migrations' => 0],
+        ]);
+
         $checks = app(SystemHealthService::class)->checks();
         $this->assertSame('warning', $checks['queue']['status']);
         $this->assertSame('warning', $checks['failed_jobs']['status']);
         $this->assertSame('ok', $checks['backup']['status']);
+        $this->assertSame('ok', $checks['restore_drill']['status']);
         $this->assertTrue(app(SystemHealthService::class)->isReady());
+    }
+
+    public function test_restore_drill_reports_stale_when_none_has_been_recorded(): void
+    {
+        $checks = app(SystemHealthService::class)->checks();
+
+        $this->assertSame('warning', $checks['restore_drill']['status']);
+    }
+
+    public function test_restore_drill_refuses_to_run_without_an_isolated_target_configured(): void
+    {
+        config()->set('database.connections.restore_drill.database', null);
+
+        $exit = Artisan::call('system:restore-drill');
+
+        $this->assertSame(1, $exit);
+        $this->assertStringContainsString('Configure OPS_RESTORE_DRILL_DB_*', Artisan::output());
+    }
+
+    public function test_restore_drill_refuses_to_target_the_default_connection(): void
+    {
+        config()->set('database.connections.restore_drill', [
+            'driver' => 'sqlite',
+            'database' => config('database.connections.sqlite.database'),
+        ]);
+
+        $exit = Artisan::call('system:restore-drill');
+
+        $this->assertSame(1, $exit);
+        $this->assertStringContainsString('Refusing to run', Artisan::output());
+    }
+
+    public function test_restore_drill_refuses_without_a_verified_backup(): void
+    {
+        config()->set('database.connections.restore_drill', [
+            'driver' => 'sqlite',
+            'database' => sys_get_temp_dir().'/restore-drill-test-'.uniqid().'.sqlite',
+        ]);
+
+        $exit = Artisan::call('system:restore-drill');
+
+        $this->assertSame(1, $exit);
+        $this->assertStringContainsString('No verified backup is available', Artisan::output());
     }
 
     public function test_launch_check_fails_closed_when_required_launch_evidence_is_missing(): void

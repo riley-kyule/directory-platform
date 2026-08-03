@@ -23,6 +23,7 @@ class SystemHealthService
             'failed_jobs' => $this->failedJobs(),
             'disk' => $this->disk(),
             'backup' => $this->backup(),
+            'restore_drill' => $this->restoreDrill(),
         ];
     }
 
@@ -121,6 +122,31 @@ class SystemHealthService
             return $this->result($ok ? 'ok' : 'warning', $ok ? 'Latest backup is present and fresh.' : 'Latest backup is missing or stale.', $backup->completed_at->toIso8601String());
         } catch (Throwable) {
             return $this->result('warning', 'Backup freshness cannot be read.');
+        }
+    }
+
+    private function restoreDrill(): array
+    {
+        try {
+            $heartbeat = SystemHeartbeat::query()->find('restore_drill');
+            if (! $heartbeat) {
+                return $this->result('warning', 'No restore drill has been recorded yet.');
+            }
+            $fresh = $heartbeat->last_seen_at->gte(now()->subDays(config('operations.restore_drill_stale_days')));
+            $pending = (int) ($heartbeat->metadata['pending_migrations'] ?? 0);
+            $ok = $fresh && $pending === 0;
+
+            return $this->result(
+                $ok ? 'ok' : 'warning',
+                match (true) {
+                    ! $fresh => 'Last restore drill is stale.',
+                    $pending > 0 => 'Last restore drill left pending migrations against the restored schema.',
+                    default => 'Last restore drill succeeded and is current.',
+                },
+                $heartbeat->last_seen_at->toIso8601String(),
+            );
+        } catch (Throwable) {
+            return $this->result('warning', 'Restore drill freshness cannot be read.');
         }
     }
 

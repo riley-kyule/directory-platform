@@ -99,6 +99,26 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        // A separate, isolated target for `system:restore-drill` to import a
+        // production backup into and verify — never the app's own default
+        // connection. Left undatabased by default so the command fails closed
+        // until an operator explicitly points it at a scratch database.
+        'restore_drill' => [
+            'driver' => env('OPS_RESTORE_DRILL_DB_DRIVER', env('DB_CONNECTION', 'mysql')),
+            'url' => env('OPS_RESTORE_DRILL_DB_URL'),
+            'host' => env('OPS_RESTORE_DRILL_DB_HOST', '127.0.0.1'),
+            'port' => env('OPS_RESTORE_DRILL_DB_PORT', '3306'),
+            'database' => env('OPS_RESTORE_DRILL_DB_DATABASE'),
+            'username' => env('OPS_RESTORE_DRILL_DB_USERNAME', 'root'),
+            'password' => env('OPS_RESTORE_DRILL_DB_PASSWORD', ''),
+            'charset' => env('OPS_RESTORE_DRILL_DB_CHARSET', 'utf8mb4'),
+            'collation' => env('OPS_RESTORE_DRILL_DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
