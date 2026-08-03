@@ -30,7 +30,7 @@ Route::post('/escort/{profile:slug}/report', [ProfileReportController::class, 's
     ->name('directory.profiles.report.store');
 Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('directory.agencies.index');
 Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->name('directory.agencies.show');
-Route::get('/search', [PublicSearchController::class, 'index'])->name('directory.search');
+Route::get('/search', [PublicSearchController::class, 'index'])->middleware('throttle:30,1')->name('directory.search');
 Route::get('/terms', [PolicyPageController::class, 'show'])->defaults('policyType', 'terms')->name('policies.terms');
 Route::get('/privacy', [PolicyPageController::class, 'show'])->defaults('policyType', 'privacy')->name('policies.privacy');
 Route::get('/provider-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'provider')->name('policies.provider');
