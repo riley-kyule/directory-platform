@@ -161,6 +161,44 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertDontSee('<script>alert(1)</script>', false);
     }
 
+    public function test_location_alias_redirects_to_canonical_url(): void
+    {
+        $this->city->aliases()->create(['alias' => 'NBO', 'normalized_alias' => 'nbo']);
+        $this->neighbourhood->aliases()->create(['alias' => 'West Lands', 'normalized_alias' => 'west-lands']);
+
+        $this->get('/nbo-escorts')->assertStatus(301)->assertRedirect('/nairobi-escorts');
+        $this->get('/nairobi/west-lands-escorts')->assertStatus(301)->assertRedirect('/nairobi/westlands-escorts');
+        $this->get('/nbo/west-lands-escorts')->assertStatus(301)->assertRedirect('/nairobi/westlands-escorts');
+    }
+
+    public function test_empty_location_page_suggests_nearby_areas_with_inventory(): void
+    {
+        $this->neighbourhood->update(['active_profile_count' => 1]);
+        Location::query()->create([
+            'parent_id' => $this->city->id, 'country_code' => 'KE', 'type' => 'neighbourhood',
+            'name' => 'Karen', 'slug' => 'karen', 'full_slug' => 'nairobi/karen',
+            'status' => 'published', 'active_profile_count' => 0,
+        ]);
+
+        $this->get('/nairobi/karen-escorts')
+            ->assertOk()
+            ->assertSee('Nothing active here yet')
+            ->assertSee('Westlands');
+    }
+
+    public function test_search_empty_state_suggests_clearing_filters_and_browsing_city(): void
+    {
+        $this->get(route('directory.search', ['city' => 'nairobi', 'q' => 'zzz-no-match-zzz']))
+            ->assertOk()
+            ->assertSee('No matching active profiles')
+            ->assertSee('Clear all filters')
+            ->assertSee('Browse all locations');
+
+        $this->get(route('directory.search', ['city' => 'nairobi', 'neighbourhood' => 'westlands', 'q' => 'zzz-no-match-zzz']))
+            ->assertOk()
+            ->assertSee('Browse all of Nairobi');
+    }
+
     public function test_non_public_profile_returns_not_found(): void
     {
         $this->profile->update(['status' => ProfileStatus::Expired]);

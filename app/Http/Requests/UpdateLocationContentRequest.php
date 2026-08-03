@@ -12,6 +12,18 @@ class UpdateLocationContentRequest extends FormRequest
         return $this->user()?->hasPermission('seo.content') ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'aliases' => collect(preg_split('/\r\n|\r|\n/', (string) $this->input('aliases', '')))
+                ->map(fn (string $line) => trim($line))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all(),
+        ]);
+    }
+
     public function rules(): array
     {
         $publishing = $this->input('status') === 'published';
@@ -33,6 +45,8 @@ class UpdateLocationContentRequest extends FormRequest
                 Rule::unique('location_contents', 'canonical_path')
                     ->ignore($this->route('location')?->id, 'location_id'),
             ],
+            'aliases' => ['array', 'max:20'],
+            'aliases.*' => ['string', 'max:160'],
         ];
     }
 }

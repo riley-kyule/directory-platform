@@ -203,6 +203,43 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'locations.content-update', 'target_id' => $location->id]);
     }
 
+    public function test_seo_user_can_manage_location_aliases(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData());
+        $location = Location::query()->firstOrFail();
+
+        $this->actingAs($seo)->patch(route('seo.locations.content.update', $location), [
+            'status' => 'published',
+            'heading' => 'Nairobi Escorts',
+            'intro_content' => str_repeat('Original Nairobi directory information for visitors. ', 3),
+            'bottom_content' => null,
+            'seo_title' => 'Nairobi Escorts and Independent Profiles',
+            'meta_description' => 'Browse active independent profiles in Nairobi with useful directory information.',
+            'canonical_path' => '/nairobi-escorts',
+            'aliases' => "NBO\nNairobi CBD\n",
+        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('location_aliases', ['location_id' => $location->id, 'normalized_alias' => 'nbo']);
+        $this->assertDatabaseHas('location_aliases', ['location_id' => $location->id, 'normalized_alias' => 'nairobi-cbd']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'locations.content-update', 'target_id' => $location->id]);
+        $this->get('/nbo-escorts')->assertRedirect('/nairobi-escorts');
+
+        $this->actingAs($seo)->patch(route('seo.locations.content.update', $location), [
+            'status' => 'published',
+            'heading' => 'Nairobi Escorts',
+            'intro_content' => str_repeat('Original Nairobi directory information for visitors. ', 3),
+            'bottom_content' => null,
+            'seo_title' => 'Nairobi Escorts and Independent Profiles',
+            'meta_description' => 'Browse active independent profiles in Nairobi with useful directory information.',
+            'canonical_path' => '/nairobi-escorts',
+            'aliases' => 'Nairobi CBD',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('location_aliases', ['location_id' => $location->id, 'normalized_alias' => 'nbo']);
+        $this->assertDatabaseHas('location_aliases', ['location_id' => $location->id, 'normalized_alias' => 'nairobi-cbd']);
+    }
+
     public function test_draft_location_can_be_completed_and_published_later(): void
     {
         $seo = $this->staff('seo');

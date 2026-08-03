@@ -111,14 +111,14 @@ class DirectoryConfigurationController extends Controller
         Gate::authorize('seo.content');
         abort_unless($location->content, 404);
 
-        return view('seo.directory.location-content-form', ['location' => $location->load(['content', 'parent'])]);
+        return view('seo.directory.location-content-form', ['location' => $location->load(['content', 'parent', 'aliases'])]);
     }
 
     public function updateLocation(UpdateLocationContentRequest $request, Location $location): RedirectResponse
     {
         abort_unless($location->content, 404);
         $validated = $request->validated();
-        $previous = ['location_status' => $location->status]
+        $previous = ['location_status' => $location->status, 'aliases' => $location->aliases->pluck('alias')->all()]
             + $location->content->only(['heading', 'intro_content', 'bottom_content', 'seo_title', 'meta_description', 'canonical_path']);
 
         $location->content->update([
@@ -134,6 +134,7 @@ class DirectoryConfigurationController extends Controller
             'reviewed_by' => $validated['status'] === 'published' ? $request->user()->id : null,
         ]);
         $location->update(['status' => $validated['status']]);
+        $this->syncAliases($location, $validated['aliases'] ?? []);
         $this->locationInventory->sync($location->id);
 
         $this->auditUpdate(
@@ -141,10 +142,26 @@ class DirectoryConfigurationController extends Controller
             'locations.content-update',
             $location->id,
             $previous,
-            ['location_status' => $location->status] + $location->content->fresh()->toArray(),
+            ['location_status' => $location->status, 'aliases' => $location->aliases()->pluck('alias')->all()]
+                + $location->content->fresh()->toArray(),
         );
 
         return redirect()->route('seo.directory.index')->with('status', "Content for {$location->name} updated.");
+    }
+
+    /** @param  list<string>  $aliases */
+    private function syncAliases(Location $location, array $aliases): void
+    {
+        $normalized = collect($aliases)
+            ->map(fn (string $alias) => ['alias' => $alias, 'normalized_alias' => Str::slug($alias)])
+            ->filter(fn (array $row) => $row['normalized_alias'] !== '' && $row['normalized_alias'] !== $location->slug)
+            ->unique('normalized_alias');
+
+        $location->aliases()->whereNotIn('normalized_alias', $normalized->pluck('normalized_alias'))->delete();
+
+        foreach ($normalized as $row) {
+            $location->aliases()->firstOrCreate(['normalized_alias' => $row['normalized_alias']], ['alias' => $row['alias']]);
+        }
     }
 
     public function updateHomepage(UpdateHomepageContentRequest $request): RedirectResponse

@@ -9,6 +9,9 @@ use App\Services\DirectorySettings;
 use App\Services\PublicContactLinks;
 use App\Services\PublicProfileListings;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PublicDirectoryController extends Controller
@@ -37,47 +40,73 @@ class PublicDirectoryController extends Controller
             'canonicalUrl' => route('directory.home'),
             'robots' => 'index,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
+            'nearbyLocations' => collect(),
         ]);
     }
 
-    public function city(string $city, int $page = 1): View
+    public function city(string $city, int $page = 1): View|RedirectResponse
     {
-        $location = Location::query()
-            ->whereNull('parent_id')
-            ->where('slug', $city)
-            ->where('status', 'published')
-            ->with('content')
-            ->firstOrFail();
+        $location = $this->findBySlugOrAlias(
+            Location::query()->whereNull('parent_id')->where('status', 'published')->with('content'),
+            $city,
+        );
+        abort_unless($location, 404);
+
+        if ($location->slug !== $city) {
+            return $this->redirectToCanonical($location, $page);
+        }
 
         return $this->locationPage($location, $page);
     }
 
-    public function neighbourhood(string $city, string $neighbourhood, int $page = 1): View
+    public function neighbourhood(string $city, string $neighbourhood, int $page = 1): View|RedirectResponse
     {
-        $location = Location::query()
-            ->where('slug', $neighbourhood)
-            ->where('status', 'published')
-            ->whereHas('parent', fn (Builder $query) => $query->where('slug', $city)->where('status', 'published'))
-            ->with(['content', 'parent'])
-            ->firstOrFail();
+        $cityLocation = $this->findBySlugOrAlias(
+            Location::query()->whereNull('parent_id')->where('status', 'published'),
+            $city,
+        );
+        abort_unless($cityLocation, 404);
+
+        $location = $this->findBySlugOrAlias(
+            Location::query()->where('parent_id', $cityLocation->id)->where('status', 'published')->with(['content', 'parent']),
+            $neighbourhood,
+        );
+        abort_unless($location, 404);
+
+        if ($cityLocation->slug !== $city || $location->slug !== $neighbourhood) {
+            return $this->redirectToCanonical($location, $page);
+        }
 
         return $this->locationPage($location, $page);
     }
 
-    public function microLocation(string $city, string $neighbourhood, string $micro, int $page = 1): View
+    public function microLocation(string $city, string $neighbourhood, string $micro, int $page = 1): View|RedirectResponse
     {
-        $location = Location::query()
-            ->where('slug', $micro)
-            ->whereIn('type', ['area', 'landmark'])
-            ->where('status', 'published')
-            ->whereHas('parent', fn (Builder $query) => $query
-                ->where('slug', $neighbourhood)
+        $cityLocation = $this->findBySlugOrAlias(
+            Location::query()->whereNull('parent_id')->where('status', 'published'),
+            $city,
+        );
+        abort_unless($cityLocation, 404);
+
+        $neighbourhoodLocation = $this->findBySlugOrAlias(
+            Location::query()->where('parent_id', $cityLocation->id)->where('status', 'published'),
+            $neighbourhood,
+        );
+        abort_unless($neighbourhoodLocation, 404);
+
+        $location = $this->findBySlugOrAlias(
+            Location::query()
+                ->whereIn('type', ['area', 'landmark'])
+                ->where('parent_id', $neighbourhoodLocation->id)
                 ->where('status', 'published')
-                ->whereHas('parent', fn (Builder $query) => $query
-                    ->where('slug', $city)
-                    ->where('status', 'published')))
-            ->with(['content', 'parent.parent'])
-            ->firstOrFail();
+                ->with(['content', 'parent.parent']),
+            $micro,
+        );
+        abort_unless($location, 404);
+
+        if ($cityLocation->slug !== $city || $neighbourhoodLocation->slug !== $neighbourhood || $location->slug !== $micro) {
+            return $this->redirectToCanonical($location, $page);
+        }
 
         return $this->locationPage($location, $page);
     }
@@ -123,7 +152,7 @@ class PublicDirectoryController extends Controller
         abort_if($page > $totalPages, 404);
 
         $sections = collect($queries)->map(fn (Builder $query) => $query->forPage($page, $perPage)->get())->all();
-        $basePath = $location->content?->canonical_path ?? '/'.$location->full_slug.'-escorts';
+        $basePath = $location->publicPath();
         $canonicalPath = $page === 1 ? $basePath : $basePath.'/page/'.$page;
         $globalContent = PageContent::query()->where('page_key', 'homepage')->firstOrFail();
 
@@ -141,6 +170,54 @@ class PublicDirectoryController extends Controller
             'canonicalUrl' => url($canonicalPath),
             'robots' => $location->is_indexable ? 'index,follow' : 'noindex,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
+            'nearbyLocations' => $counts->sum() === 0 ? $this->nearbyLocations($location) : collect(),
         ]);
+    }
+
+    /**
+     * Resolve a URL segment against a location's canonical slug first, then its
+     * aliases, so alternate spellings redirect to the canonical page instead of
+     * 404ing or becoming a competing indexable URL.
+     */
+    private function findBySlugOrAlias(Builder $query, string $slug): ?Location
+    {
+        return (clone $query)->where('slug', $slug)->first()
+            ?? (clone $query)->whereHas('aliases', fn (Builder $aliasQuery) => $aliasQuery->where('normalized_alias', Str::slug($slug)))->first();
+    }
+
+    private function redirectToCanonical(Location $location, int $page): RedirectResponse
+    {
+        $location->loadMissing('content');
+        $path = $location->publicPath();
+        if ($page > 1) {
+            $path .= '/page/'.$page;
+        }
+
+        return redirect($path, 301);
+    }
+
+    /**
+     * Suggest the parent location and sibling locations that do have active
+     * inventory, for when a location page has none of its own to show.
+     *
+     * @return Collection<int, Location>
+     */
+    private function nearbyLocations(Location $location): Collection
+    {
+        $parent = $location->parent_id
+            ? Location::query()->where('id', $location->parent_id)->where('status', 'published')->where('active_profile_count', '>', 0)->with('content')->first()
+            : null;
+
+        $siblings = Location::query()
+            ->where('parent_id', $location->parent_id)
+            ->where('status', 'published')
+            ->whereKeyNot($location->id)
+            ->where('active_profile_count', '>', 0)
+            ->orderByDesc('active_profile_count')
+            ->with('content')
+            ->limit(4)
+            ->get();
+
+        return collect([$parent])->filter()->concat($siblings)->unique('id')->take(5);
     }
 }

@@ -39,6 +39,11 @@ class Location extends Model
         return $this->hasOne(LocationContent::class);
     }
 
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(LocationAlias::class);
+    }
+
     public function profiles(): HasMany
     {
         return $this->hasMany(Profile::class, 'primary_location_id');
@@ -57,6 +62,11 @@ class Location extends Model
     public function isMicroLocation(): bool
     {
         return in_array($this->type, ['area', 'landmark'], true);
+    }
+
+    public function publicPath(): string
+    {
+        return $this->content?->canonical_path ?? '/'.$this->full_slug.'-escorts';
     }
 
     protected function casts(): array

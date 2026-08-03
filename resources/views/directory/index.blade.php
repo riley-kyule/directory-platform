@@ -19,6 +19,17 @@
             <p class="mt-3 max-w-3xl text-base leading-7 text-stone-600">{{ $intro }}</p>
         </header>
 
+        @if ($nearbyLocations->isNotEmpty())
+            <div class="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-8 text-center">
+                <p class="font-bold text-stone-900">Nothing active here yet — try a nearby area instead.</p>
+                <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                    @foreach ($nearbyLocations as $nearby)
+                        <a href="{{ url($nearby->publicPath()) }}" class="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold hover:border-stone-500">{{ $nearby->name }}</a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         @foreach (['vip', 'premium', 'basic', 'new'] as $key)
             @php
                 $title = $sectionContent[$key]['heading'];
