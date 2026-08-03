@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SearchProfilesRequest;
+use App\Models\Location;
 use App\Services\PublicProfileListings;
 use App\Services\PublicSearchOptions;
 use Illuminate\View\View;
@@ -24,6 +25,10 @@ class PublicSearchController extends Controller
         return view('directory.search', $this->options->all() + [
             'profiles' => $profiles,
             'filters' => $filters,
+            'hasFilters' => collect($filters)->filter()->isNotEmpty(),
+            'cityLocation' => filled($filters['city'] ?? null)
+                ? Location::query()->where('slug', $filters['city'])->first()
+                : null,
             'metaTitle' => 'Search profiles — '.config('app.name'),
             'metaDescription' => 'Search active provider profiles by location, profile details, availability, and services.',
             'canonicalUrl' => route('directory.search'),

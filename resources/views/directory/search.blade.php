@@ -38,7 +38,17 @@
             @else
                 <div class="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-14 text-center">
                     <h2 class="text-xl font-black">No matching active profiles</h2>
-                    <p class="mt-2 text-stone-500">Try removing one or more filters.</p>
+                    <p class="mt-2 text-stone-500">Try removing one or more filters, or browse a nearby area instead.</p>
+                    <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+                        @if ($hasFilters)
+                            <a href="{{ route('directory.search') }}" class="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-bold hover:border-stone-500">Clear all filters</a>
+                        @endif
+                        @if (filled($filters['neighbourhood'] ?? null) && $cityLocation)
+                            <a href="{{ url($cityLocation->publicPath()) }}" class="rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white hover:bg-rose-600">Browse all of {{ $cityLocation->name }}</a>
+                        @elseif ($cityLocation)
+                            <a href="{{ route('directory.home') }}" class="rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white hover:bg-rose-600">Browse all locations</a>
+                        @endif
+                    </div>
                 </div>
             @endif
         </section>
