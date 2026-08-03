@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProfileStatus;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,11 +14,31 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+#[Fillable([
+    'owner_user_id',
+    'display_name',
+    'slug',
+    'description',
+    'primary_location_id',
+    'sublocation_id',
+    'micro_location_id',
+    'gender_option_id',
+    'date_of_birth',
+    'ethnicity_option_id',
+    'build_option_id',
+    'bust_size_option_id',
+    'allows_incall',
+    'allows_outcall',
+    'status',
+    'verification_status',
+    'published_at',
+    'last_activated_at',
+    'expires_at',
+    'listing_rank',
+])]
 class Profile extends Model
 {
     use HasFactory, SoftDeletes;
-
-    protected $guarded = [];
 
     protected static function booted(): void
     {
