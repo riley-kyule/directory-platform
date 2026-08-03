@@ -94,6 +94,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('/moderation', [ModerationController::class, 'index'])->name('moderation.index');
+        Route::get('/moderation/metrics', [ModerationController::class, 'metrics'])->name('moderation.metrics');
         Route::get('/moderation/{report:public_id}', [ModerationController::class, 'show'])->name('moderation.show');
         Route::patch('/moderation/{report:public_id}', [ModerationController::class, 'update'])->name('moderation.update');
         Route::patch('/moderation-appeals/{appeal:public_id}', [ModerationController::class, 'reviewAppeal'])->name('moderation.appeals.review');

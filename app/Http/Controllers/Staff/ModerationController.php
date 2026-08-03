@@ -13,6 +13,7 @@ use App\Models\ModerationAppeal;
 use App\Models\Profile;
 use App\Models\ProfileReport;
 use App\Services\ModerationEnforcementService;
+use App\Services\ModerationMetricsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,20 @@ use Illuminate\View\View;
 
 class ModerationController extends Controller
 {
-    public function __construct(private readonly ModerationEnforcementService $enforcement) {}
+    public function __construct(
+        private readonly ModerationEnforcementService $enforcement,
+        private readonly ModerationMetricsService $metrics,
+    ) {}
+
+    public function metrics(): View
+    {
+        Gate::authorize('moderation.view');
+
+        return view('staff.moderation.metrics', [
+            'metrics' => $this->metrics->summary(),
+            'categoryLabels' => ProfileReport::CATEGORIES,
+        ]);
+    }
 
     public function index(Request $request): View
     {

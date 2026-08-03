@@ -11,6 +11,7 @@ use App\Models\ProfileReport;
 use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Services\ModerationMetricsService;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -199,6 +200,44 @@ class ModerationWorkflowTest extends TestCase
         $this->actingAs($csr)->patch(route('staff.directory.emergency-takedown', $this->profile), [
             'reason' => 'Trying to take down an already-banned profile.',
         ])->assertStatus(409);
+    }
+
+    public function test_seo_cannot_view_moderation_metrics(): void
+    {
+        $this->actingAs($this->staff('seo'))->get(route('staff.moderation.metrics'))->assertForbidden();
+    }
+
+    public function test_moderation_metrics_summarizes_reports_actions_and_appeals(): void
+    {
+        $csr = $this->staff('csr');
+        $urgentReport = $this->report();
+        $urgentReport->update(['priority' => 'urgent', 'category' => 'suspected_minor']);
+        $resolvedReport = ProfileReport::query()->create([
+            'profile_id' => $this->profile->id,
+            'reporter_email' => 'other@example.com',
+            'reporter_email_hash' => hash('sha256', 'other@example.com'),
+            'category' => 'fraud',
+            'details' => 'A separate concern used to exercise the resolved-report metrics path.',
+            'priority' => 'normal',
+            'status' => 'resolved',
+            'resolved_at' => now(),
+        ]);
+
+        $this->actingAs($csr)->patch(route('staff.directory.emergency-takedown', $this->profile), [
+            'reason' => 'Exercising the metrics action counter.',
+        ]);
+
+        $this->actingAs($csr)->get(route('staff.moderation.metrics'))
+            ->assertOk()
+            ->assertSee('Suspected minor')
+            ->assertSee('Fraud or scam');
+
+        $metrics = app(ModerationMetricsService::class)->summary();
+        $this->assertSame(1, $metrics['open_urgent_reports']);
+        $this->assertSame(1, $metrics['reports_by_status']['resolved']);
+        $this->assertSame(1, $metrics['actions_last_30_days']['emergency_takedown']);
+        $this->assertNotNull($metrics['average_resolution_hours']);
+        $this->assertSame($resolvedReport->status, 'resolved');
     }
 
     private function report(): ProfileReport

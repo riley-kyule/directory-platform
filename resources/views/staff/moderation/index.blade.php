@@ -2,6 +2,7 @@
     <x-slot name="header"><h2 class="text-xl font-semibold leading-tight text-gray-800">Moderation</h2></x-slot>
     <div class="py-12">
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <a href="{{ route('staff.moderation.metrics') }}" class="text-sm font-semibold text-indigo-600">View moderation metrics &rarr;</a>
             @if(session('status'))<div class="rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800">{{ session('status') }}</div>@endif
 
             @if($appeals->isNotEmpty())
