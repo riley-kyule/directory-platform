@@ -19,7 +19,7 @@
                 <div class="grid gap-3 sm:grid-cols-2">
                     @forelse ($profile->images as $image)
                         @php($imageSlot = $loop->first ? 'profile' : 'card')
-                        <img src="{{ $image->publicUrl($imageSlot) }}" alt="{{ $profile->display_name }} profile image {{ $loop->iteration }}" width="{{ $image->derivatives[$imageSlot]['width'] ?? 640 }}" height="{{ $image->derivatives[$imageSlot]['height'] ?? 800 }}" class="aspect-[4/5] w-full rounded-2xl object-cover {{ $loop->first ? 'sm:row-span-2 sm:h-full' : '' }}">
+                        <img src="{{ $image->publicUrl($imageSlot) }}" alt="{{ $profile->display_name }} profile image {{ $loop->iteration }}" width="{{ $image->derivatives[$imageSlot]['width'] ?? 640 }}" height="{{ $image->derivatives[$imageSlot]['height'] ?? 800 }}" @if ($loop->first) fetchpriority="high" @else loading="lazy" @endif class="aspect-[4/5] w-full rounded-2xl object-cover {{ $loop->first ? 'sm:row-span-2 sm:h-full' : '' }}">
                     @empty
                         <div class="grid aspect-[4/5] place-items-center rounded-2xl bg-gradient-to-br from-stone-200 to-rose-100 text-7xl font-black text-stone-300 sm:col-span-2">{{ str($profile->display_name)->substr(0, 1)->upper() }}</div>
                     @endforelse
