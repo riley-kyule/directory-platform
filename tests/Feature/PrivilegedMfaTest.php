@@ -92,7 +92,20 @@ class PrivilegedMfaTest extends TestCase
         $secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
 
         $this->assertSame('287082', app(TotpService::class)->currentCode($secret, 59));
-        $this->assertTrue(app(TotpService::class)->verify($secret, '287082', 59));
+        $this->assertSame(1, app(TotpService::class)->verify($secret, '287082', null, 59));
+    }
+
+    public function test_totp_code_cannot_be_replayed(): void
+    {
+        $admin = $this->staff('admin');
+        $this->actingAs($admin)->get(route('mfa.setup'));
+        $secret = session('mfa_setup_secret');
+        $code = app(TotpService::class)->currentCode($secret);
+        $this->post(route('mfa.confirm'), ['code' => $code]);
+
+        $this->withSession(['mfa_passed_at' => now()->subDay()->timestamp])
+            ->post(route('mfa.verify'), ['credential' => $code])
+            ->assertSessionHasErrors('credential');
     }
 
     private function staff(string $role): User

@@ -38,7 +38,8 @@ class MfaController extends Controller
         abort_if($request->user()->two_factor_confirmed_at, 409, 'MFA is already configured.');
         $validated = $request->validate(['code' => ['required', 'digits:6']]);
         $secret = $request->session()->get('mfa_setup_secret');
-        if (! is_string($secret) || ! $this->totp->verify($secret, $validated['code'])) {
+        $counter = is_string($secret) ? $this->totp->verify($secret, $validated['code']) : false;
+        if ($counter === false) {
             throw ValidationException::withMessages(['code' => 'The authenticator code is invalid or expired.']);
         }
 
@@ -49,6 +50,7 @@ class MfaController extends Controller
                 ->map(fn (string $code) => $this->recoveryHash($code))
                 ->all(),
             'two_factor_confirmed_at' => now(),
+            'two_factor_last_counter' => $counter,
         ])->save();
         $request->session()->forget('mfa_setup_secret');
         $request->session()->put('mfa_passed_at', now()->timestamp);
@@ -76,38 +78,44 @@ class MfaController extends Controller
         }
         $validated = $request->validate(['credential' => ['required', 'string', 'max:32']]);
         $credential = strtoupper(trim($validated['credential']));
-        $validTotp = preg_match('/^\d{6}$/', $credential)
-            && $this->totp->verify($request->user()->two_factor_secret, $credential);
-        $usedRecovery = false;
 
-        if (! $validTotp) {
-            $usedRecovery = $this->consumeRecoveryCode($request->user(), $credential);
-        }
-        if (! $validTotp && ! $usedRecovery) {
+        $outcome = DB::transaction(function () use ($request, $credential): ?string {
+            $user = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+
+            if (preg_match('/^\d{6}$/', $credential)) {
+                $counter = $this->totp->verify($user->two_factor_secret, $credential, $user->two_factor_last_counter);
+                if ($counter !== false) {
+                    $user->forceFill(['two_factor_last_counter' => $counter])->save();
+
+                    return 'totp';
+                }
+            }
+
+            return $this->consumeRecoveryCode($user, $credential) ? 'recovery' : null;
+        });
+
+        if ($outcome === null) {
             throw ValidationException::withMessages(['credential' => 'The authenticator or recovery code is invalid.']);
         }
 
         $request->session()->regenerate();
         $request->session()->put('mfa_passed_at', now()->timestamp);
-        $this->audit($request, $usedRecovery ? 'security.mfa-recovery-used' : 'security.mfa-challenged');
+        $this->audit($request, $outcome === 'recovery' ? 'security.mfa-recovery-used' : 'security.mfa-challenged');
 
         return redirect()->intended(route('dashboard'));
     }
 
     private function consumeRecoveryCode(User $user, string $credential): bool
     {
-        return DB::transaction(function () use ($user, $credential): bool {
-            $user = User::query()->lockForUpdate()->findOrFail($user->id);
-            $codes = $user->two_factor_recovery_codes ?? [];
-            $position = array_search($this->recoveryHash($credential), $codes, true);
-            if ($position === false) {
-                return false;
-            }
-            unset($codes[$position]);
-            $user->forceFill(['two_factor_recovery_codes' => array_values($codes)])->save();
+        $codes = $user->two_factor_recovery_codes ?? [];
+        $position = array_search($this->recoveryHash($credential), $codes, true);
+        if ($position === false) {
+            return false;
+        }
+        unset($codes[$position]);
+        $user->forceFill(['two_factor_recovery_codes' => array_values($codes)])->save();
 
-            return true;
-        });
+        return true;
     }
 
     private function recoveryHash(string $code): string

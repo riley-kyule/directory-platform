@@ -13,7 +13,14 @@ class TotpService
         return $this->base32Encode(random_bytes(20));
     }
 
-    public function verify(string $secret, string $code, ?int $timestamp = null): bool
+    /**
+     * Verify a 6-digit code against the ±1 step window and return the matched
+     * time-step counter, or false when the code doesn't match or was already
+     * consumed. Passing $lastUsedCounter rejects a counter at or before it,
+     * which stops a captured code from being replayed for the rest of its
+     * ~90-second validity window.
+     */
+    public function verify(string $secret, string $code, ?int $lastUsedCounter = null, ?int $timestamp = null): int|false
     {
         if (! preg_match('/^\d{6}$/', $code)) {
             return false;
@@ -21,8 +28,12 @@ class TotpService
 
         $counter = intdiv($timestamp ?? time(), 30);
         foreach ([-1, 0, 1] as $window) {
-            if (hash_equals($this->code($secret, $counter + $window), $code)) {
-                return true;
+            $candidate = $counter + $window;
+            if ($lastUsedCounter !== null && $candidate <= $lastUsedCounter) {
+                continue;
+            }
+            if (hash_equals($this->code($secret, $candidate), $code)) {
+                return $candidate;
             }
         }
 
