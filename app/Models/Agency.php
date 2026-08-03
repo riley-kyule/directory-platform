@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProfileStatus;
+use App\Services\PublicPageCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,9 @@ class Agency extends Model
                 $agency->public_id = (string) Str::uuid();
             }
         });
+
+        static::saved(fn (Agency $agency) => app(PublicPageCache::class)->forgetForAgency($agency));
+        static::deleted(fn (Agency $agency) => app(PublicPageCache::class)->forgetForAgency($agency));
     }
 
     public function owner(): BelongsTo

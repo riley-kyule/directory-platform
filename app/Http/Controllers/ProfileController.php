@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\AccountDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    public function __construct(private readonly AccountDeletionService $accountDeletion) {}
+
     /**
      * Display the user's profile form.
      */
@@ -47,6 +50,8 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        $this->accountDeletion->deactivatePublicPresence($user);
 
         Auth::logout();
 

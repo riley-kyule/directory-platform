@@ -66,6 +66,12 @@ class PublicPageCache
         $this->forget(url($location->publicPath()));
     }
 
+    public function forgetForAgency(Agency $agency): void
+    {
+        $this->forget(route('directory.agencies.show', $agency->slug));
+        $this->forget(route('directory.agencies.index'));
+    }
+
     public function forgetLocationId(int $locationId): void
     {
         $location = Location::query()->with('content')->find($locationId);
