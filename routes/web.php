@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/moderation/{report:public_id}', [ModerationController::class, 'show'])->name('moderation.show');
         Route::patch('/moderation/{report:public_id}', [ModerationController::class, 'update'])->name('moderation.update');
         Route::patch('/moderation-appeals/{appeal:public_id}', [ModerationController::class, 'reviewAppeal'])->name('moderation.appeals.review');
+        Route::patch('/directory/{profile}/emergency-takedown', [ModerationController::class, 'emergencyTakedown'])->name('directory.emergency-takedown');
         Route::get('/verification', [VerificationController::class, 'index'])->name('verification.index');
         Route::post('/verification', [VerificationController::class, 'store'])->name('verification.store');
         Route::get('/directory', [ProfileManagementController::class, 'index'])->name('directory.index');

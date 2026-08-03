@@ -145,6 +145,62 @@ class ModerationWorkflowTest extends TestCase
         $this->assertDatabaseCount('reports', 0);
     }
 
+    public function test_csr_can_perform_an_emergency_takedown_without_an_existing_report(): void
+    {
+        $csr = $this->staff('csr');
+
+        $this->actingAs($csr)->get(route('staff.directory.index'))
+            ->assertOk()
+            ->assertSee('Emergency takedown')
+            ->assertSee(route('staff.directory.emergency-takedown', $this->profile), false);
+
+        $this->actingAs($csr)->patch(route('staff.directory.emergency-takedown', $this->profile), [
+            'reason' => 'Suspected underage content, taking down immediately pending review.',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(ProfileStatus::Banned, $this->profile->refresh()->status);
+        $this->assertDatabaseHas('moderation_actions', [
+            'profile_id' => $this->profile->id,
+            'report_id' => null,
+            'action' => 'emergency_takedown',
+            'actor_user_id' => $csr->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'moderation.emergency-takedown',
+            'target_type' => 'profile',
+            'target_id' => $this->profile->id,
+        ]);
+        $this->get(route('directory.profiles.show', $this->profile->slug))->assertNotFound();
+    }
+
+    public function test_seo_cannot_perform_an_emergency_takedown(): void
+    {
+        $this->actingAs($this->staff('seo'))->patch(route('staff.directory.emergency-takedown', $this->profile), [
+            'reason' => 'Attempting an unauthorized takedown.',
+        ])->assertForbidden();
+
+        $this->assertSame(ProfileStatus::Active, $this->profile->refresh()->status);
+    }
+
+    public function test_emergency_takedown_requires_a_reason(): void
+    {
+        $this->actingAs($this->staff('csr'))->patch(route('staff.directory.emergency-takedown', $this->profile), [
+            'reason' => 'shrt',
+        ])->assertSessionHasErrors('reason');
+
+        $this->assertSame(ProfileStatus::Active, $this->profile->refresh()->status);
+    }
+
+    public function test_emergency_takedown_rejects_an_already_banned_profile(): void
+    {
+        $csr = $this->staff('csr');
+        $this->profile->update(['status' => ProfileStatus::Banned]);
+
+        $this->actingAs($csr)->patch(route('staff.directory.emergency-takedown', $this->profile), [
+            'reason' => 'Trying to take down an already-banned profile.',
+        ])->assertStatus(409);
+    }
+
     private function report(): ProfileReport
     {
         return ProfileReport::query()->create([

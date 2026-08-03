@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Staff;
 
+use App\Enums\ProfileStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EmergencyTakedownRequest;
 use App\Http\Requests\ManageModerationReportRequest;
 use App\Http\Requests\ReviewModerationAppealRequest;
 use App\Models\AuditLog;
@@ -148,6 +150,47 @@ class ModerationController extends Controller
         });
 
         return back()->with('status', 'Appeal decision recorded.');
+    }
+
+    /**
+     * A distinct, one-click path for urgent safety situations (e.g. suspected
+     * underage content) — bans a profile directly from the staff directory
+     * listing without requiring a report to exist first or going through the
+     * normal review queue. Still requires a reason and is fully audited;
+     * "one-click" means skipping the report-review flow, not skipping
+     * accountability for the action.
+     */
+    public function emergencyTakedown(EmergencyTakedownRequest $request, Profile $profile): RedirectResponse
+    {
+        DB::transaction(function () use ($request, $profile): void {
+            $profile = Profile::query()->lockForUpdate()->findOrFail($profile->id);
+            abort_if($profile->status === ProfileStatus::Banned, 409, 'This profile is already banned.');
+            $previousStatus = $profile->status->value;
+
+            $this->enforcement->ban($profile);
+
+            ModerationAction::query()->create([
+                'profile_id' => $profile->id,
+                'actor_user_id' => $request->user()->id,
+                'action' => 'emergency_takedown',
+                'previous_profile_status' => $previousStatus,
+                'new_profile_status' => $profile->refresh()->status->value,
+                'reason' => $request->validated('reason'),
+            ]);
+            AuditLog::query()->create([
+                'actor_user_id' => $request->user()->id,
+                'action' => 'moderation.emergency-takedown',
+                'target_type' => 'profile',
+                'target_id' => $profile->id,
+                'previous_state' => ['profile_status' => $previousStatus],
+                'new_state' => ['profile_status' => $profile->status->value],
+                'reason' => $request->validated('reason'),
+                'ip_address' => $request->ip(),
+                'user_agent' => str($request->userAgent())->limit(500)->toString(),
+            ]);
+        });
+
+        return back()->with('status', 'Profile taken down immediately.');
     }
 
     private function enforce(ProfileReport $report, Profile $profile, string $action): void
