@@ -50,6 +50,11 @@
                             {{ __('Redirects & slugs') }}
                         </x-nav-link>
                     @endcan
+                    @can('seo.search-insights')
+                        <x-nav-link :href="route('seo.search-insights.index')" :active="request()->routeIs('seo.search-insights.*')">
+                            {{ __('Search insights') }}
+                        </x-nav-link>
+                    @endcan
                     @can('settings.manage')
                         <x-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
                             {{ __('Admin settings') }}
@@ -153,6 +158,11 @@
             @can('seo.redirects')
                 <x-responsive-nav-link :href="route('seo.redirects.index')" :active="request()->routeIs('seo.redirects.*')">
                     {{ __('Redirects & slugs') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('seo.search-insights')
+                <x-responsive-nav-link :href="route('seo.search-insights.index')" :active="request()->routeIs('seo.search-insights.*')">
+                    {{ __('Search insights') }}
                 </x-responsive-nav-link>
             @endcan
             @can('settings.manage')

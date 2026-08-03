@@ -10,4 +10,5 @@ return [
     'backup_directory' => env('OPS_BACKUP_DIRECTORY', 'backups'),
     'backup_retention_days' => (int) env('OPS_BACKUP_RETENTION_DAYS', 14),
     'restore_drill_stale_days' => (int) env('OPS_RESTORE_DRILL_STALE_DAYS', 30),
+    'search_term_log_retention_days' => (int) env('OPS_SEARCH_TERM_LOG_RETENTION_DAYS', 180),
 ];

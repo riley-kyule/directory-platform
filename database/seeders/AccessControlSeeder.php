@@ -21,7 +21,7 @@ class AccessControlSeeder extends Seeder
             'verification' => ['verification.view', 'verification.manage'],
             'seo' => [
                 'seo.content', 'seo.metadata', 'seo.redirects', 'seo.slugs',
-                'seo.locations', 'seo.publish-locations',
+                'seo.locations', 'seo.publish-locations', 'seo.search-insights',
             ],
             'administration' => ['roles.manage', 'settings.manage', 'policies.manage', 'audit.view', 'system.health'],
         ];
@@ -59,7 +59,7 @@ class AccessControlSeeder extends Seeder
         ])->pluck('id')->all());
         $roles['seo']->permissions()->sync($permissions->only([
             'media.upload', 'media.remove', 'seo.content', 'seo.metadata', 'seo.redirects',
-            'seo.slugs', 'seo.locations', 'seo.publish-locations', 'policies.manage',
+            'seo.slugs', 'seo.locations', 'seo.publish-locations', 'seo.search-insights', 'policies.manage',
         ])->pluck('id')->all());
         $roles['subscriber']->permissions()->sync([]);
     }

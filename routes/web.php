@@ -14,6 +14,7 @@ use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Seo\RedirectManagementController;
+use App\Http\Controllers\Seo\SearchInsightsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Staff\ModerationController;
 use App\Http\Controllers\Staff\ProfileManagementController;
@@ -119,6 +120,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/redirects', [RedirectManagementController::class, 'store'])->name('redirects.store');
         Route::patch('/redirects/{redirect}/toggle', [RedirectManagementController::class, 'toggle'])->name('redirects.toggle');
         Route::patch('/profiles/{profile}/slug', [RedirectManagementController::class, 'updateProfileSlug'])->name('profiles.slug.update');
+        Route::get('/search-insights', [SearchInsightsController::class, 'index'])->name('search-insights.index');
     });
 });
 

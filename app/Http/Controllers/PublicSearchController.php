@@ -6,6 +6,7 @@ use App\Http\Requests\SearchProfilesRequest;
 use App\Models\Location;
 use App\Services\PublicProfileListings;
 use App\Services\PublicSearchOptions;
+use App\Services\SearchTermLogger;
 use Illuminate\View\View;
 
 class PublicSearchController extends Controller
@@ -13,11 +14,15 @@ class PublicSearchController extends Controller
     public function __construct(
         private readonly PublicProfileListings $listings,
         private readonly PublicSearchOptions $options,
+        private readonly SearchTermLogger $termLogger,
     ) {}
 
     public function index(SearchProfilesRequest $request): View
     {
         $filters = collect($request->validated())->except('page')->all();
+        if (filled($filters['q'] ?? null)) {
+            $this->termLogger->record($filters['q']);
+        }
         $profiles = $this->listings->search($filters)
             ->paginate(24)
             ->withQueryString();
