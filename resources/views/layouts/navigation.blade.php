@@ -55,6 +55,11 @@
                             {{ __('Search insights') }}
                         </x-nav-link>
                     @endcan
+                    @can('seo.metadata')
+                        <x-nav-link :href="route('seo.audit.index')" :active="request()->routeIs('seo.audit.*')">
+                            {{ __('SEO audit') }}
+                        </x-nav-link>
+                    @endcan
                     @can('settings.manage')
                         <x-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
                             {{ __('Admin settings') }}
@@ -163,6 +168,11 @@
             @can('seo.search-insights')
                 <x-responsive-nav-link :href="route('seo.search-insights.index')" :active="request()->routeIs('seo.search-insights.*')">
                     {{ __('Search insights') }}
+                </x-responsive-nav-link>
+            @endcan
+            @can('seo.metadata')
+                <x-responsive-nav-link :href="route('seo.audit.index')" :active="request()->routeIs('seo.audit.*')">
+                    {{ __('SEO audit') }}
                 </x-responsive-nav-link>
             @endcan
             @can('settings.manage')

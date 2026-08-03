@@ -15,6 +15,7 @@ use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Seo\RedirectManagementController;
 use App\Http\Controllers\Seo\SearchInsightsController;
+use App\Http\Controllers\Seo\SeoAuditController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Staff\ModerationController;
 use App\Http\Controllers\Staff\ProfileManagementController;
@@ -123,6 +124,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/redirects/{redirect}/toggle', [RedirectManagementController::class, 'toggle'])->name('redirects.toggle');
         Route::patch('/profiles/{profile}/slug', [RedirectManagementController::class, 'updateProfileSlug'])->name('profiles.slug.update');
         Route::get('/search-insights', [SearchInsightsController::class, 'index'])->name('search-insights.index');
+        Route::get('/audit', [SeoAuditController::class, 'index'])->name('audit.index');
     });
 });
 
