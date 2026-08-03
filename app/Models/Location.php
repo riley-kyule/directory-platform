@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PublicPageCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,13 @@ class Location extends Model
                 $location->public_id = (string) Str::uuid();
             }
         });
+
+        // Purge by re-fetching a disposable instance rather than touching the
+        // saved model's own `content` relation here: on first creation this
+        // fires before the paired LocationContent row exists, and caching a
+        // premature null onto that relation would stick for the model's
+        // lifetime (Eloquent never re-queries a relation once it's loaded).
+        static::saved(fn (Location $location) => app(PublicPageCache::class)->forgetLocationId($location->id));
     }
 
     public function parent(): BelongsTo
@@ -64,9 +72,19 @@ class Location extends Model
         return in_array($this->type, ['area', 'landmark'], true);
     }
 
+    /**
+     * Deliberately avoids the `content` property/loadMissing() when the
+     * relation isn't already loaded, since either would cache the result
+     * (even a miss) onto this instance for its lifetime — a problem right
+     * after creation, when this can run before LocationContent exists yet.
+     */
     public function publicPath(): string
     {
-        return $this->content?->canonical_path ?? '/'.$this->full_slug.'-escorts';
+        $canonicalPath = $this->relationLoaded('content')
+            ? $this->content?->canonical_path
+            : $this->content()->value('canonical_path');
+
+        return $canonicalPath ?? '/'.$this->full_slug.'-escorts';
     }
 
     protected function casts(): array

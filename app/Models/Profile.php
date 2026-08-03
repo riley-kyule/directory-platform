@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProfileStatus;
+use App\Services\PublicPageCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,6 +46,9 @@ class Profile extends Model
         static::creating(function (Profile $profile): void {
             $profile->public_id ??= (string) Str::uuid();
         });
+
+        static::saved(fn (Profile $profile) => app(PublicPageCache::class)->forgetForProfile($profile));
+        static::deleted(fn (Profile $profile) => app(PublicPageCache::class)->forgetForProfile($profile));
     }
 
     public function owner(): BelongsTo

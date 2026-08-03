@@ -8,6 +8,7 @@ use App\Models\Package;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Services\ModerationEnforcementService;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -197,6 +198,50 @@ class PublicDirectoryPagesTest extends TestCase
         $this->get(route('directory.search', ['city' => 'nairobi', 'neighbourhood' => 'westlands', 'q' => 'zzz-no-match-zzz']))
             ->assertOk()
             ->assertSee('Browse all of Nairobi');
+    }
+
+    public function test_guest_requests_are_served_from_cache_after_first_render(): void
+    {
+        $first = $this->get('/nairobi/westlands-escorts');
+        $first->assertOk()->assertHeader('X-Page-Cache', 'miss');
+
+        $second = $this->get('/nairobi/westlands-escorts');
+        $second->assertOk()->assertHeader('X-Page-Cache', 'hit');
+        $this->assertSame($first->getContent(), $second->getContent());
+    }
+
+    public function test_authenticated_requests_bypass_the_page_cache(): void
+    {
+        $this->get('/nairobi/westlands-escorts')->assertHeader('X-Page-Cache', 'miss');
+
+        $this->actingAs(User::factory()->create())
+            ->get('/nairobi/westlands-escorts')
+            ->assertHeaderMissing('X-Page-Cache');
+    }
+
+    public function test_banning_a_profile_immediately_purges_its_cached_pages(): void
+    {
+        $this->get(route('directory.profiles.show', $this->profile->slug))->assertOk()->assertSee('Jane Public');
+        $this->get('/nairobi/westlands-escorts')->assertOk()->assertSee('Jane Public');
+
+        app(ModerationEnforcementService::class)->ban($this->profile->fresh());
+
+        $this->get(route('directory.profiles.show', $this->profile->slug))->assertNotFound();
+        $this->get('/nairobi/westlands-escorts')->assertOk()->assertDontSee('Jane Public');
+    }
+
+    public function test_updating_location_content_purges_its_cached_page(): void
+    {
+        $this->get('/nairobi/westlands-escorts')
+            ->assertHeader('X-Page-Cache', 'miss')
+            ->assertSee('Original guide to active providers in Westlands.');
+        $this->get('/nairobi/westlands-escorts')->assertHeader('X-Page-Cache', 'hit');
+
+        $this->neighbourhood->content->update(['intro_content' => 'A freshly rewritten Westlands introduction.']);
+
+        $this->get('/nairobi/westlands-escorts')
+            ->assertHeader('X-Page-Cache', 'miss')
+            ->assertSee('A freshly rewritten Westlands introduction.');
     }
 
     public function test_non_public_profile_returns_not_found(): void

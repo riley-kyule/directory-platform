@@ -15,6 +15,7 @@ use App\Models\TaxonomyOption;
 use App\Services\LocationInventoryService;
 use App\Services\PolicyAcceptanceService;
 use App\Services\ProfileMediaAccess;
+use App\Services\PublicPageCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -25,6 +26,7 @@ class ProviderProfileController extends Controller
         private readonly ProfileMediaAccess $access,
         private readonly LocationInventoryService $locationInventory,
         private readonly PolicyAcceptanceService $policies,
+        private readonly PublicPageCache $pageCache,
     ) {}
 
     public function show(Profile $profile): View
@@ -89,7 +91,12 @@ class ProviderProfileController extends Controller
                 ->merge([$profile->primary_location_id, $profile->sublocation_id, $profile->micro_location_id])
                 ->filter()
                 ->unique()
-                ->each(fn (int $locationId) => $this->locationInventory->sync($locationId));
+                ->each(function (int $locationId): void {
+                    $this->locationInventory->sync($locationId);
+                    // The profile's own saved event only purges its *current* locations;
+                    // purge the pre-change ones too in case this edit moved it elsewhere.
+                    $this->pageCache->forgetLocationId($locationId);
+                });
 
             $detailFields = [
                 'hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg',

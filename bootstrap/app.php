@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CachePublicPage;
 use App\Http\Middleware\EnsurePrivilegedMfa;
 use App\Http\Middleware\ResolveDirectoryRedirects;
 use App\Http\Middleware\SecurityHeaders;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsurePrivilegedMfa::class,
             ResolveDirectoryRedirects::class,
         ]);
+        $middleware->alias(['cache.public' => CachePublicPage::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

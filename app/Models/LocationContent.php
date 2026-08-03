@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PublicPageCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,15 @@ class LocationContent extends Model
     public $incrementing = false;
 
     protected $guarded = [];
+
+    protected static function booted(): void
+    {
+        static::saved(function (LocationContent $content): void {
+            if ($content->location) {
+                app(PublicPageCache::class)->forgetForLocation($content->location);
+            }
+        });
+    }
 
     public function location(): BelongsTo
     {

@@ -22,14 +22,14 @@ use App\Http\Controllers\Staff\VerificationController;
 use App\Http\Controllers\SystemHealthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [PublicDirectoryController::class, 'home'])->name('directory.home');
-Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->name('directory.profiles.show');
+Route::get('/', [PublicDirectoryController::class, 'home'])->middleware('cache.public')->name('directory.home');
+Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->middleware('cache.public')->name('directory.profiles.show');
 Route::get('/escort/{profile:slug}/report', [ProfileReportController::class, 'create'])->name('directory.profiles.report.create');
 Route::post('/escort/{profile:slug}/report', [ProfileReportController::class, 'store'])
     ->middleware('throttle:5,10')
     ->name('directory.profiles.report.store');
-Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('directory.agencies.index');
-Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->name('directory.agencies.show');
+Route::get('/agencies', [PublicAgencyController::class, 'index'])->middleware('cache.public')->name('directory.agencies.index');
+Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->middleware('cache.public')->name('directory.agencies.show');
 Route::get('/search', [PublicSearchController::class, 'index'])->middleware('throttle:30,1')->name('directory.search');
 Route::get('/terms', [PolicyPageController::class, 'show'])->defaults('policyType', 'terms')->name('policies.terms');
 Route::get('/privacy', [PolicyPageController::class, 'show'])->defaults('policyType', 'privacy')->name('policies.privacy');
@@ -124,32 +124,34 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::get('/{city}-escorts/page/{page}', [PublicDirectoryController::class, 'city'])
-    ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->whereNumber('page')->name('directory.cities.page');
-Route::get('/{city}/{neighbourhood}/{micro}-escorts/page/{page}', [PublicDirectoryController::class, 'microLocation'])
-    ->where([
-        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-        'micro' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-    ])->whereNumber('page')->name('directory.micro-locations.page');
-Route::get('/{city}/{neighbourhood}-escorts/page/{page}', [PublicDirectoryController::class, 'neighbourhood'])
-    ->where([
-        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-    ])->whereNumber('page')->name('directory.neighbourhoods.page');
-Route::get('/{city}/{neighbourhood}/{micro}-escorts', [PublicDirectoryController::class, 'microLocation'])
-    ->where([
-        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-        'micro' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-    ])
-    ->name('directory.micro-locations.show');
-Route::get('/{city}-escorts', [PublicDirectoryController::class, 'city'])
-    ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('directory.cities.show');
-Route::get('/{city}/{neighbourhood}-escorts', [PublicDirectoryController::class, 'neighbourhood'])
-    ->where([
-        'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-        'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-    ])->name('directory.neighbourhoods.show');
+Route::middleware('cache.public')->group(function (): void {
+    Route::get('/{city}-escorts/page/{page}', [PublicDirectoryController::class, 'city'])
+        ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->whereNumber('page')->name('directory.cities.page');
+    Route::get('/{city}/{neighbourhood}/{micro}-escorts/page/{page}', [PublicDirectoryController::class, 'microLocation'])
+        ->where([
+            'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+            'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+            'micro' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        ])->whereNumber('page')->name('directory.micro-locations.page');
+    Route::get('/{city}/{neighbourhood}-escorts/page/{page}', [PublicDirectoryController::class, 'neighbourhood'])
+        ->where([
+            'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+            'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        ])->whereNumber('page')->name('directory.neighbourhoods.page');
+    Route::get('/{city}/{neighbourhood}/{micro}-escorts', [PublicDirectoryController::class, 'microLocation'])
+        ->where([
+            'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+            'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+            'micro' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        ])
+        ->name('directory.micro-locations.show');
+    Route::get('/{city}-escorts', [PublicDirectoryController::class, 'city'])
+        ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('directory.cities.show');
+    Route::get('/{city}/{neighbourhood}-escorts', [PublicDirectoryController::class, 'neighbourhood'])
+        ->where([
+            'city' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+            'neighbourhood' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        ])->name('directory.neighbourhoods.show');
+});
 
 Route::fallback(fn () => response('', 404));
