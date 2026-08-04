@@ -71,6 +71,12 @@ composer queue
 
 Or run both together as one command: `composer dev`. Either way this is two lightweight PHP processes (roughly 200-250MB combined at idle) — no Vite watcher and no log-tailing process by default, since most work in this app doesn't need either running continuously. If you're actively editing CSS/JS/Blade and want live-reloading assets, an auto-reloading queue worker, and tailed logs, use `composer dev-full` instead (the same four-process bundle this project used to default to); otherwise run `npm run build` once after a frontend change.
 
+To exercise the full application with realistic data — every profile status, all three packages, independent and agency ownership, moderation/verification/appeals, search-term logging, and a redirect — seed the demo dataset (never runs against `APP_ENV=production`, and safe to re-run: it purges and recreates its own accounts each time):
+
+```bash
+php artisan db:seed --class=DemoDataSeeder
+```
+
 The public directory will be available at `http://127.0.0.1:8000` by default. Location pages use routes such as `/nairobi-escorts` and `/nairobi/westlands-escorts` after those locations have been created by an SEO or Admin account.
 
 The development commands raise PHP's upload and POST limits so the configured 50 MB image allowance can operate, and cap memory at 256M — enough headroom for normal test uploads without reserving production-sized memory for a local session. Production PHP-FPM or web-server configuration must still provide at least `upload_max_filesize=50M`, `post_max_size=55M`, and `memory_limit=512M`, since real deployments need to handle the full high-resolution image processing ceiling (`dev-full` uses that same 512M locally, for testing near that ceiling).
