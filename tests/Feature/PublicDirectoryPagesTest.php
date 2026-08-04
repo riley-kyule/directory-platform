@@ -87,6 +87,20 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertSee('Call Jane Public');
     }
 
+    public function test_profile_card_call_button_truncates_instead_of_wrapping(): void
+    {
+        // The call button's label includes the display name (`Call {name}`),
+        // which can run much longer than the sibling "View profile" button —
+        // both share a 50/50 flex row, so without truncate + min-w-0 the
+        // longer label wraps to a second line while its sibling stays on one,
+        // breaking the two buttons' alignment (worse the narrower the card).
+        $this->profile->update(['display_name' => 'A Genuinely Long Display Name For This Provider']);
+
+        $response = $this->get(route('directory.home'))->assertOk();
+        $response->assertSee('min-w-0 flex-1 truncate rounded-xl border', false);
+        $response->assertSee('min-w-0 flex-1 truncate rounded-xl bg-rose-500', false);
+    }
+
     public function test_location_url_uses_approved_seo_data_and_inventory_robots_rule(): void
     {
         $this->get('/nairobi/westlands-escorts')

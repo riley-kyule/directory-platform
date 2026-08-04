@@ -35,9 +35,9 @@
             <span class="shrink-0 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-600">{{ $profile->date_of_birth->age }}</span>
         </div>
         <div class="mt-4 flex gap-2">
-            <a href="{{ route('directory.profiles.show', $profile->slug) }}" class="flex-1 rounded-xl border border-stone-200 px-3 py-2.5 text-center text-sm font-semibold transition hover:border-stone-400">View profile</a>
+            <a href="{{ route('directory.profiles.show', $profile->slug) }}" class="min-w-0 flex-1 truncate rounded-xl border border-stone-200 px-3 py-2.5 text-center text-sm font-semibold transition hover:border-stone-400">View profile</a>
             @if ($call)
-                <a href="tel:{{ $call->normalized_value }}" class="flex-1 rounded-xl bg-rose-500 px-3 py-2.5 text-center text-sm font-bold text-white transition hover:bg-rose-600">Call {{ $profile->display_name }}</a>
+                <a href="tel:{{ $call->normalized_value }}" title="Call {{ $profile->display_name }}" class="min-w-0 flex-1 truncate rounded-xl bg-rose-500 px-3 py-2.5 text-center text-sm font-bold text-white transition hover:bg-rose-600">Call {{ $profile->display_name }}</a>
             @endif
         </div>
     </div>
