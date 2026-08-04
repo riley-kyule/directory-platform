@@ -44,6 +44,10 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#fb7185\" \"php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=256M artisan serve\" \"php -d memory_limit=256M artisan queue:work --queue=media,default --tries=3 --timeout=120\" --names=server,queue --kill-others"
+        ],
+        "dev-full": [
+            "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=512M artisan serve\" \"php -d memory_limit=512M artisan queue:listen --queue=media,default --tries=3 --timeout=120\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
         ],
         "test": [
@@ -52,11 +56,11 @@
         ],
         "serve": [
             "Composer\\Config::disableProcessTimeout",
-            "php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=512M artisan serve --host=0.0.0.0"
+            "php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=256M artisan serve --host=0.0.0.0"
         ],
         "queue": [
             "Composer\\Config::disableProcessTimeout",
-            "php -d memory_limit=512M artisan queue:work --queue=media,default --tries=3 --timeout=120"
+            "php -d memory_limit=256M artisan queue:work --queue=media,default --tries=3 --timeout=120"
         ],
         "backup": [
             "Composer\\Config::disableProcessTimeout",
