@@ -46,6 +46,21 @@ class DirectorySchemaTest extends TestCase
         $this->assertTrue(TaxonomyOption::query()->ofType('build')->enabled()->exists());
     }
 
+    /**
+     * 11-profile-fields.md marks ethnicity a *required* field on the provider
+     * onboarding form. A default seeder that leaves it with zero options makes
+     * onboarding impossible on a fresh install — every other taxonomy already
+     * had this coverage, ethnicity didn't, and that's exactly how a
+     * completely empty, still-required <select> shipped unnoticed.
+     */
+    public function test_ethnicity_and_sexual_orientation_are_seeded(): void
+    {
+        $this->seed(DirectoryDefaultsSeeder::class);
+
+        $this->assertTrue(TaxonomyOption::query()->ofType('ethnicity')->enabled()->exists());
+        $this->assertTrue(TaxonomyOption::query()->ofType('sexual_orientation')->enabled()->exists());
+    }
+
     public function test_only_active_profile_status_is_public(): void
     {
         $this->assertTrue(ProfileStatus::Active->isPublic());

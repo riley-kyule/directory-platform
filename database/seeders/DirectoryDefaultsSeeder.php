@@ -94,6 +94,13 @@ class DirectoryDefaultsSeeder extends Seeder
             'hair_color' => $this->options(['Black', 'Brown', 'Blonde', 'Red', 'Grey', 'Other']),
             'hair_length' => $this->options(['Bald', 'Short', 'Medium', 'Long']),
             'bust_size' => $this->options(['A', 'B', 'C', 'D', 'DD', 'E', 'F', 'G+']),
+            // 11-profile-fields.md marks ethnicity a *required* controlled option but
+            // explicitly deployment-specific — this is a functional starter set only
+            // (onboarding is impossible with zero options, which is the actual bug
+            // this fixes), not a claim about the right taxonomy. Review and adjust
+            // via the admin taxonomy tools before launch.
+            'ethnicity' => $this->options(['African', 'Arab', 'Asian', 'Caucasian/White', 'Indian', 'Latina', 'Mixed race', 'Other']),
+            'sexual_orientation' => $this->options(['Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual', 'Other']),
             'service' => $this->options(['BDSM', 'Couples', 'Escort', 'GFE', 'Massage', 'Domination', 'BFE', 'Fetish', 'Mature']),
             'language' => $this->options(['English', 'Swahili']),
             'rate_period' => [
