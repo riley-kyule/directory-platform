@@ -21,7 +21,13 @@
                         </article>
                     @endforeach
                 </div>
-                @if ($agencies->hasPages())<div class="mt-10">{{ $agencies->onEachSide(1)->links() }}</div>@endif
+                @if ($totalPages > 1)
+                    <nav class="mt-10 flex items-center justify-center gap-3 border-t border-stone-200 pt-8" aria-label="Listing pages">
+                        @if ($page > 1)<a href="{{ $page === 2 ? route('directory.agencies.index') : route('directory.agencies.page', $page - 1) }}" class="rounded-full border border-stone-300 bg-white px-5 py-2.5 text-sm font-semibold">Previous</a>@endif
+                        <span class="text-sm text-stone-500">Page {{ $page }} of {{ $totalPages }}</span>
+                        @if ($page < $totalPages)<a href="{{ route('directory.agencies.page', $page + 1) }}" class="rounded-full bg-stone-950 px-5 py-2.5 text-sm font-semibold text-white">Next</a>@endif
+                    </nav>
+                @endif
             @else
                 <div class="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center text-stone-500">No agencies with active profiles are available yet.</div>
             @endif

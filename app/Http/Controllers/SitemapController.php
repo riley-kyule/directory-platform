@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Agency;
 use App\Models\Location;
+use App\Models\LocationContent;
 use App\Models\Profile;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
@@ -15,12 +17,10 @@ class SitemapController extends Controller
     {
         $maps = collect([
             ['url' => route('sitemaps.editorial'), 'lastmod' => now()],
-        ]);
-
-        $maps = $maps
-            ->merge($this->chunkMaps('locations', $this->locationsQuery()->count()))
-            ->merge($this->chunkMaps('profiles', Profile::query()->publiclyVisible()->count()))
-            ->merge($this->chunkMaps('agencies', Agency::query()->publiclyVisible()->count()));
+        ])
+            ->merge($this->chunkMaps('locations', $this->locationsQuery()->count(), fn (int $page) => $this->locationsChunkLastmod($page)))
+            ->merge($this->chunkMaps('profiles', Profile::query()->publiclyVisible()->count(), fn (int $page) => $this->pageMaxLastmod(Profile::query()->publiclyVisible(), $page, 'content_updated_at')))
+            ->merge($this->chunkMaps('agencies', Agency::query()->publiclyVisible()->count(), fn (int $page) => $this->pageMaxLastmod(Agency::query()->publiclyVisible(), $page, 'updated_at')));
 
         return $this->xml('sitemaps.index', ['maps' => $maps]);
     }
@@ -28,8 +28,9 @@ class SitemapController extends Controller
     public function editorial(): Response
     {
         return $this->urlSet(collect([
-            ['url' => route('directory.home'), 'lastmod' => now()],
-            ['url' => route('directory.agencies.index'), 'lastmod' => now()],
+            ['url' => route('directory.home'), 'lastmod' => now(), 'changefreq' => 'daily', 'priority' => '1.0'],
+            ['url' => route('directory.locations.index'), 'lastmod' => now(), 'changefreq' => 'daily', 'priority' => '0.8'],
+            ['url' => route('directory.agencies.index'), 'lastmod' => now(), 'changefreq' => 'daily', 'priority' => '0.7'],
         ]));
     }
 
@@ -40,16 +41,24 @@ class SitemapController extends Controller
         return $this->urlSet($locations->map(fn (Location $location) => [
             'url' => url($location->content->canonical_path),
             'lastmod' => $location->content->updated_at,
+            'changefreq' => 'daily',
+            'priority' => $location->parent_id === null ? '0.8' : ($location->isMicroLocation() ? '0.5' : '0.6'),
         ]));
     }
 
     public function profiles(int $page): Response
     {
-        $profiles = $this->page(Profile::query()->publiclyVisible(), $page);
+        $profiles = $this->page(
+            Profile::query()->publiclyVisible()->with(['images' => fn ($query) => $query->where('status', 'approved')->orderBy('sort_order')]),
+            $page,
+        );
 
         return $this->urlSet($profiles->map(fn (Profile $profile) => [
             'url' => route('directory.profiles.show', $profile->slug),
-            'lastmod' => $profile->updated_at,
+            'lastmod' => $profile->content_updated_at ?? $profile->updated_at,
+            'changefreq' => 'daily',
+            'priority' => '0.6',
+            'images' => $profile->images->map(fn ($image) => $image->publicUrl('card'))->filter()->values()->all(),
         ]));
     }
 
@@ -60,13 +69,19 @@ class SitemapController extends Controller
         return $this->urlSet($agencies->map(fn (Agency $agency) => [
             'url' => route('directory.agencies.show', $agency->slug),
             'lastmod' => $agency->updated_at,
+            'changefreq' => 'weekly',
+            'priority' => '0.5',
         ]));
     }
 
     public function robots(): Response
     {
+        $disallow = collect([
+            '/search', '/dashboard', '/profile', '/profiles', '/my-profiles', '/onboarding', '/admin', '/staff', '/seo',
+        ])->map(fn (string $path) => 'Disallow: '.$path)->implode("\n");
+
         return response(
-            "User-agent: *\nDisallow:\n\nSitemap: ".route('sitemaps.index')."\n",
+            "User-agent: *\n{$disallow}\n\nSitemap: ".route('sitemaps.index')."\n",
             200,
             ['Content-Type' => 'text/plain; charset=UTF-8'],
         );
@@ -81,7 +96,7 @@ class SitemapController extends Controller
     }
 
     /** @return Collection<int, array{url: string, lastmod: mixed}> */
-    private function chunkMaps(string $type, int $count): Collection
+    private function chunkMaps(string $type, int $count, Closure $lastmodForPage): Collection
     {
         if ($count === 0) {
             return collect();
@@ -91,8 +106,26 @@ class SitemapController extends Controller
 
         return collect(range(1, $pages))->map(fn (int $page) => [
             'url' => route('sitemaps.'.$type, $page),
-            'lastmod' => now(),
+            'lastmod' => $lastmodForPage($page) ?? now(),
         ]);
+    }
+
+    /**
+     * MAX(updated_at) can't just be combined with forPage()'s LIMIT/OFFSET —
+     * without a GROUP BY, the aggregate collapses to one row before OFFSET
+     * is applied, so any page beyond the first would silently return no
+     * rows. Pulling the column and reducing in PHP sidesteps that.
+     */
+    private function pageMaxLastmod(Builder $query, int $page, string $column): mixed
+    {
+        return $query->orderBy('id')->forPage($page, $this->chunkSize())->pluck($column)->max();
+    }
+
+    private function locationsChunkLastmod(int $page): mixed
+    {
+        $ids = $this->locationsQuery()->orderBy('id')->forPage($page, $this->chunkSize())->pluck('id');
+
+        return LocationContent::query()->whereIn('location_id', $ids)->pluck('updated_at')->max();
     }
 
     /** @return Collection<int, mixed> */

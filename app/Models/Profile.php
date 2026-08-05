@@ -41,10 +41,29 @@ class Profile extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * Fields whose change actually alters what a visitor sees on the public
+     * profile page — used to drive content_updated_at, so administrative
+     * saves (quality_score recalculation, expiry housekeeping, etc.) don't
+     * make the sitemap lastmod claim the page changed when it didn't.
+     */
+    private const CONTENT_FIELDS = [
+        'display_name', 'slug', 'headline', 'description',
+        'primary_location_id', 'sublocation_id', 'micro_location_id',
+        'allows_incall', 'allows_outcall', 'date_of_birth',
+        'gender_option_id', 'ethnicity_option_id', 'build_option_id', 'bust_size_option_id',
+    ];
+
     protected static function booted(): void
     {
         static::creating(function (Profile $profile): void {
             $profile->public_id ??= (string) Str::uuid();
+        });
+
+        static::saving(function (Profile $profile): void {
+            if ($profile->isDirty(self::CONTENT_FIELDS)) {
+                $profile->content_updated_at = now();
+            }
         });
 
         static::saved(fn (Profile $profile) => app(PublicPageCache::class)->forgetForProfile($profile));
@@ -228,6 +247,7 @@ class Profile extends Model
             'published_at' => 'datetime',
             'last_activated_at' => 'datetime',
             'expires_at' => 'datetime',
+            'content_updated_at' => 'datetime',
         ];
     }
 }
