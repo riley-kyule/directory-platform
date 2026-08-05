@@ -8,13 +8,17 @@
 # Usage:
 #   DEPLOY_REPO_URL=git@github.com:riley-kyule/directory-platform.git ./deploy.sh
 #   DEPLOY_BRANCH=main ./deploy.sh   # branch defaults to main
+#
+# If bootstrap.sh was run with DEPLOY_DOCROOT/DEPLOY_MANAGE_DOCROOT set (e.g.
+# for an addon domain), pass the same value here too — this script re-links
+# that same path on every deploy.
 set -euo pipefail
 
 APP_ROOT="$HOME/directory-platform"
 RELEASES_DIR="$APP_ROOT/releases"
 SHARED_DIR="$APP_ROOT/shared"
-PUBLIC_HTML="$HOME/public_html"
-MANAGE_PUBLIC_HTML="${DEPLOY_MANAGE_PUBLIC_HTML:-1}"
+DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"
+MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
 KEEP_RELEASES="${DEPLOY_KEEP_RELEASES:-5}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 REPO_URL="${DEPLOY_REPO_URL:?Set DEPLOY_REPO_URL to a git remote reachable without a password prompt}"
@@ -60,13 +64,13 @@ fi
 
 echo "==> Activating release $RELEASE_NAME"
 ln -sfn "$RELEASE_DIR" "$APP_ROOT/current"
-if [ "$MANAGE_PUBLIC_HTML" != "1" ]; then
-    : # Addon-domain setup: cPanel's own Document Root points at
-      # $APP_ROOT/current/public directly, which just moved above.
-elif [ -L "$PUBLIC_HTML" ]; then
-    ln -sfn "$RELEASE_DIR/public" "$PUBLIC_HTML"
+if [ "$MANAGE_DOCROOT" != "1" ]; then
+    : # cPanel's own Document Root points at $APP_ROOT/current/public
+      # directly, which just moved above.
+elif [ -L "$DOCROOT" ]; then
+    ln -sfn "$RELEASE_DIR/public" "$DOCROOT"
 else
-    echo "warning: $PUBLIC_HTML is not a symlink — run bootstrap.sh first, or confirm your cPanel document root already points at $APP_ROOT/current/public." >&2
+    echo "warning: $DOCROOT is not a symlink — run bootstrap.sh first (with the same DEPLOY_DOCROOT if you set one), or confirm your cPanel document root already points at $APP_ROOT/current/public." >&2
 fi
 
 echo "==> Pruning old releases (keeping the $KEEP_RELEASES most recent)"
