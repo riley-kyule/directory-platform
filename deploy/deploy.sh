@@ -14,6 +14,7 @@ APP_ROOT="$HOME/directory-platform"
 RELEASES_DIR="$APP_ROOT/releases"
 SHARED_DIR="$APP_ROOT/shared"
 PUBLIC_HTML="$HOME/public_html"
+MANAGE_PUBLIC_HTML="${DEPLOY_MANAGE_PUBLIC_HTML:-1}"
 KEEP_RELEASES="${DEPLOY_KEEP_RELEASES:-5}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 REPO_URL="${DEPLOY_REPO_URL:?Set DEPLOY_REPO_URL to a git remote reachable without a password prompt}"
@@ -59,7 +60,10 @@ fi
 
 echo "==> Activating release $RELEASE_NAME"
 ln -sfn "$RELEASE_DIR" "$APP_ROOT/current"
-if [ -L "$PUBLIC_HTML" ]; then
+if [ "$MANAGE_PUBLIC_HTML" != "1" ]; then
+    : # Addon-domain setup: cPanel's own Document Root points at
+      # $APP_ROOT/current/public directly, which just moved above.
+elif [ -L "$PUBLIC_HTML" ]; then
     ln -sfn "$RELEASE_DIR/public" "$PUBLIC_HTML"
 else
     echo "warning: $PUBLIC_HTML is not a symlink — run bootstrap.sh first, or confirm your cPanel document root already points at $APP_ROOT/current/public." >&2
