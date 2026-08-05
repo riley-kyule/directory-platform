@@ -7,8 +7,11 @@ use Illuminate\Support\Facades\Cache;
 
 class DirectorySettings
 {
-    /** @var array<string, bool|int|float> */
+    /** @var array<string, bool|int|float|string> */
     private const FALLBACKS = [
+        'site.platform_name' => '',
+        'site.support_email' => '',
+        'site.age_gate_enabled' => false,
         'security.privileged_mfa_enforced' => false,
         'profiles.agency_limit' => 15,
         'listings.new_profile_days' => 14,
@@ -39,6 +42,11 @@ class DirectorySettings
         return filter_var($this->value($key), FILTER_VALIDATE_BOOL);
     }
 
+    public function string(string $key): string
+    {
+        return (string) $this->value($key);
+    }
+
     public function value(string $key): bool|int|float|string
     {
         return Cache::rememberForever(
@@ -47,7 +55,7 @@ class DirectorySettings
         );
     }
 
-    /** @return array<string, bool|int|float> */
+    /** @return array<string, bool|int|float|string> */
     public function defaults(): array
     {
         return self::FALLBACKS;

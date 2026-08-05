@@ -9,7 +9,10 @@ class UpdateDirectorySettingsRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        $this->merge(['privileged_mfa_enforced' => $this->boolean('privileged_mfa_enforced')]);
+        $this->merge([
+            'privileged_mfa_enforced' => $this->boolean('privileged_mfa_enforced'),
+            'age_gate_enabled' => $this->boolean('age_gate_enabled'),
+        ]);
     }
 
     public function authorize(): bool
@@ -20,6 +23,9 @@ class UpdateDirectorySettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'platform_name' => ['nullable', 'string', 'max:80'],
+            'support_email' => ['nullable', 'email', 'max:255'],
+            'age_gate_enabled' => ['required', 'boolean'],
             'privileged_mfa_enforced' => ['required', 'boolean'],
             'agency_profile_limit' => ['required', 'integer', 'between:1,100'],
             'new_profile_days' => ['required', 'integer', 'between:1,365'],

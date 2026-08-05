@@ -21,6 +21,28 @@
                 <form method="POST" action="{{ route('admin.settings.update') }}" class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     @csrf
                     @method('PATCH')
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <h4 class="text-sm font-semibold text-gray-900">Site identity</h4>
+                        <p class="mt-1 text-sm text-gray-600">The website title feeds the header, page titles, structured data, and the @{{platform_name}} token in legal policies. Leave blank to fall back to the APP_NAME environment value.</p>
+                    </div>
+                    <div>
+                        <x-input-label for="platform_name" value="Website title" />
+                        <x-text-input id="platform_name" name="platform_name" maxlength="80" class="mt-1 block w-full" :value="old('platform_name', $settings['platform_name'])" placeholder="{{ config('app.name') }}" />
+                        <x-input-error :messages="$errors->get('platform_name')" class="mt-2" />
+                    </div>
+                    <div>
+                        <x-input-label for="support_email" value="Support / contact email" />
+                        <x-text-input id="support_email" name="support_email" type="email" class="mt-1 block w-full" :value="old('support_email', $settings['support_email'])" placeholder="support@yourdomain.com" />
+                        <p class="mt-1 text-xs text-gray-500">Feeds the @{{support_email}} token in legal policies. Set a real, monitored address before launch.</p>
+                        <x-input-error :messages="$errors->get('support_email')" class="mt-2" />
+                    </div>
+                    <label class="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-4">
+                        <input type="checkbox" name="age_gate_enabled" value="1" @checked(old('age_gate_enabled', $settings['age_gate_enabled'])) class="mt-1 rounded border-gray-300 text-indigo-600">
+                        <span>
+                            <strong class="block text-sm text-gray-900">Require an age (18+) consent gate</strong>
+                            <span class="mt-1 block text-sm text-gray-600">Optional. When enabled, first-time visitors must confirm they're 18+ before seeing any listing content. Search engines and policy pages are never gated.</span>
+                        </span>
+                    </label>
                     <label class="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-4 sm:col-span-2 lg:col-span-3">
                         <input type="checkbox" name="privileged_mfa_enforced" value="1" @checked(old('privileged_mfa_enforced', $settings['privileged_mfa_enforced'])) class="mt-1 rounded border-gray-300 text-indigo-600">
                         <span>

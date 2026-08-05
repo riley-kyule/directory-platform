@@ -19,7 +19,7 @@ class PolicyPageController extends Controller
         return view('policies.show', [
             'policy' => $policy,
             'metaTitle' => $policy->title.' — '.config('app.name'),
-            'metaDescription' => $policy->summary ?: str($policy->content)->squish()->limit(155),
+            'metaDescription' => $policy->renderedSummary() ?: str($policy->renderedContent())->squish()->limit(155),
             'canonicalUrl' => $policy->publicRoute(),
             'robots' => 'index,follow',
         ]);

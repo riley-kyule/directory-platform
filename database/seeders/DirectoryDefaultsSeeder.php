@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\DirectorySetting;
 use App\Models\Package;
 use App\Models\PageContent;
+use App\Models\PolicyVersion;
 use App\Models\TaxonomyOption;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +54,23 @@ class DirectoryDefaultsSeeder extends Seeder
             'seo_title' => 'Escort Agencies — '.config('app.name'),
             'meta_description' => 'Browse public agencies and their currently active provider profiles.',
         ]);
+
+        // Ships a real, published, generic legal policy per type so a fresh
+        // install has working policy pages immediately — review with
+        // qualified legal counsel before relying on these for launch.
+        foreach (PolicyTemplates::all() as $type => $template) {
+            PolicyVersion::query()->firstOrCreate(
+                ['policy_type' => $type, 'version' => $template['version']],
+                [
+                    'title' => $template['title'],
+                    'summary' => $template['summary'],
+                    'content' => $template['content'],
+                    'content_hash' => hash('sha256', $template['content']),
+                    'requires_reacceptance' => $template['requires_reacceptance'],
+                    'published_at' => now(),
+                ],
+            );
+        }
 
         foreach ([
             ['code' => 'vip', 'name' => 'VIP', 'image_limit' => 15, 'display_order' => 10],
