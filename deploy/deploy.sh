@@ -13,6 +13,17 @@
 # for bootstrap.sh every time — this script re-links those same paths on
 # every deploy. Required when running multiple domains under one cPanel
 # account, since each domain needs its own app root (see bootstrap.sh).
+#
+# PHP_BIN: cPanel's MultiPHP Manager only selects which PHP handles WEB
+# requests for a domain — it does not change what a bare `php`/`composer`
+# resolve to in an SSH shell, which is often a much older system-default PHP
+# (commonly still 7.x/8.1/8.2 even when 8.3+ is selected for the site).
+# Composer/artisan need to run under the same 8.3+ version the app requires.
+# Find your host's PHP 8.3+ CLI binary — commonly one of:
+#   ls /opt/cpanel/ea-php8*/root/usr/bin/php
+#   command -v php83   (or php8.3, ea-php83 — varies by host)
+# then pass it explicitly:
+#   PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php DEPLOY_APP_ROOT=... ./deploy.sh
 set -euo pipefail
 
 APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
@@ -23,6 +34,8 @@ MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
 KEEP_RELEASES="${DEPLOY_KEEP_RELEASES:-5}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 REPO_URL="${DEPLOY_REPO_URL:?Set DEPLOY_REPO_URL to a git remote reachable without a password prompt}"
+PHP_BIN="${PHP_BIN:-php}"
+COMPOSER_PATH="$(command -v "${COMPOSER_BIN:-composer}")"
 RELEASE_NAME="$(date +%Y%m%d%H%M%S)"
 RELEASE_DIR="$RELEASES_DIR/$RELEASE_NAME"
 
@@ -42,22 +55,22 @@ rm -rf "$RELEASE_DIR/public/media/profiles"
 mkdir -p "$RELEASE_DIR/public/media"
 ln -s "$SHARED_DIR/public/media/profiles" "$RELEASE_DIR/public/media/profiles"
 
-echo "==> Installing PHP dependencies"
+echo "==> Installing PHP dependencies (using $PHP_BIN: $("$PHP_BIN" -v | head -n 1))"
 cd "$RELEASE_DIR"
-composer install --no-dev --optimize-autoloader --no-interaction
+"$PHP_BIN" "$COMPOSER_PATH" install --no-dev --optimize-autoloader --no-interaction
 
 echo "==> Building frontend assets"
 npm ci
 npm run build
 
 echo "==> Running migrations"
-php artisan migrate --force
+"$PHP_BIN" artisan migrate --force
 
 echo "==> Caching config/routes/views"
-php artisan optimize
+"$PHP_BIN" artisan optimize
 
 echo "==> Running the production launch check"
-if ! composer launch-check; then
+if ! "$PHP_BIN" "$COMPOSER_PATH" launch-check; then
     echo "error: launch check failed — leaving $APP_ROOT/current pointed at the previous release." >&2
     echo "       This release is left in place at $RELEASE_DIR for inspection; it was not activated." >&2
     exit 1
