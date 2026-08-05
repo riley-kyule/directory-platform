@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DirectorySettingsController;
 use App\Http\Controllers\Admin\PolicyManagementController;
+use App\Http\Controllers\AgeGateController;
 use App\Http\Controllers\ModerationAppealController;
 use App\Http\Controllers\PolicyPageController;
 use App\Http\Controllers\ProfileController;
@@ -24,15 +25,20 @@ use App\Http\Controllers\Staff\VerificationController;
 use App\Http\Controllers\SystemHealthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [PublicDirectoryController::class, 'home'])->middleware('cache.public')->name('directory.home');
-Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->middleware('cache.public')->name('directory.profiles.show');
+Route::post('/age-gate/confirm', [AgeGateController::class, 'confirm'])->name('age-gate.confirm');
+
+Route::get('/', [PublicDirectoryController::class, 'home'])->middleware(['age.gate', 'cache.public'])->name('directory.home');
+Route::get('/locations', [PublicDirectoryController::class, 'allLocations'])->middleware(['age.gate', 'cache.public'])->name('directory.locations.index');
+Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->middleware(['age.gate', 'cache.public'])->name('directory.profiles.show');
 Route::get('/escort/{profile:slug}/report', [ProfileReportController::class, 'create'])->name('directory.profiles.report.create');
 Route::post('/escort/{profile:slug}/report', [ProfileReportController::class, 'store'])
     ->middleware('throttle:5,10')
     ->name('directory.profiles.report.store');
-Route::get('/agencies', [PublicAgencyController::class, 'index'])->middleware('cache.public')->name('directory.agencies.index');
-Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->middleware('cache.public')->name('directory.agencies.show');
-Route::get('/search', [PublicSearchController::class, 'index'])->middleware('throttle:30,1')->name('directory.search');
+Route::get('/agencies', [PublicAgencyController::class, 'index'])->middleware(['age.gate', 'cache.public'])->name('directory.agencies.index');
+Route::get('/agencies/page/{page}', [PublicAgencyController::class, 'index'])->whereNumber('page')->middleware(['age.gate', 'cache.public'])->name('directory.agencies.page');
+Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->middleware(['age.gate', 'cache.public'])->name('directory.agencies.show');
+Route::get('/agency/{agency}/page/{page}', [PublicAgencyController::class, 'show'])->whereNumber('page')->middleware(['age.gate', 'cache.public'])->name('directory.agencies.show.page');
+Route::get('/search', [PublicSearchController::class, 'index'])->middleware(['age.gate', 'throttle:30,1'])->name('directory.search');
 Route::get('/terms', [PolicyPageController::class, 'show'])->defaults('policyType', 'terms')->name('policies.terms');
 Route::get('/privacy', [PolicyPageController::class, 'show'])->defaults('policyType', 'privacy')->name('policies.privacy');
 Route::get('/provider-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'provider')->name('policies.provider');
@@ -130,7 +136,7 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::middleware('cache.public')->group(function (): void {
+Route::middleware(['age.gate', 'cache.public'])->group(function (): void {
     Route::get('/{city}-escorts/page/{page}', [PublicDirectoryController::class, 'city'])
         ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->whereNumber('page')->name('directory.cities.page');
     Route::get('/{city}/{neighbourhood}/{micro}-escorts/page/{page}', [PublicDirectoryController::class, 'microLocation'])
