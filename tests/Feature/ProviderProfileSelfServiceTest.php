@@ -150,6 +150,7 @@ class ProviderProfileSelfServiceTest extends TestCase
         $this->actingAs($this->owner)
             ->post(route('provider.profiles.renewal.store', $this->profile), [
                 'requested_package_id' => $package->id,
+                'policy_acceptances' => $this->outstandingPolicyIds('renewal_request', $this->owner, $this->profile),
             ])
             ->assertRedirect(route('provider.profiles.show', $this->profile))
             ->assertSessionHasNoErrors();
@@ -205,6 +206,7 @@ class ProviderProfileSelfServiceTest extends TestCase
 
         $this->actingAs($this->owner)->post(route('provider.profiles.renewal.store', $this->profile), [
             'requested_package_id' => $package->id,
+            'policy_acceptances' => $this->outstandingPolicyIds('renewal_request', $this->owner, $this->profile),
         ])->assertSessionHasNoErrors();
 
         $packageRequest = $this->profile->packageRequests()->latest()->firstOrFail();
@@ -277,5 +279,14 @@ class ProviderProfileSelfServiceTest extends TestCase
             'allows_outcall' => '0',
             'service_ids' => [$this->options['service']->id],
         ], $overrides);
+    }
+
+    /** @return array<int, int> */
+    private function outstandingPolicyIds(string $action, User $user, ?Profile $profile = null): array
+    {
+        return app(\App\Services\PolicyAcceptanceService::class)
+            ->outstanding($action, $user, $profile)
+            ->pluck('id')
+            ->all();
     }
 }

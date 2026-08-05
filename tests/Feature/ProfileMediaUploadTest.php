@@ -75,6 +75,7 @@ class ProfileMediaUploadTest extends TestCase
     {
         $response = $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
             'image' => UploadedFile::fake()->image('portrait.jpg', 800, 1000),
+            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
         ]);
 
         $response->assertRedirect()->assertSessionHasNoErrors();
@@ -124,9 +125,19 @@ class ProfileMediaUploadTest extends TestCase
 
         $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
             'image' => UploadedFile::fake()->image('sixth.jpg', 800, 1000),
+            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
         ])->assertStatus(422);
 
         $this->assertCount(5, $this->profile->images);
         Queue::assertNothingPushed();
+    }
+
+    /** @return array<int, int> */
+    private function outstandingPolicyIds(string $action, User $user, ?Profile $profile = null): array
+    {
+        return app(\App\Services\PolicyAcceptanceService::class)
+            ->outstanding($action, $user, $profile)
+            ->pluck('id')
+            ->all();
     }
 }

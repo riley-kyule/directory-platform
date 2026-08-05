@@ -101,7 +101,9 @@ class ProviderOnboardingTest extends TestCase
         $this->processedImage($profile);
 
         $this->actingAs($provider)
-            ->post(route('onboarding.profiles.submit', $profile))
+            ->post(route('onboarding.profiles.submit', $profile), [
+                'policy_acceptances' => $this->outstandingPolicyIds('profile_submission', $provider, $profile),
+            ])
             ->assertRedirect(route('onboarding.index'));
 
         $this->assertSame(ProfileStatus::PendingReview, $profile->refresh()->status);
@@ -232,6 +234,15 @@ class ProviderOnboardingTest extends TestCase
         ]))->assertRedirect(route('onboarding.index'))->assertSessionHasNoErrors();
 
         $this->assertSame($micro->id, Profile::query()->firstOrFail()->micro_location_id);
+    }
+
+    /** @return array<int, int> */
+    private function outstandingPolicyIds(string $action, User $user, ?Profile $profile = null): array
+    {
+        return app(\App\Services\PolicyAcceptanceService::class)
+            ->outstanding($action, $user, $profile)
+            ->pluck('id')
+            ->all();
     }
 
     private function provider(ProviderType $type): User
