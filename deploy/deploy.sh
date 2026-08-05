@@ -64,6 +64,20 @@ if ! composer launch-check; then
 fi
 
 echo "==> Activating release $RELEASE_NAME"
+if [ -e "$APP_ROOT/current" ] && [ ! -L "$APP_ROOT/current" ]; then
+    # `ln -sfn` refuses to replace a real (non-symlink) directory — it nests
+    # the new symlink INSIDE it instead of replacing it, silently. This
+    # happens on the very first deploy whenever cPanel's custom Document
+    # Root feature pre-creates the whole path (e.g. <app>/current/public) as
+    # real directories the moment you set it, before any release exists.
+    if find "$APP_ROOT/current" -mindepth 1 ! -type d | grep -q .; then
+        echo "error: $APP_ROOT/current exists as a real directory containing files (not just empty scaffolding) — refusing to overwrite it automatically." >&2
+        echo "       Inspect it, remove it yourself if it's safe to clear, then re-run deploy.sh." >&2
+        exit 1
+    fi
+    echo "==> $APP_ROOT/current exists as an empty real directory (likely cPanel's Document Root auto-creating that path) — clearing it so it can become a symlink"
+    rm -rf "$APP_ROOT/current"
+fi
 ln -sfn "$RELEASE_DIR" "$APP_ROOT/current"
 if [ "$MANAGE_DOCROOT" != "1" ]; then
     : # cPanel's own Document Root points at $APP_ROOT/current/public
