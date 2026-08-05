@@ -12,6 +12,7 @@ class PublicLayout extends Component
         public readonly string $metaDescription,
         public readonly string $canonicalUrl,
         public readonly string $robots = 'index,follow',
+        public readonly ?string $structuredData = null,
     ) {}
 
     public function render(): View

@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\PageContent;
 use App\Models\Profile;
 use App\Services\DirectorySettings;
+use App\Services\LocationSidebarTree;
 use App\Services\PublicContactLinks;
 use App\Services\PublicProfileListings;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,6 +42,19 @@ class PublicDirectoryController extends Controller
             'robots' => 'index,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
             'nearbyLocations' => collect(),
+            'lastReviewedAt' => null,
+            'faqPairs' => [],
+        ]);
+    }
+
+    public function allLocations(): View
+    {
+        return view('directory.locations', [
+            'locationTree' => app(LocationSidebarTree::class)->buildIndexable(),
+            'metaTitle' => 'All locations | '.config('app.name'),
+            'metaDescription' => 'Every city, neighbourhood, and area covered by '.config('app.name').'.',
+            'canonicalUrl' => route('directory.locations.index'),
+            'robots' => 'index,follow',
         ]);
     }
 
@@ -171,6 +185,8 @@ class PublicDirectoryController extends Controller
             'robots' => $location->is_indexable ? 'index,follow' : 'noindex,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
             'nearbyLocations' => $counts->sum() === 0 ? $this->nearbyLocations($location) : collect(),
+            'lastReviewedAt' => $location->content?->last_reviewed_at,
+            'faqPairs' => $location->content?->faqPairs() ?? [],
         ]);
     }
 

@@ -28,6 +28,28 @@ class LocationContent extends Model
         return $this->belongsTo(Location::class);
     }
 
+    /**
+     * Parses the free-text FAQ blob (a "Q: ...\nA: ..." convention, one pair
+     * per block) into structured pairs, for both display and FAQPage schema.
+     *
+     * @return array<int, array{question: string, answer: string}>
+     */
+    public function faqPairs(): array
+    {
+        $content = (string) data_get($this->faq_content, 'content', '');
+        if (trim($content) === '') {
+            return [];
+        }
+
+        preg_match_all('/Q:\s*(.+?)\s*\n+A:\s*(.+?)(?=\n\s*Q:|\z)/s', $content, $matches, PREG_SET_ORDER);
+
+        return collect($matches)
+            ->map(fn (array $match) => ['question' => trim($match[1]), 'answer' => trim($match[2])])
+            ->filter(fn (array $pair) => $pair['question'] !== '' && $pair['answer'] !== '')
+            ->values()
+            ->all();
+    }
+
     protected function casts(): array
     {
         return [

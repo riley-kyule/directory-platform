@@ -18,7 +18,7 @@ class UpdateHomepageContentRequest extends FormRequest
             'intro_content' => ['required', 'string', 'max:2000'],
             'bottom_content' => ['nullable', 'string', 'max:50000'],
             'seo_title' => ['required', 'string', 'max:70'],
-            'meta_description' => ['required', 'string', 'min:50', 'max:320'],
+            'meta_description' => ['required', 'string', 'min:50', 'max:160'],
             'sections' => ['required', 'array'],
             'sections.vip' => ['required', 'array'],
             'sections.premium' => ['required', 'array'],

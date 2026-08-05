@@ -16,7 +16,7 @@
                     @endforeach
                     <div class="md:col-span-2"><x-input-label for="homepage_bottom_content" value="Bottom SEO content (Markdown supported)" /><textarea id="homepage_bottom_content" name="bottom_content" rows="10" class="mt-1 block w-full rounded-md border-gray-300">{{ old('bottom_content', $homepage->bottom_content) }}</textarea><p class="mt-1 text-xs text-gray-500">Use ## for headings, - for lists, and [text](URL) for links.</p></div>
                     <div><x-input-label for="homepage_seo_title" value="SEO title" /><x-text-input id="homepage_seo_title" name="seo_title" maxlength="70" class="mt-1 block w-full" :value="old('seo_title', $homepage->seo_title)" required /></div>
-                    <div><x-input-label for="homepage_meta_description" value="Meta description" /><textarea id="homepage_meta_description" name="meta_description" maxlength="320" rows="3" class="mt-1 block w-full rounded-md border-gray-300" required>{{ old('meta_description', $homepage->meta_description) }}</textarea></div>
+                    <div><x-input-label for="homepage_meta_description" value="Meta description" /><textarea id="homepage_meta_description" name="meta_description" maxlength="160" rows="3" class="mt-1 block w-full rounded-md border-gray-300" required>{{ old('meta_description', $homepage->meta_description) }}</textarea></div>
                     <div class="md:col-span-2 flex justify-end"><x-primary-button>Save homepage content</x-primary-button></div>
                 </form>
             </section>
@@ -27,7 +27,7 @@
                     <div class="md:col-span-2"><x-input-label for="agencies_intro" value="Introduction" /><textarea id="agencies_intro" name="intro_content" rows="3" class="mt-1 block w-full rounded-md border-gray-300" required>{{ old('intro_content', $agencyDirectory->intro_content) }}</textarea></div>
                     <div class="md:col-span-2"><x-input-label for="agencies_bottom_content" value="Bottom SEO content (Markdown supported)" /><textarea id="agencies_bottom_content" name="bottom_content" rows="8" class="mt-1 block w-full rounded-md border-gray-300">{{ old('bottom_content', $agencyDirectory->bottom_content) }}</textarea></div>
                     <div><x-input-label for="agencies_seo_title" value="SEO title" /><x-text-input id="agencies_seo_title" name="seo_title" maxlength="70" class="mt-1 block w-full" :value="old('seo_title', $agencyDirectory->seo_title)" required /></div>
-                    <div><x-input-label for="agencies_meta_description" value="Meta description" /><textarea id="agencies_meta_description" name="meta_description" maxlength="320" rows="3" class="mt-1 block w-full rounded-md border-gray-300" required>{{ old('meta_description', $agencyDirectory->meta_description) }}</textarea></div>
+                    <div><x-input-label for="agencies_meta_description" value="Meta description" /><textarea id="agencies_meta_description" name="meta_description" maxlength="160" rows="3" class="mt-1 block w-full rounded-md border-gray-300" required>{{ old('meta_description', $agencyDirectory->meta_description) }}</textarea></div>
                     <div class="md:col-span-2 flex justify-end"><x-primary-button>Save agency directory content</x-primary-button></div>
                 </form>
             </section>

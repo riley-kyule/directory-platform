@@ -18,7 +18,7 @@ class UpdateAgencyDirectoryContentRequest extends FormRequest
             'intro_content' => ['required', 'string', 'max:2000'],
             'bottom_content' => ['nullable', 'string', 'max:50000'],
             'seo_title' => ['required', 'string', 'max:70'],
-            'meta_description' => ['required', 'string', 'min:50', 'max:320'],
+            'meta_description' => ['required', 'string', 'min:50', 'max:160'],
         ];
     }
 }

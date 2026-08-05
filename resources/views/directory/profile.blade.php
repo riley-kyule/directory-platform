@@ -1,4 +1,18 @@
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots">
+@php
+    $breadcrumbItems = [
+        ['name' => 'Home', 'url' => route('directory.home')],
+        ['name' => $profile->primaryLocation->name, 'url' => route('directory.cities.show', $profile->primaryLocation->slug)],
+        ['name' => $profile->sublocation->name, 'url' => route('directory.neighbourhoods.show', [$profile->primaryLocation->slug, $profile->sublocation->slug])],
+    ];
+    if ($profile->microLocation) {
+        $breadcrumbItems[] = [
+            'name' => $profile->microLocation->name,
+            'url' => route('directory.micro-locations.show', [$profile->primaryLocation->slug, $profile->sublocation->slug, $profile->microLocation->slug]),
+        ];
+    }
+    $breadcrumbItems[] = ['name' => $profile->display_name, 'url' => $canonicalUrl];
+@endphp
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script([\App\Support\JsonLd::breadcrumbs($breadcrumbItems)])">
     @if (session('report_status'))
         <div class="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{{ session('report_status') }}</div></div>
     @endif

@@ -9,6 +9,8 @@
         <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}">
         <meta name="theme-color" content="#171717">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        {!! \App\Support\JsonLd::script([\App\Support\JsonLd::organization(), \App\Support\JsonLd::website()]) !!}
+        {!! $structuredData ?? '' !!}
     </head>
     <body class="min-h-screen bg-stone-50 font-sans text-stone-900 antialiased">
         <header class="sticky top-0 z-40 border-b border-white/10 bg-stone-950/95 text-white backdrop-blur">
@@ -36,6 +38,7 @@
             <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-10 text-sm text-stone-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
                 <p>&copy; {{ now()->year }} {{ config('app.name') }}. Adults only.</p>
                 <div class="flex flex-wrap gap-5">
+                    <a href="{{ route('directory.locations.index') }}" class="hover:text-stone-900">All locations</a>
                     @foreach ($publishedPolicies as $policy)
                         <a href="{{ $policy->publicRoute() }}" class="hover:text-stone-900">{{ $policy->title }}</a>
                     @endforeach

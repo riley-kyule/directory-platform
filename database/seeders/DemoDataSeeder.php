@@ -144,25 +144,53 @@ class DemoDataSeeder extends Seeder
             ['slug' => 'nairobi', 'parent_id' => null],
             ['country_code' => 'KE', 'type' => 'city', 'name' => 'Nairobi', 'full_slug' => 'nairobi', 'status' => 'published'],
         );
-        $this->ensureContent($nairobi, 'Nairobi Escorts', 'Browse active independent and agency provider profiles across Nairobi.');
+        $this->ensureContent(
+            $nairobi,
+            'Nairobi Escorts',
+            'Nairobi is East Africa\'s largest capital, and our busiest directory market — independent providers and agency talent list across every neighbourhood, from Westlands nightlife to the quieter Karen suburbs.',
+            'Verified independent and agency escort listings across Nairobi, updated daily with new and returning providers.',
+            'Nairobi splits into several distinct provider markets: Westlands and the CBD skew toward nightlife and business travel, Kilimani toward serviced-apartment regulars, and Karen toward a quieter, appointment-only clientele. Use the neighbourhood pages below to narrow your search to the area that matches what you\'re looking for.',
+            "Q: How often are Nairobi listings updated?\nA: New and renewed profiles publish continuously; VIP and Premium placements refresh daily.\n\nQ: Which Nairobi neighbourhoods have the most listings?\nA: Westlands and Kilimani currently carry the largest concentration of active profiles, with Karen and the CBD close behind.",
+        );
 
         $westlands = Location::query()->firstOrCreate(
             ['slug' => 'westlands', 'parent_id' => $nairobi->id],
             ['country_code' => 'KE', 'type' => 'neighbourhood', 'name' => 'Westlands', 'full_slug' => 'nairobi/westlands', 'status' => 'published'],
         );
-        $this->ensureContent($westlands, 'Westlands Escorts', 'Westlands is a vibrant, well-connected neighbourhood in Nairobi known for its nightlife, shopping malls, and central location.');
+        $this->ensureContent(
+            $westlands,
+            'Westlands Escorts',
+            'Westlands is a vibrant, well-connected neighbourhood in Nairobi known for its nightlife, shopping malls, and central location.',
+            'Independent and agency escort profiles active in Westlands, Nairobi\'s nightlife and shopping hub.',
+            'Westlands draws a mixed crowd of business travellers and locals thanks to its concentration of hotels, malls, and late-night venues. Providers listed here typically serve both incall appointments near Westlands\' serviced apartments and outcall visits across nearby Nairobi.',
+            "Q: Is Westlands a good area for incall appointments?\nA: Yes — Westlands has the highest concentration of serviced apartments in Nairobi, and most listed providers offer incall here.\n\nQ: Does a Westlands listing cover the CBD too?\nA: Providers based in Westlands often also serve the neighbouring CBD; check each profile's availability section for outcall range.",
+        );
 
         $kilimani = Location::query()->firstOrCreate(
             ['slug' => 'kilimani', 'parent_id' => $nairobi->id],
             ['country_code' => 'KE', 'type' => 'neighbourhood', 'name' => 'Kilimani', 'full_slug' => 'nairobi/kilimani', 'status' => 'published'],
         );
-        $this->ensureContent($kilimani, 'Kilimani Escorts', 'Kilimani is a leafy, upscale Nairobi neighbourhood popular for its restaurants, serviced apartments, and central location.');
+        $this->ensureContent(
+            $kilimani,
+            'Kilimani Escorts',
+            'Kilimani is a leafy, upscale Nairobi neighbourhood popular for its restaurants, serviced apartments, and central location.',
+            'Escort listings active in Kilimani, an upscale Nairobi neighbourhood known for serviced apartments and restaurants.',
+            'Kilimani\'s density of serviced apartments makes it one of Nairobi\'s most popular areas for discreet incall bookings. It borders Westlands and Kileleshwa, so providers here are also a convenient option if you\'re staying anywhere in central Nairobi.',
+            null,
+        );
 
         $karen = Location::query()->firstOrCreate(
             ['slug' => 'karen', 'parent_id' => $nairobi->id],
             ['country_code' => 'KE', 'type' => 'neighbourhood', 'name' => 'Karen', 'full_slug' => 'nairobi/karen', 'status' => 'published'],
         );
-        $this->ensureContent($karen, 'Karen Escorts', 'Karen is a quiet, green suburb on the edge of Nairobi National Park, known for its spacious properties and relaxed pace.');
+        $this->ensureContent(
+            $karen,
+            'Karen Escorts',
+            'Karen is a quiet, green suburb on the edge of Nairobi National Park, known for its spacious properties and relaxed pace.',
+            'Escort listings serving Karen, Nairobi\'s quiet, leafy suburb bordering Nairobi National Park.',
+            'Karen sits apart from Nairobi\'s busier commercial districts, so most bookings here are outcall visits to private homes or guesthouses rather than hotel incall. Expect a smaller but more established roster of providers than in Westlands or Kilimani.',
+            null,
+        );
 
         // Deliberately under the indexability threshold until profiles are
         // assigned below — exercises locations.micro_min_profiles (6).
@@ -170,19 +198,40 @@ class DemoDataSeeder extends Seeder
             ['slug' => 'cbd', 'parent_id' => $westlands->id],
             ['country_code' => 'KE', 'type' => 'area', 'name' => 'CBD', 'full_slug' => 'nairobi/westlands/cbd-escorts', 'status' => 'published'],
         );
-        $this->ensureContent($cbd, 'Westlands CBD Escorts', 'The Westlands CBD area concentrates offices, hotels, and nightlife within easy reach of central Nairobi.');
+        $this->ensureContent(
+            $cbd,
+            'Westlands CBD Escorts',
+            'The Westlands CBD area concentrates offices, hotels, and nightlife within easy reach of central Nairobi.',
+            'Escort listings in the Westlands CBD micro-area, Nairobi\'s office and hotel district.',
+            'Being wedged between Westlands\' malls and Nairobi\'s central business district, the CBD area is the most convenient option for same-day business-travel bookings — most listed providers here can accommodate short-notice hotel incall.',
+            null,
+        );
 
         $mombasa = Location::query()->firstOrCreate(
             ['slug' => 'mombasa', 'parent_id' => null],
             ['country_code' => 'KE', 'type' => 'city', 'name' => 'Mombasa', 'full_slug' => 'mombasa', 'status' => 'published'],
         );
-        $this->ensureContent($mombasa, 'Mombasa Escorts', 'Browse active provider profiles across Mombasa, Kenya\'s coastal port city.');
+        $this->ensureContent(
+            $mombasa,
+            'Mombasa Escorts',
+            'Mombasa is Kenya\'s coastal port city — our second-largest market, anchored by the beach resorts and nightlife of Nyali.',
+            'Verified escort listings across Mombasa, Kenya\'s coastal port city, including Nyali\'s resort district.',
+            'Mombasa\'s provider base is smaller than Nairobi\'s but concentrated around the coast, so most listings are reachable from any Nyali or Mombasa Island hotel. Expect availability to lean toward evenings and weekends, in step with tourist and business travel patterns.',
+            "Q: Do Mombasa providers travel to hotels outside Nyali?\nA: Most do — check each profile's outcall range, since some restrict travel to the Nyali/Mombasa Island corridor.",
+        );
 
         $nyali = Location::query()->firstOrCreate(
             ['slug' => 'nyali', 'parent_id' => $mombasa->id],
             ['country_code' => 'KE', 'type' => 'neighbourhood', 'name' => 'Nyali', 'full_slug' => 'mombasa/nyali', 'status' => 'published'],
         );
-        $this->ensureContent($nyali, 'Nyali Escorts', 'Nyali is a beachfront Mombasa neighbourhood known for its resorts, malls, and relaxed coastal atmosphere.');
+        $this->ensureContent(
+            $nyali,
+            'Nyali Escorts',
+            'Nyali is a beachfront Mombasa neighbourhood known for its resorts, malls, and relaxed coastal atmosphere.',
+            'Escort listings in Nyali, Mombasa\'s beachfront resort neighbourhood.',
+            'Nyali is Mombasa\'s tourist and resort core, so incall availability at beachfront hotels is common among listed providers. It\'s the natural starting point if you\'re visiting Mombasa and haven\'t booked accommodation elsewhere in the city.',
+            null,
+        );
 
         // Zero profiles on purpose: exercises the SEO orphan report and the
         // empty-location "nearby areas" suggestion.
@@ -190,17 +239,33 @@ class DemoDataSeeder extends Seeder
             ['slug' => 'kisumu', 'parent_id' => null],
             ['country_code' => 'KE', 'type' => 'city', 'name' => 'Kisumu', 'full_slug' => 'kisumu', 'status' => 'published'],
         );
-        $this->ensureContent($kisumu, 'Kisumu Escorts', 'Browse active provider profiles across Kisumu, on the shore of Lake Victoria.');
+        $this->ensureContent(
+            $kisumu,
+            'Kisumu Escorts',
+            'Kisumu, on the shore of Lake Victoria, is our newest market — check back soon as providers in the area come online.',
+            'Escort listings for Kisumu, on the shore of Lake Victoria — new provider signups are opening in this market.',
+            null,
+            null,
+        );
 
         return compact('nairobi', 'westlands', 'kilimani', 'karen', 'cbd', 'mombasa', 'nyali', 'kisumu');
     }
 
-    private function ensureContent(Location $location, string $heading, string $intro): void
-    {
+    private function ensureContent(
+        Location $location,
+        string $heading,
+        string $intro,
+        string $metaDescription,
+        ?string $bottomContent,
+        ?string $faq,
+    ): void {
         LocationContent::query()->firstOrCreate(['location_id' => $location->id], [
+            'heading' => $heading,
             'intro_content' => $intro,
+            'bottom_content' => $bottomContent,
+            'faq_content' => $faq ? ['content' => $faq] : null,
             'seo_title' => $heading.' | Directory Platform',
-            'meta_description' => $intro,
+            'meta_description' => $metaDescription,
             'canonical_path' => '/'.$location->full_slug.(str_ends_with($location->full_slug, '-escorts') ? '' : '-escorts'),
             'content_status' => 'approved',
             'last_reviewed_at' => now(),

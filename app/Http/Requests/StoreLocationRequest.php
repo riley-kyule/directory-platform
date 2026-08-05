@@ -38,7 +38,7 @@ class StoreLocationRequest extends FormRequest
             'bottom_content' => ['nullable', 'string', 'max:50000'],
             'faq_content' => ['nullable', 'string', 'max:10000'],
             'seo_title' => [Rule::requiredIf($publishing), 'nullable', 'string', 'max:70'],
-            'meta_description' => [Rule::requiredIf($publishing), 'nullable', 'string', 'min:50', 'max:320'],
+            'meta_description' => [Rule::requiredIf($publishing), 'nullable', 'string', 'min:50', 'max:160'],
         ];
     }
 
