@@ -11,14 +11,25 @@
 # entirely — cron starts a worker every minute, it drains whatever is queued,
 # and it exits on its own; nothing needs supervising.
 #
+# MULTIPLE DOMAINS UNDER ONE cPANEL ACCOUNT: the dedup marker below is
+# derived from $APP_ROOT (via DEPLOY_APP_ROOT), not a fixed string — this
+# script identifies "this app's" cron lines by that marker so reruns replace
+# rather than duplicate them. A fixed marker would make installing cron for
+# a second domain silently delete the first domain's entries instead of
+# leaving them alone. Always pass the SAME DEPLOY_APP_ROOT here that you used
+# for bootstrap.sh/deploy.sh for that domain.
+#
 # Usage:
-#   PHP_BIN=/usr/local/bin/php83 ./install-cron.sh   # PHP_BIN defaults to `php`
+#   PHP_BIN=/usr/local/bin/php83 DEPLOY_APP_ROOT="$HOME/senegalhookups.com" ./install-cron.sh
+#   (PHP_BIN defaults to `php`; DEPLOY_APP_ROOT defaults to ~/directory-platform)
 set -euo pipefail
 
-APP_ROOT="$HOME/directory-platform"
+APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 CURRENT="$APP_ROOT/current"
 PHP_BIN="${PHP_BIN:-php}"
-MARKER="directory-platform-cron"
+APP_SLUG="$(basename "$APP_ROOT" | tr -c 'A-Za-z0-9._-' '-')"
+MARKER="directory-platform-cron:${APP_SLUG}"
+LOCK_FILE="/tmp/directory-platform-cron-${APP_SLUG}-queue.lock"
 
 if ! command -v crontab >/dev/null 2>&1; then
     cat <<EOF
@@ -27,18 +38,20 @@ if ! command -v crontab >/dev/null 2>&1; then
     PHP binary cPanel's MultiPHP Manager selected, e.g. /usr/local/bin/php83):
 
 * * * * * cd $CURRENT && $PHP_BIN artisan schedule:run >> /dev/null 2>&1 # $MARKER:scheduler
-* * * * * cd $CURRENT && flock -n /tmp/${MARKER}-queue.lock $PHP_BIN artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue
+* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue
 EOF
     exit 0
 fi
 
 SCHEDULER_LINE="* * * * * cd $CURRENT && $PHP_BIN artisan schedule:run >> /dev/null 2>&1 # $MARKER:scheduler"
-QUEUE_LINE="* * * * * cd $CURRENT && flock -n /tmp/${MARKER}-queue.lock $PHP_BIN artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue"
+QUEUE_LINE="* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue"
 
-echo "==> Installing/refreshing cron entries (marker: $MARKER)"
+echo "==> Installing/refreshing cron entries for $APP_ROOT (marker: $MARKER)"
 {
-    # Drop any previous run's lines for this app, keep everything else the
-    # account's crontab already has, then append the current pair.
+    # Drop any previous run's lines for THIS app root only (matched by the
+    # app-specific marker), keep every other line in the account's crontab
+    # untouched — including other domains' entries — then append the
+    # current pair.
     crontab -l 2>/dev/null | grep -v "$MARKER" || true
     echo "$SCHEDULER_LINE"
     echo "$QUEUE_LINE"

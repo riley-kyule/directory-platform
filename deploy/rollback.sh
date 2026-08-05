@@ -10,11 +10,15 @@
 # Usage:
 #   ./rollback.sh                # roll back one release
 #   ./rollback.sh 20260801120000 # roll back to a specific release directory
+#
+# Pass the same DEPLOY_APP_ROOT/DEPLOY_DOCROOT you used for deploy.sh if this
+# domain doesn't use the defaults (e.g. multiple domains under one account).
 set -euo pipefail
 
-APP_ROOT="$HOME/directory-platform"
+APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 RELEASES_DIR="$APP_ROOT/releases"
-PUBLIC_HTML="$HOME/public_html"
+DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"
+MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
 
 if [ ! -L "$APP_ROOT/current" ]; then
     echo "error: $APP_ROOT/current is not a symlink — this environment wasn't deployed with deploy.sh. Refusing to guess what to roll back." >&2
@@ -46,8 +50,8 @@ echo "==> Migration status of the target release (informational only — nothing
 (cd "$TARGET_DIR" && php artisan migrate:status) || true
 
 ln -sfn "$TARGET_DIR" "$APP_ROOT/current"
-if [ -L "$PUBLIC_HTML" ]; then
-    ln -sfn "$TARGET_DIR/public" "$PUBLIC_HTML"
+if [ "$MANAGE_DOCROOT" = "1" ] && [ -L "$DOCROOT" ]; then
+    ln -sfn "$TARGET_DIR/public" "$DOCROOT"
 fi
 (cd "$TARGET_DIR" && php artisan optimize)
 

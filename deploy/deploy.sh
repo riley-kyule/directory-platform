@@ -9,12 +9,13 @@
 #   DEPLOY_REPO_URL=git@github.com:riley-kyule/directory-platform.git ./deploy.sh
 #   DEPLOY_BRANCH=main ./deploy.sh   # branch defaults to main
 #
-# If bootstrap.sh was run with DEPLOY_DOCROOT/DEPLOY_MANAGE_DOCROOT set (e.g.
-# for an addon domain), pass the same value here too — this script re-links
-# that same path on every deploy.
+# Pass the SAME DEPLOY_APP_ROOT/DEPLOY_DOCROOT/DEPLOY_MANAGE_DOCROOT you used
+# for bootstrap.sh every time — this script re-links those same paths on
+# every deploy. Required when running multiple domains under one cPanel
+# account, since each domain needs its own app root (see bootstrap.sh).
 set -euo pipefail
 
-APP_ROOT="$HOME/directory-platform"
+APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 RELEASES_DIR="$APP_ROOT/releases"
 SHARED_DIR="$APP_ROOT/shared"
 DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"

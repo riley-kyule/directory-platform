@@ -5,33 +5,56 @@
 # account's own home directory instead. Run this once per environment before
 # the first deploy.sh. Safe to re-run — it won't touch an existing shared/.env.
 #
-# What it does:
-#   ~/directory-platform/releases/   — each deploy gets its own timestamped dir
-#   ~/directory-platform/shared/     — .env, storage/, and public media that
-#                                      must persist across releases
-#   $DOCROOT (below)                 — converted from a real directory to a
-#                                      symlink at ~/directory-platform/current/public
+# What it does, under $APP_ROOT (below):
+#   releases/   — each deploy gets its own timestamped dir
+#   shared/     — .env, storage/, and public media that must persist across
+#                 releases
+#   $DOCROOT    — converted from a real directory to a symlink at
+#                 $APP_ROOT/current/public
 #
-# DOCROOT defaults to ~/public_html, which is correct for the account's
-# PRIMARY domain. Deploying as an ADDON DOMAIN instead: cPanel creates that
-# domain's own folder — commonly ~/<domain>, e.g. ~/senegalhookups.com, when
-# you don't set a custom document root at creation time — and ~/public_html
-# belongs to a different site entirely. Point DEPLOY_DOCROOT at that addon
-# domain's actual folder so this script manages the right path:
+# MULTIPLE DOMAINS UNDER ONE cPANEL ACCOUNT: $APP_ROOT defaults to
+# ~/directory-platform, which is fine for a single site per account, but every
+# domain sharing that same default would collide on the same releases/shared/
+# current — one domain's deploy would silently overwrite another's .env and
+# media. Give each domain its own app root, named after the domain:
 #
-#   DEPLOY_DOCROOT="$HOME/senegalhookups.com" ./bootstrap.sh
+#   DEPLOY_APP_ROOT="$HOME/senegalhookups.com" DEPLOY_MANAGE_DOCROOT=0 ./bootstrap.sh
 #
-# (Check Domains -> Manage in cPanel if you're unsure of the exact folder it
-# created.) Alternatively, if your plan lets you set an arbitrary document
-# root and you'd rather manage it there instead of via a symlink, set
-# DEPLOY_MANAGE_DOCROOT=0 and point that setting at
-# ~/directory-platform/current/public directly.
+# Then, once (via cPanel Domains -> Manage), point that domain's Document
+# Root at:
+#
+#   senegalhookups.com/current/public   (relative to the home directory)
+#
+# cPanel addon domains generally accept any path under the home directory as
+# the document root, not just a top-level folder — so the domain name can
+# name the whole app root (releases/shared/current all live under it) while
+# cPanel's own vhost config points at the nested `current/public` inside it.
+# Nothing here needs to manage a separate docroot symlink at all; `current`
+# already gets repointed atomically by deploy.sh on every release.
+#
+# DOCROOT (below) is the alternative for hosts that DON'T support a custom
+# per-domain document root: it defaults to ~/public_html (correct for the
+# account's PRIMARY domain only — leave DEPLOY_MANAGE_DOCROOT at its default
+# of 1 in that case). For an addon domain without custom-docroot support,
+# point DEPLOY_DOCROOT at the actual folder cPanel created for it instead
+# (commonly ~/<domain>) and give DEPLOY_APP_ROOT a distinct name, since
+# DOCROOT becomes a symlink INTO $APP_ROOT/current/public and the two can't
+# be the same path.
 set -euo pipefail
 
-APP_ROOT="$HOME/directory-platform"
+APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 SHARED_DIR="$APP_ROOT/shared"
 DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"
 MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
+
+if [ "$MANAGE_DOCROOT" = "1" ] && [ "$DOCROOT" = "$APP_ROOT" ]; then
+    echo "error: DEPLOY_DOCROOT and DEPLOY_APP_ROOT are both '$APP_ROOT'." >&2
+    echo "       DOCROOT becomes a symlink INTO \$APP_ROOT/current/public, so they" >&2
+    echo "       can't be the same path — give DOCROOT a distinct name (e.g. a" >&2
+    echo "       '-web' suffix), or set DEPLOY_MANAGE_DOCROOT=0 and point cPanel's" >&2
+    echo "       Document Root at \$APP_ROOT/current/public directly instead." >&2
+    exit 1
+fi
 
 echo "==> Creating release/shared directory structure at $APP_ROOT"
 mkdir -p "$APP_ROOT/releases"
@@ -73,6 +96,6 @@ echo "==> Installing cron entries (scheduler + queue worker)"
 echo "    These point at $APP_ROOT/current, which doesn't exist until your"
 echo "    first deploy.sh run — cron will just no-op (harmlessly) every"
 echo "    minute until then. Nothing further to do once deploy.sh finishes."
-"$SCRIPT_DIR/install-cron.sh"
+DEPLOY_APP_ROOT="$APP_ROOT" "$SCRIPT_DIR/install-cron.sh"
 
 echo "==> Bootstrap complete. Next: put your production .env at $SHARED_DIR/.env, then run deploy.sh."
