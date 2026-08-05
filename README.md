@@ -38,8 +38,12 @@ The project is in active development. Its current foundation provides account re
 - Admin/SEO policy drafting, immutable publication, and public policy pages
 - Versioned policy acceptance evidence across registration, profile submission, media upload, and renewal
 - Database-backed sessions, cache, and queues
-- Readiness monitoring for database, cache, scheduler, queues, disk, and backup freshness
-- Scheduled native database backups with compression, checksum records, verification, and retention pruning
+- Readiness monitoring for database, cache, scheduler, queues, disk, and database/media backup freshness
+- Scheduled native database and media backups with compression, checksum records, verification, and retention pruning
+- Admin-editable site identity (website title, support email) that feeds page titles, structured data, and policy content
+- Generic, portable starting legal policies (Terms, Privacy, Provider, Media, Agency) seeded and published by default
+- Optional, Admin-toggleable 18+ consent gate with a search-crawler exemption so it never blocks indexing
+- Cron-driven scheduler and queue worker (`queue:work --stop-when-empty`) — no persistent process required, so it runs on shared hosting with no supervisor/systemd
 - Automated feature and domain tests
 
 ## Technology
@@ -93,16 +97,18 @@ npm audit --omit=dev --package-lock-only
 
 ## Production operations
 
-Run one scheduler trigger every minute and supervise at least one persistent queue worker:
+Trigger the scheduler every minute, and run the queue worker via cron rather than as a supervised persistent process — `queue:work --stop-when-empty` drains whatever is queued and exits on its own, so nothing needs a systemd unit or supervisor to stay alive:
 
 ```bash
-* * * * * cd /var/www/directory-platform && php artisan schedule:run
-php artisan queue:work --queue=media,default --tries=3 --timeout=120
+* * * * * cd /var/www/directory-platform && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/directory-platform && flock -n /tmp/directory-platform-cron-queue.lock php artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> storage/logs/queue-worker.log 2>&1
 ```
 
-The scheduler records its heartbeat every minute, refreshes expired verification states daily, expires package listings immediately, rotates listing order, and creates a verified database backup nightly. `composer backup` creates an on-demand backup. MySQL/MariaDB requires `mysqldump`, PostgreSQL requires `pg_dump`, and SQLite requires `sqlite3`.
+`deploy/install-cron.sh` installs both lines for you idempotently (safe to re-run; it replaces its own previous entries rather than duplicating them) and is called automatically by `deploy/bootstrap.sh` — on a fresh cPanel install, this means the scheduler and queue worker are live with no manual cron configuration. If your host has no `crontab` command, the script prints the two lines to paste into cPanel's "Cron Jobs" UI instead. Set `PHP_BIN` if `php` on the account's `$PATH` isn't the version selected in MultiPHP Manager.
 
-Configure `OPS_BACKUP_DISK` as private, encrypted, off-host storage in production. Database backups do not replace a separate versioned backup of private and public media. Restrict temporary storage to the application user and use encrypted host volumes. Test restoration into an isolated environment on a schedule; verify the checksum, import the archive, run migrations in dry-run review, execute the automated test suite, and record the drill outside the production database.
+The scheduler records its heartbeat every minute, refreshes expired verification states daily, expires package listings immediately, rotates listing order, and creates verified database and media backups nightly (`system:backup` at 02:30, `system:backup-media` at 03:00). `composer backup` creates an on-demand database backup; `php artisan system:backup-media` does the same for public profile media. MySQL/MariaDB requires `mysqldump`, PostgreSQL requires `pg_dump`, and SQLite requires `sqlite3`; the media backup shells out to `tar`.
+
+Configure `OPS_BACKUP_DISK` as private, encrypted, off-host storage in production. Restrict temporary storage to the application user and use encrypted host volumes. Test restoration into an isolated environment on a schedule; verify the checksum, import the archive, run migrations in dry-run review, execute the automated test suite, and record the drill outside the production database.
 
 Monitoring endpoints:
 
@@ -141,7 +147,19 @@ Privileged authenticator MFA is disabled by default and can be enabled from the 
 
 Google Admin SSO requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the callback URI registered as `GOOGLE_REDIRECT_URI`. Set `GOOGLE_ADMIN_ALLOWED_DOMAINS` to a comma-separated list when sign-in must be restricted further. Google sign-in never creates users or grants roles: the verified Google email must already belong to an Admin account, and the Google subject identifier is permanently linked on first successful sign-in.
 
+Session cookies default to `secure` automatically whenever `APP_URL` starts with `https://`, so a forgotten `SESSION_SECURE_COOKIE` can't silently ship insecure cookies on a real domain — set it explicitly only if you need to override that inference.
+
+The app trusts all proxies (`at: '*'`) for `X-Forwarded-*` headers so it resolves the visitor's real IP/scheme correctly behind Cloudflare or any other TLS-terminating proxy, and `APP_URL=https://…` forces the URL generator to always emit `https://` links regardless of what scheme the proxy reports internally. Trusting all proxies for header parsing is not the same as an access-control allowlist — for defense in depth, also restrict origin traffic to Cloudflare's IP ranges at the host firewall level, or enable Cloudflare's "Authenticated Origin Pulls," if your hosting plan allows it.
+
 If you discover a security issue, report it privately to the project maintainer rather than opening a public issue.
+
+## Site identity and legal policies
+
+The website title and support email shown in the header, page titles, structured data, and legal policies are editable from Admin → Settings, and fall back to the `APP_NAME` environment value when left blank. Legal policy content (Terms, Privacy, Provider, Media, Agency) is authored with `{{platform_name}}` / `{{support_email}}` tokens, substituted at render time — renaming the site or changing the support address updates every policy automatically, without re-editing them.
+
+A generic starting policy is seeded and published for each type by default (`DirectoryDefaultsSeeder` / `database/seeders/PolicyTemplates.php`), so a fresh install has working, non-empty legal pages immediately. **This is a reasonable starting draft, not a substitute for review by qualified legal counsel** — particularly for an adult-services directory, where age-verification, advertising, and anti-trafficking law vary by jurisdiction. Review and republish each policy from Admin → Policies before relying on it for a real launch.
+
+An optional 18+ consent gate can be turned on from Admin → Settings. When enabled, first-time visitors see an interstitial before any listing content; confirmation is remembered for a year via cookie. Known search-engine crawlers (by user agent) always bypass the gate so it never affects indexing, and policy pages, sitemaps, and `robots.txt` are never gated in the first place.
 
 ## Status
 

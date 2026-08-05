@@ -27,7 +27,8 @@ class LaunchReadinessCheck extends Command
             ['Privileged MFA enrollment complete when enabled', ! $mfaEnforced || ! User::query()->whereHas('roles', fn ($query) => $query->whereIn('slug', ['admin', 'csr', 'seo']))->whereNull('two_factor_confirmed_at')->exists()],
             ['All policy types published', PolicyVersion::query()->published()->distinct()->count('policy_type') === count(PolicyVersion::TYPES)],
             ['Scheduler heartbeat is fresh', SystemHeartbeat::query()->where('name', 'scheduler')->where('last_seen_at', '>=', now()->subMinutes(config('operations.scheduler_stale_minutes')))->exists()],
-            ['Backup is fresh and verified', BackupRecord::query()->whereNotNull('verified_at')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
+            ['Database backup is fresh and verified', BackupRecord::query()->whereNotNull('verified_at')->where('path', 'like', '%/database-%')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
+            ['Media backup is fresh and verified', BackupRecord::query()->whereNotNull('verified_at')->where('path', 'like', '%/media-%')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
         ];
         if ($production) {
             $checks = [

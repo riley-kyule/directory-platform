@@ -48,4 +48,11 @@ else
     echo "==> $PUBLIC_HTML does not exist yet, deploy.sh will create it"
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "==> Installing cron entries (scheduler + queue worker)"
+echo "    These point at $APP_ROOT/current, which doesn't exist until your"
+echo "    first deploy.sh run — cron will just no-op (harmlessly) every"
+echo "    minute until then. Nothing further to do once deploy.sh finishes."
+"$SCRIPT_DIR/install-cron.sh"
+
 echo "==> Bootstrap complete. Next: put your production .env at $SHARED_DIR/.env, then run deploy.sh."
