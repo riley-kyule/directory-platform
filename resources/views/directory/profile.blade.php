@@ -94,6 +94,40 @@
                 </div>
             </section>
         @endif
+
+        <section class="mt-16 border-t border-stone-200 pt-10" aria-labelledby="reviews">
+            @if (session('review_status'))
+                <div class="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{{ session('review_status') }}</div>
+            @endif
+            <div class="mb-6">
+                <h2 id="reviews" class="text-2xl font-black tracking-tight sm:text-3xl">Reviews</h2>
+                @if ($reviewStats['count'] > 0)
+                    <p class="mt-1 text-sm text-stone-500">{{ number_format($reviewStats['average'], 1) }} ★ average from {{ $reviewStats['count'] }} review{{ $reviewStats['count'] === 1 ? '' : 's' }}</p>
+                @else
+                    <p class="mt-1 text-sm text-stone-500">No reviews yet — be the first.</p>
+                @endif
+            </div>
+
+            @if ($reviews->isNotEmpty())
+                <div class="space-y-4">
+                    @foreach ($reviews as $review)
+                        <div class="rounded-2xl border border-stone-200 bg-white p-5">
+                            <div class="flex items-center justify-between gap-4">
+                                <span class="font-bold">{{ $review->reviewer_name ?: 'Anonymous' }}</span>
+                                <span class="text-amber-500" aria-label="{{ $review->rating }} out of 5 stars">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</span>
+                            </div>
+                            <p class="mt-2 whitespace-pre-line text-sm text-stone-700">{{ $review->body }}</p>
+                            <p class="mt-2 text-xs text-stone-400">{{ $review->created_at->diffForHumans() }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            <div class="mt-8 text-center">
+                <a href="{{ route('directory.profiles.reviews.create', $profile) }}" class="inline-block rounded-full bg-rose-500 px-6 py-3 text-sm font-bold text-white transition hover:opacity-80">Leave a review</a>
+            </div>
+        </section>
+
         <div class="border-t border-stone-200 pt-8 text-center">
             <a href="{{ route('directory.profiles.report.create', $profile) }}" class="text-sm font-bold text-stone-600 underline hover:text-rose-600">Report a concern about this profile</a>
         </div>

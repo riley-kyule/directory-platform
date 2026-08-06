@@ -139,6 +139,8 @@ class PublicDirectoryController extends Controller
             ])
             ->firstOrFail();
 
+        $reviews = $profile->reviews()->published()->latest()->get();
+
         return view('directory.profile', [
             'profile' => $profile,
             'relatedProfiles' => $this->listings->relatedTo($profile),
@@ -148,6 +150,11 @@ class PublicDirectoryController extends Controller
             'canonicalUrl' => route('directory.profiles.show', $profile->slug),
             'robots' => 'index,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
+            'reviews' => $reviews,
+            'reviewStats' => [
+                'average' => $reviews->isNotEmpty() ? round($reviews->avg('rating'), 1) : null,
+                'count' => $reviews->count(),
+            ],
         ]);
     }
 

@@ -92,13 +92,18 @@
                 </div>
             @endcanany
 
-            @canany(['profiles.view-private', 'profiles.activate', 'moderation.view', 'verification.view', 'settings.manage'])
+            @canany(['profiles.view-private', 'profiles.activate', 'moderation.view', 'verification.view', 'settings.manage', 'reviews.view'])
                 <div>
                     <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Listings') }}</p>
                     <div class="mt-2 space-y-1">
                         @can('profiles.view-private')
                             <x-responsive-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.*')">
                                 {{ __('Manage Listings') }}
+                            </x-responsive-nav-link>
+                        @endcan
+                        @can('reviews.view')
+                            <x-responsive-nav-link :href="route('staff.reviews.index')" :active="request()->routeIs('staff.reviews.*')">
+                                {{ __('Reviews') }}
                             </x-responsive-nav-link>
                         @endcan
                         @can('profiles.activate')

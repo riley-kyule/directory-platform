@@ -12,6 +12,7 @@ use App\Http\Controllers\PolicyPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProfileReportController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ProviderOnboardingController;
 use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Staff\ModerationController;
 use App\Http\Controllers\Staff\ProfileManagementController;
 use App\Http\Controllers\Staff\ProfileReviewController;
+use App\Http\Controllers\Staff\ReviewModerationController;
 use App\Http\Controllers\Staff\VerificationController;
 use App\Http\Controllers\SystemHealthController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +40,10 @@ Route::get('/escort/{profile:slug}/report', [ProfileReportController::class, 'cr
 Route::post('/escort/{profile:slug}/report', [ProfileReportController::class, 'store'])
     ->middleware('throttle:5,10')
     ->name('directory.profiles.report.store');
+Route::get('/escort/{profile:slug}/reviews/new', [ReviewController::class, 'create'])->name('directory.profiles.reviews.create');
+Route::post('/escort/{profile:slug}/reviews', [ReviewController::class, 'store'])
+    ->middleware('throttle:5,10')
+    ->name('directory.profiles.reviews.store');
 Route::get('/agencies', [PublicAgencyController::class, 'index'])->middleware(['age.gate', 'cache.public'])->name('directory.agencies.index');
 Route::get('/agencies/page/{page}', [PublicAgencyController::class, 'index'])->whereNumber('page')->middleware(['age.gate', 'cache.public'])->name('directory.agencies.page');
 Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->middleware(['age.gate', 'cache.public'])->name('directory.agencies.show');
@@ -139,6 +145,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/profiles', [ProfileReviewController::class, 'index'])->name('profiles.index');
         Route::get('/profiles/{packageRequest}', [ProfileReviewController::class, 'show'])->name('profiles.show');
         Route::patch('/profiles/{packageRequest}', [ProfileReviewController::class, 'update'])->name('profiles.update');
+        Route::get('/reviews', [ReviewModerationController::class, 'index'])->name('reviews.index');
+        Route::patch('/reviews/{review}', [ReviewModerationController::class, 'update'])->name('reviews.update');
     });
 
     Route::prefix('seo')->name('seo.')->group(function () {

@@ -162,6 +162,11 @@ class Profile extends Model
         return $this->hasMany(ProfileReport::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
     public function moderationActions(): HasMany
     {
         return $this->hasMany(ModerationAction::class);
