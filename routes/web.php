@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DirectorySettingsController;
 use App\Http\Controllers\Admin\PolicyManagementController;
+use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AgeGateController;
 use App\Http\Controllers\ModerationAppealController;
 use App\Http\Controllers\PolicyPageController;
@@ -92,6 +93,14 @@ Route::middleware('auth')->group(function () {
         Route::patch('/durations/{duration}', [DirectorySettingsController::class, 'updateDuration'])->name('durations.update');
     });
     Route::get('/admin/system-health', [SystemHealthController::class, 'index'])->name('admin.system-health');
+
+    Route::prefix('admin/users')->name('admin.users.')->group(function () {
+        Route::get('/', [UserManagementController::class, 'index'])->name('index');
+        Route::get('/create', [UserManagementController::class, 'create'])->name('create');
+        Route::post('/', [UserManagementController::class, 'store'])->name('store');
+        Route::patch('/{user}/roles', [UserManagementController::class, 'updateRoles'])->name('roles.update');
+        Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+    });
 
     Route::prefix('admin/policies')->name('admin.policies.')->group(function () {
         Route::get('/', [PolicyManagementController::class, 'index'])->name('index');
