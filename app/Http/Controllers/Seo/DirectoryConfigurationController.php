@@ -29,15 +29,39 @@ class DirectoryConfigurationController extends Controller
 
     public function __construct(private readonly LocationInventoryService $locationInventory) {}
 
-    public function index(): View
+    public function homepageEdit(): View
+    {
+        Gate::authorize('seo.content');
+
+        return view('seo.pages.homepage', [
+            'homepage' => PageContent::query()->where('page_key', 'homepage')->firstOrFail(),
+        ]);
+    }
+
+    public function agenciesEdit(): View
+    {
+        Gate::authorize('seo.content');
+
+        return view('seo.pages.agencies', [
+            'agencyDirectory' => PageContent::query()->where('page_key', 'agencies')->firstOrFail(),
+        ]);
+    }
+
+    public function locationsIndex(): View
     {
         Gate::authorize('seo.locations');
 
-        return view('seo.directory.index', [
+        return view('seo.locations.index', [
             'locations' => Location::query()->with(['parent', 'content'])->orderBy('country_code')->orderBy('full_slug')->get(),
+        ]);
+    }
+
+    public function taxonomiesIndex(): View
+    {
+        Gate::authorize('seo.content');
+
+        return view('seo.taxonomies.index', [
             'taxonomyOptions' => TaxonomyOption::query()->orderBy('type')->orderBy('sort_order')->orderBy('label')->get(),
-            'homepage' => PageContent::query()->where('page_key', 'homepage')->firstOrFail(),
-            'agencyDirectory' => PageContent::query()->where('page_key', 'agencies')->firstOrFail(),
         ]);
     }
 
@@ -103,7 +127,7 @@ class DirectoryConfigurationController extends Controller
             return $location;
         });
 
-        return redirect()->route('seo.directory.index')->with('status', "Location {$location->name} created.");
+        return redirect()->route('seo.locations.index')->with('status', "Location {$location->name} created.");
     }
 
     public function editLocation(Location $location): View
@@ -146,7 +170,7 @@ class DirectoryConfigurationController extends Controller
                 + $location->content->fresh()->toArray(),
         );
 
-        return redirect()->route('seo.directory.index')->with('status', "Content for {$location->name} updated.");
+        return redirect()->route('seo.locations.index')->with('status', "Content for {$location->name} updated.");
     }
 
     /** @param  list<string>  $aliases */
@@ -185,7 +209,7 @@ class DirectoryConfigurationController extends Controller
 
         $this->auditUpdate($request->user()->id, 'pages.content-update', $homepage->id, $previous, $homepage->fresh()->toArray());
 
-        return redirect()->route('seo.directory.index')->with('status', 'Homepage content updated.');
+        return redirect()->route('seo.pages.homepage.edit')->with('status', 'Homepage content updated.');
     }
 
     public function updateAgencyDirectory(UpdateAgencyDirectoryContentRequest $request): RedirectResponse
@@ -196,7 +220,7 @@ class DirectoryConfigurationController extends Controller
 
         $this->auditUpdate($request->user()->id, 'pages.content-update', $content->id, $previous, $content->fresh()->toArray());
 
-        return redirect()->route('seo.directory.index')->with('status', 'Agency directory content updated.');
+        return redirect()->route('seo.pages.agencies.edit')->with('status', 'Agency directory content updated.');
     }
 
     public function storeTaxonomy(StoreTaxonomyOptionRequest $request): RedirectResponse
@@ -234,7 +258,7 @@ class DirectoryConfigurationController extends Controller
             'country_code' => $option->country_code,
         ], 'Created through directory configuration.');
 
-        return redirect()->route('seo.directory.index')->with('status', "Option {$option->label} created.");
+        return redirect()->route('seo.taxonomies.index')->with('status', "Option {$option->label} created.");
     }
 
     /** @param  array<string, mixed>  $state */

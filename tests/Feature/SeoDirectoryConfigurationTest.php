@@ -21,18 +21,47 @@ class SeoDirectoryConfigurationTest extends TestCase
 
     public function test_subscriber_cannot_access_directory_configuration(): void
     {
-        $this->actingAs(User::factory()->create())
-            ->get(route('seo.directory.index'))
-            ->assertForbidden();
+        $subscriber = User::factory()->create();
+
+        $this->actingAs($subscriber)->get(route('seo.locations.index'))->assertForbidden();
+        $this->actingAs($subscriber)->get(route('seo.taxonomies.index'))->assertForbidden();
+        $this->actingAs($subscriber)->get(route('seo.pages.homepage.edit'))->assertForbidden();
+        $this->actingAs($subscriber)->get(route('seo.pages.agencies.edit'))->assertForbidden();
     }
 
     public function test_seo_user_can_open_managed_homepage_editor(): void
     {
         $this->actingAs($this->staff('seo'))
-            ->get(route('seo.directory.index'))
+            ->get(route('seo.pages.homepage.edit'))
             ->assertOk()
             ->assertSee('Homepage content')
             ->assertSee('Bottom SEO content');
+    }
+
+    public function test_seo_user_can_open_locations_and_taxonomies_pages(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData());
+
+        $this->actingAs($seo)->get(route('seo.locations.index'))
+            ->assertOk()
+            ->assertSee('Nairobi');
+
+        $this->actingAs($seo)->post(route('seo.taxonomies.store'), [
+            'type' => 'ethnicity',
+            'label' => 'African',
+            'country_code' => 'ke',
+            'sort_order' => 10,
+            'is_active' => '1',
+        ]);
+
+        $this->actingAs($seo)->get(route('seo.taxonomies.index'))
+            ->assertOk()
+            ->assertSee('African');
+
+        $this->actingAs($seo)->get(route('seo.pages.agencies.edit'))
+            ->assertOk()
+            ->assertSee('Agency directory content');
     }
 
     public function test_seo_user_can_publish_location_only_with_complete_seo_data(): void
@@ -47,7 +76,7 @@ class SeoDirectoryConfigurationTest extends TestCase
         ])->assertSessionHasErrors(['intro_content', 'seo_title', 'meta_description']);
 
         $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData())
-            ->assertRedirect(route('seo.directory.index'))
+            ->assertRedirect(route('seo.locations.index'))
             ->assertSessionHasNoErrors();
 
         $location = Location::query()->firstOrFail();
@@ -102,7 +131,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'type' => 'landmark',
             'name' => 'Sarit Centre',
             'seo_title' => 'Sarit Centre Escorts and Independent Profiles',
-        ]))->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ]))->assertRedirect(route('seo.locations.index'))->assertSessionHasNoErrors();
 
         $micro = Location::query()->where('name', 'Sarit Centre')->firstOrFail();
         $this->assertSame('nairobi/westlands/sarit-centre', $micro->full_slug);
@@ -133,7 +162,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'country_code' => 'ke',
             'sort_order' => 10,
             'is_active' => '1',
-        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('seo.taxonomies.index'))->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('taxonomy_options', [
             'type' => 'ethnicity',
@@ -160,7 +189,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'seo_title' => 'Independent Provider Directory',
             'meta_description' => 'Browse active independent provider profiles by location, package and recently activated status.',
             'sections' => $sections,
-        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('seo.pages.homepage.edit'))->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('page_contents', [
             'page_key' => 'homepage',
@@ -189,7 +218,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'seo_title' => 'Independent Nairobi Profiles and Escorts',
             'meta_description' => 'Browse independently managed Nairobi profiles with current package and location information.',
             'canonical_path' => '/nairobi-escorts',
-        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('seo.locations.index'))->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('location_contents', [
             'location_id' => $location->id,
@@ -218,7 +247,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'meta_description' => 'Browse active independent profiles in Nairobi with useful directory information.',
             'canonical_path' => '/nairobi-escorts',
             'aliases' => "NBO\nNairobi CBD\n",
-        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('seo.locations.index'))->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('location_aliases', ['location_id' => $location->id, 'normalized_alias' => 'nbo']);
         $this->assertDatabaseHas('location_aliases', ['location_id' => $location->id, 'normalized_alias' => 'nairobi-cbd']);
@@ -248,7 +277,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'type' => 'city',
             'name' => 'Mombasa',
             'status' => 'draft',
-        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('seo.locations.index'))->assertSessionHasNoErrors();
 
         $location = Location::query()->where('slug', 'mombasa')->firstOrFail();
         $this->assertSame('draft', $location->status);
@@ -269,7 +298,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'seo_title' => 'Mombasa Escorts and Independent Profiles',
             'meta_description' => 'Browse active independent profiles in Mombasa with useful location and directory information.',
             'canonical_path' => '/mombasa-escorts',
-        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('seo.locations.index'))->assertSessionHasNoErrors();
 
         $this->assertSame('published', $location->refresh()->status);
         $this->assertDatabaseHas('location_contents', [
@@ -297,7 +326,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'bottom_content' => "## Working with agencies\n\nReview each agency and its active profiles.",
             'seo_title' => 'Independent Escort Agencies',
             'meta_description' => 'Browse independent escort agencies with active provider profiles and current public listings.',
-        ])->assertRedirect(route('seo.directory.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('seo.pages.agencies.edit'))->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('page_contents', [
             'page_key' => 'agencies',

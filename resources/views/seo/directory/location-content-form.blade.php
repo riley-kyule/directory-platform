@@ -11,7 +11,7 @@
             <div><x-input-label for="meta_description" value="Meta description" /><textarea id="meta_description" name="meta_description" maxlength="160" rows="3" class="mt-1 block w-full rounded-md border-gray-300">{{ old('meta_description', $location->content->meta_description) }}</textarea><x-input-error :messages="$errors->get('meta_description')" class="mt-2" /></div>
             <div class="md:col-span-2"><x-input-label for="canonical_path" value="Canonical path" /><x-text-input id="canonical_path" name="canonical_path" class="mt-1 block w-full" :value="old('canonical_path', $location->content->canonical_path)" /><x-input-error :messages="$errors->get('canonical_path')" class="mt-2" /></div>
             <div class="md:col-span-2"><x-input-label for="aliases" value="Alternate names (one per line)" /><textarea id="aliases" name="aliases" rows="3" class="mt-1 block w-full rounded-md border-gray-300">{{ collect(old('aliases', $location->aliases->pluck('alias')))->implode("\n") }}</textarea><p class="mt-1 text-xs text-gray-500">A visitor who lands on an alternate spelling is redirected to this page instead of getting a 404 or a competing indexable URL.</p><x-input-error :messages="$errors->get('aliases')" class="mt-2" /></div>
-            <div class="md:col-span-2 flex items-center justify-between"><a href="{{ route('seo.directory.index') }}" class="text-sm text-gray-600">Cancel</a><x-primary-button>Save location content</x-primary-button></div>
+            <div class="md:col-span-2 flex items-center justify-between"><a href="{{ route('seo.locations.index') }}" class="text-sm text-gray-600">Cancel</a><x-primary-button>Save location content</x-primary-button></div>
         </form>
     </div>
 </x-app-layout>

@@ -7,12 +7,14 @@ use App\Http\Requests\ManagePackageDurationRequest;
 use App\Http\Requests\UpdateDirectorySettingsRequest;
 use App\Http\Requests\UpdatePackageRequest;
 use App\Models\AuditLog;
+use App\Models\Deployment;
 use App\Models\DirectorySetting;
 use App\Models\Location;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
 use App\Services\DirectorySettings;
 use App\Services\LocationInventoryService;
+use App\Services\SelfDeployService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +25,7 @@ class DirectorySettingsController extends Controller
     public function __construct(
         private readonly DirectorySettings $settings,
         private readonly LocationInventoryService $locationInventory,
+        private readonly SelfDeployService $selfDeploy,
     ) {}
 
     public function index(): View
@@ -48,8 +51,28 @@ class DirectorySettingsController extends Controller
                 'maximum_aspect_ratio' => $this->settings->float('media.maximum_aspect_ratio'),
                 'webp_quality' => $this->settings->integer('media.webp_quality'),
             ],
+        ]);
+    }
+
+    public function packages(): View
+    {
+        Gate::authorize('settings.manage');
+
+        return view('admin.settings.packages', [
             'packages' => Package::query()->orderBy('display_order')->get(),
             'durations' => PackageDurationOption::query()->orderBy('display_order')->get(),
+        ]);
+    }
+
+    public function updates(): View
+    {
+        Gate::authorize('settings.manage');
+
+        return view('admin.settings.updates', [
+            'deployment' => $this->selfDeploy->enabled() ? [
+                'current_commit' => $this->selfDeploy->currentCommit(),
+                'latest' => Deployment::query()->latest('id')->first(),
+            ] : null,
         ]);
     }
 

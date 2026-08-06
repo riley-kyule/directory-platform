@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DirectorySettingsController;
+use App\Http\Controllers\Admin\SelfDeployController;
 use App\Http\Controllers\Admin\PolicyManagementController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AgeGateController;
@@ -91,6 +92,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/packages/{package}', [DirectorySettingsController::class, 'updatePackage'])->name('packages.update');
         Route::post('/durations', [DirectorySettingsController::class, 'storeDuration'])->name('durations.store');
         Route::patch('/durations/{duration}', [DirectorySettingsController::class, 'updateDuration'])->name('durations.update');
+        Route::post('/deployment/check', [SelfDeployController::class, 'check'])->name('deployment.check');
+        Route::post('/deployment/deploy', [SelfDeployController::class, 'deploy'])->name('deployment.deploy');
+        Route::get('/packages', [DirectorySettingsController::class, 'packages'])->name('packages.index');
+        Route::get('/updates', [DirectorySettingsController::class, 'updates'])->name('updates.index');
     });
     Route::get('/admin/system-health', [SystemHealthController::class, 'index'])->name('admin.system-health');
 
@@ -126,13 +131,16 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('seo')->name('seo.')->group(function () {
-        Route::get('/directory', [DirectoryConfigurationController::class, 'index'])->name('directory.index');
+        Route::get('/pages/homepage', [DirectoryConfigurationController::class, 'homepageEdit'])->name('pages.homepage.edit');
+        Route::patch('/pages/homepage', [DirectoryConfigurationController::class, 'updateHomepage'])->name('pages.homepage.update');
+        Route::get('/pages/agencies', [DirectoryConfigurationController::class, 'agenciesEdit'])->name('pages.agencies.edit');
+        Route::patch('/pages/agencies', [DirectoryConfigurationController::class, 'updateAgencyDirectory'])->name('pages.agencies.update');
+        Route::get('/locations', [DirectoryConfigurationController::class, 'locationsIndex'])->name('locations.index');
         Route::get('/locations/create', [DirectoryConfigurationController::class, 'createLocation'])->name('locations.create');
         Route::post('/locations', [DirectoryConfigurationController::class, 'storeLocation'])->name('locations.store');
         Route::get('/locations/{location}/content', [DirectoryConfigurationController::class, 'editLocation'])->name('locations.content.edit');
         Route::patch('/locations/{location}/content', [DirectoryConfigurationController::class, 'updateLocation'])->name('locations.content.update');
-        Route::patch('/pages/homepage', [DirectoryConfigurationController::class, 'updateHomepage'])->name('pages.homepage.update');
-        Route::patch('/pages/agencies', [DirectoryConfigurationController::class, 'updateAgencyDirectory'])->name('pages.agencies.update');
+        Route::get('/taxonomies', [DirectoryConfigurationController::class, 'taxonomiesIndex'])->name('taxonomies.index');
         Route::post('/taxonomies', [DirectoryConfigurationController::class, 'storeTaxonomy'])->name('taxonomies.store');
         Route::get('/redirects', [RedirectManagementController::class, 'index'])->name('redirects.index');
         Route::post('/redirects', [RedirectManagementController::class, 'store'])->name('redirects.store');

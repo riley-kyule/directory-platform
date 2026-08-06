@@ -48,46 +48,31 @@
                 </div>
             @endif
 
-            @canany(['profiles.activate', 'moderation.view', 'verification.view', 'profiles.view-private'])
-                <div>
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Staff tools') }}</p>
-                    <div class="mt-2 space-y-1">
-                        @can('profiles.activate')
-                            <x-responsive-nav-link :href="route('staff.profiles.index')" :active="request()->routeIs('staff.profiles.*')">
-                                {{ __('Profile reviews') }}
-                            </x-responsive-nav-link>
-                        @endcan
-                        @can('moderation.view')
-                            <x-responsive-nav-link :href="route('staff.moderation.index')" :active="request()->routeIs('staff.moderation.*')">
-                                {{ __('Moderation') }}
-                            </x-responsive-nav-link>
-                        @endcan
-                        @can('verification.view')
-                            <x-responsive-nav-link :href="route('staff.verification.index')" :active="request()->routeIs('staff.verification.*')">
-                                {{ __('Verification') }}
-                            </x-responsive-nav-link>
-                        @endcan
-                        @can('profiles.view-private')
-                            <x-responsive-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.*')">
-                                {{ __('Manage listings') }}
-                            </x-responsive-nav-link>
-                        @endcan
-                    </div>
-                </div>
-            @endcanany
-
-            @canany(['seo.locations', 'seo.redirects', 'seo.search-insights', 'seo.metadata'])
+            @canany(['seo.locations', 'seo.content', 'seo.redirects', 'seo.search-insights', 'seo.metadata'])
                 <div>
                     <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('SEO') }}</p>
                     <div class="mt-2 space-y-1">
+                        @can('seo.content')
+                            <x-responsive-nav-link :href="route('seo.pages.homepage.edit')" :active="request()->routeIs('seo.pages.homepage.*')">
+                                {{ __('Homepage Content') }}
+                            </x-responsive-nav-link>
+                        @endcan
                         @can('seo.locations')
-                            <x-responsive-nav-link :href="route('seo.directory.index')" :active="request()->routeIs('seo.directory.*')">
-                                {{ __('Pages & Locations') }}
+                            <x-responsive-nav-link :href="route('seo.locations.index')" :active="request()->routeIs('seo.locations.*')">
+                                {{ __('Locations') }}
+                            </x-responsive-nav-link>
+                        @endcan
+                        @can('seo.content')
+                            <x-responsive-nav-link :href="route('seo.taxonomies.index')" :active="request()->routeIs('seo.taxonomies.*')">
+                                {{ __('Taxonomy options') }}
+                            </x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('seo.pages.agencies.edit')" :active="request()->routeIs('seo.pages.agencies.*')">
+                                {{ __('Agency Page Content') }}
                             </x-responsive-nav-link>
                         @endcan
                         @can('seo.redirects')
                             <x-responsive-nav-link :href="route('seo.redirects.index')" :active="request()->routeIs('seo.redirects.*')">
-                                {{ __('Redirects & Slugs') }}
+                                {{ __('Redirections') }}
                             </x-responsive-nav-link>
                         @endcan
                         @can('seo.search-insights')
@@ -104,28 +89,73 @@
                 </div>
             @endcanany
 
-            @canany(['settings.manage', 'system.health', 'policies.manage', 'roles.manage'])
+            @canany(['profiles.view-private', 'profiles.activate', 'moderation.view', 'verification.view', 'settings.manage'])
                 <div>
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Administration') }}</p>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Listings') }}</p>
                     <div class="mt-2 space-y-1">
-                        @can('roles.manage')
-                            <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
-                                {{ __('Users & Roles') }}
+                        @can('profiles.view-private')
+                            <x-responsive-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.*')">
+                                {{ __('Manage Listings') }}
+                            </x-responsive-nav-link>
+                        @endcan
+                        @can('profiles.activate')
+                            <x-responsive-nav-link :href="route('staff.profiles.index')" :active="request()->routeIs('staff.profiles.*')">
+                                {{ __('Profile reviews') }}
+                            </x-responsive-nav-link>
+                        @endcan
+                        @can('moderation.view')
+                            <x-responsive-nav-link :href="route('staff.moderation.index')" :active="request()->routeIs('staff.moderation.*')">
+                                {{ __('Moderation') }}
+                            </x-responsive-nav-link>
+                        @endcan
+                        @can('verification.view')
+                            <x-responsive-nav-link :href="route('staff.verification.index')" :active="request()->routeIs('staff.verification.*')">
+                                {{ __('Verification') }}
                             </x-responsive-nav-link>
                         @endcan
                         @can('settings.manage')
-                            <x-responsive-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
-                                {{ __('Admin settings') }}
+                            <x-responsive-nav-link :href="route('admin.settings.packages.index')" :active="request()->routeIs('admin.settings.packages.*')">
+                                {{ __('Packages') }}
+                            </x-responsive-nav-link>
+                        @endcan
+                    </div>
+                </div>
+            @endcanany
+
+            @can('roles.manage')
+                <div>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Users') }}</p>
+                    <div class="mt-2 space-y-1">
+                        <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                            {{ __('All Users') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('admin.users.create')" :active="request()->routeIs('admin.users.create')">
+                            {{ __('Add User') }}
+                        </x-responsive-nav-link>
+                    </div>
+                </div>
+            @endcan
+
+            @canany(['settings.manage', 'system.health', 'policies.manage'])
+                <div>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Settings') }}</p>
+                    <div class="mt-2 space-y-1">
+                        @can('system.health')
+                            <x-responsive-nav-link :href="route('admin.system-health')" :active="request()->routeIs('admin.system-health')">
+                                {{ __('System health') }}
+                            </x-responsive-nav-link>
+                        @endcan
+                        @can('settings.manage')
+                            <x-responsive-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.index')">
+                                {{ __('Directory operation') }}
+                            </x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('admin.settings.updates.index')" :active="request()->routeIs('admin.settings.updates.*')">
+                                {{ __('Updates') }}
                             </x-responsive-nav-link>
                         @endcan
                         @can('policies.manage')
                             <x-responsive-nav-link :href="route('admin.policies.index')" :active="request()->routeIs('admin.policies.*')">
                                 {{ __('Policies') }}
-                            </x-responsive-nav-link>
-                        @endcan
-                        @can('system.health')
-                            <x-responsive-nav-link :href="route('admin.system-health')" :active="request()->routeIs('admin.system-health')">
-                                {{ __('System health') }}
                             </x-responsive-nav-link>
                         @endcan
                     </div>

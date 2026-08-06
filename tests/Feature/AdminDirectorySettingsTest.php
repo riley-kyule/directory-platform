@@ -34,9 +34,7 @@ class AdminDirectorySettingsTest extends TestCase
             ->get(route('admin.settings.index'))
             ->assertOk()
             ->assertSee('Directory operation')
-            ->assertSee('Require authenticator MFA')
-            ->assertSee('Packages')
-            ->assertSee('Package durations');
+            ->assertSee('Require authenticator MFA');
 
         $settings = app(DirectorySettings::class);
         $this->assertSame(15, $settings->integer('profiles.agency_limit'));
@@ -70,6 +68,19 @@ class AdminDirectorySettingsTest extends TestCase
 
         $this->assertSame('1', DirectorySetting::query()->findOrFail('security.privileged_mfa_enforced')->value);
         $this->assertTrue(app(DirectorySettings::class)->boolean('security.privileged_mfa_enforced'));
+    }
+
+    public function test_packages_page_shows_packages_and_durations(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.settings.packages.index'))
+            ->assertForbidden();
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.settings.packages.index'))
+            ->assertOk()
+            ->assertSee('Packages')
+            ->assertSee('Package durations');
     }
 
     public function test_admin_can_change_package_presentation_and_image_limit(): void
