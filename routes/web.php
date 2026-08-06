@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DirectorySettingsController;
 use App\Http\Controllers\Admin\SelfDeployController;
 use App\Http\Controllers\Admin\PolicyManagementController;
+use App\Http\Controllers\Admin\RoleManagementController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AgeGateController;
 use App\Http\Controllers\ModerationAppealController;
@@ -108,6 +109,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [UserManagementController::class, 'store'])->name('store');
         Route::patch('/{user}/roles', [UserManagementController::class, 'updateRoles'])->name('roles.update');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('admin/roles')->name('admin.roles.')->group(function () {
+        Route::get('/', [RoleManagementController::class, 'index'])->name('index');
+        Route::post('/', [RoleManagementController::class, 'store'])->name('store');
+        Route::patch('/{role}', [RoleManagementController::class, 'update'])->name('update');
+        Route::delete('/{role}', [RoleManagementController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('admin/policies')->name('admin.policies.')->group(function () {

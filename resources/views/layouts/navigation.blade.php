@@ -135,6 +135,9 @@
                         <x-responsive-nav-link :href="route('admin.users.create')" :active="request()->routeIs('admin.users.create')">
                             {{ __('Add User') }}
                         </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*')">
+                            {{ __('Roles') }}
+                        </x-responsive-nav-link>
                     </div>
                 </div>
             @endcan
