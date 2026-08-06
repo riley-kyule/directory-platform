@@ -30,9 +30,12 @@
             </button>
         </div>
 
+        @php
+            $dashboardRoute = Auth::user()->hasPermission('audit.view') ? route('admin.dashboard.index') : route('dashboard');
+        @endphp
         <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4">
             <div class="space-y-1">
-                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                <x-responsive-nav-link :href="$dashboardRoute" :active="request()->routeIs(['dashboard', 'admin.dashboard.*'])">
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
             </div>
