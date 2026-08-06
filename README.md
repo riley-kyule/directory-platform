@@ -120,13 +120,15 @@ Before a production release, run:
 
 ```bash
 composer install --no-dev --optimize-autoloader
-npm ci && npm run build
+npm run build   # then commit public/build/ — see below
 php artisan migrate --force
 php artisan optimize
 composer launch-check
 ```
 
-The launch check fails closed when key security, Google Admin SSO, policy, enabled MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
+The launch check fails closed when key security, Google Admin SSO, policy, enabled MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing (`--allow-cold-start` downgrades just the scheduler-heartbeat/backup-freshness checks to warnings, for a genuinely first-ever deploy where neither can have run yet). Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
+
+**`public/build/` is committed to the repo**, not built on the deploy target — shared hosting frequently ships a Node version years behind what current Vite requires (this project hit Node 16 on a cPanel host against Vite 8's Node ≥20 requirement), and unlike PHP there's rarely an easy alternate-version binary to reach for. Run `npm run build` locally and commit the output before every push that touches frontend code; `deploy.sh` checks for `public/build/manifest.json` in the freshly cloned release and skips `npm` entirely when it's already there. If a future host *does* have a compatible Node, re-add `/public/build` to `.gitignore` and stop committing it — `deploy.sh` falls back to `npm ci && npm run build` automatically whenever the manifest isn't present in the clone.
 
 On shared cPanel hosting with SSH but no root, `deploy/` has ready-to-run scripts for exactly this atomic-release-plus-rollback pattern, using plain symlinks in the account's home directory instead of systemd/WHM:
 
@@ -137,7 +139,7 @@ DEPLOY_REPO_URL=git@github.com:riley-kyule/directory-platform.git ./deploy/deplo
 ./deploy/rollback.sh     # or ./deploy/rollback.sh <release-timestamp>
 ```
 
-Requires non-interactive git access from the server (an SSH deploy key or a token-embedded HTTPS remote), PHP 8.3+ selected in MultiPHP Manager with the upload/memory limits above set in MultiPHP INI Editor, and Node available for `npm ci && npm run build` (build assets locally/in CI instead if the plan has no Node). `deploy.sh` runs `composer launch-check` before activating a release and leaves the previous one live if it fails. `rollback.sh` only ever moves symlinks and re-warms caches — it never touches the database; see the destructive-rollback guidance above. Each script's own header comment has the full details.
+Requires non-interactive git access from the server (an SSH deploy key or a token-embedded HTTPS remote) and PHP 8.3+ available. MultiPHP Manager only controls which PHP handles *web* requests — the SSH shell's bare `php`/`composer` are commonly a much older system default regardless, so `PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php` (path varies by host) is usually needed to point `deploy.sh` at the right CLI binary explicitly; see the script's own header comment. `deploy.sh` runs the production launch check before activating a release and leaves the previous one live if it fails. `rollback.sh` only ever moves symlinks and re-warms caches — it never touches the database; see the destructive-rollback guidance above. Each script's own header comment has the full details, including `DEPLOY_APP_ROOT`/`DEPLOY_DOCROOT` for running multiple domains under one cPanel account.
 
 ## Security
 

@@ -59,9 +59,15 @@ echo "==> Installing PHP dependencies (using $PHP_BIN: $("$PHP_BIN" -v | head -n
 cd "$RELEASE_DIR"
 "$PHP_BIN" "$COMPOSER_PATH" install --no-dev --optimize-autoloader --no-interaction
 
-echo "==> Building frontend assets"
-npm ci
-npm run build
+if [ -f "$RELEASE_DIR/public/build/manifest.json" ]; then
+    echo "==> public/build/ is already committed in this release — skipping npm entirely"
+    echo "    (built assets must be rebuilt and committed locally before pushing; the server"
+    echo "    never builds them, so shared-hosting Node version limits don't matter here)"
+else
+    echo "==> Building frontend assets"
+    npm ci
+    npm run build
+fi
 
 echo "==> Running migrations"
 "$PHP_BIN" artisan migrate --force
