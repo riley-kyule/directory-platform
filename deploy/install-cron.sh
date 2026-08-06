@@ -38,13 +38,13 @@ if ! command -v crontab >/dev/null 2>&1; then
     PHP binary cPanel's MultiPHP Manager selected, e.g. /usr/local/bin/php83):
 
 * * * * * cd $CURRENT && $PHP_BIN artisan schedule:run >> /dev/null 2>&1 # $MARKER:scheduler
-* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue
+* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --queue=media,default --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue
 EOF
     exit 0
 fi
 
 SCHEDULER_LINE="* * * * * cd $CURRENT && $PHP_BIN artisan schedule:run >> /dev/null 2>&1 # $MARKER:scheduler"
-QUEUE_LINE="* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue"
+QUEUE_LINE="* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --queue=media,default --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue"
 
 echo "==> Installing/refreshing cron entries for $APP_ROOT (marker: $MARKER)"
 {

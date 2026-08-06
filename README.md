@@ -101,7 +101,7 @@ Trigger the scheduler every minute, and run the queue worker via cron rather tha
 
 ```bash
 * * * * * cd /var/www/directory-platform && php artisan schedule:run >> /dev/null 2>&1
-* * * * * cd /var/www/directory-platform && flock -n /tmp/directory-platform-cron-queue.lock php artisan queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> storage/logs/queue-worker.log 2>&1
+* * * * * cd /var/www/directory-platform && flock -n /tmp/directory-platform-cron-queue.lock php artisan queue:work --queue=media,default --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> storage/logs/queue-worker.log 2>&1
 ```
 
 `deploy/install-cron.sh` installs both lines for you idempotently (safe to re-run; it replaces its own previous entries rather than duplicating them) and is called automatically by `deploy/bootstrap.sh` — on a fresh cPanel install, this means the scheduler and queue worker are live with no manual cron configuration. If your host has no `crontab` command, the script prints the two lines to paste into cPanel's "Cron Jobs" UI instead. Set `PHP_BIN` if `php` on the account's `$PATH` isn't the version selected in MultiPHP Manager.
