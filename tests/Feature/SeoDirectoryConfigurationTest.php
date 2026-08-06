@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Location;
+use App\Models\Profile;
+use App\Models\ProfileDetail;
 use App\Models\Role;
+use App\Models\TaxonomyOption;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -337,6 +340,91 @@ class SeoDirectoryConfigurationTest extends TestCase
             ->assertOk()
             ->assertSee('Independent Escort Agencies')
             ->assertSee('<h2>Working with agencies</h2>', false);
+    }
+
+    public function test_seo_user_can_edit_a_taxonomy_option(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.taxonomies.store'), [
+            'type' => 'ethnicity', 'label' => 'African', 'country_code' => 'ke', 'sort_order' => 10, 'is_active' => '1',
+        ]);
+        $option = TaxonomyOption::query()->where('slug', 'african')->firstOrFail();
+
+        $this->actingAs($seo)->patch(route('seo.taxonomies.update', $option), [
+            'label' => 'East African', 'sort_order' => 5, 'is_active' => '0',
+        ])->assertRedirect(route('seo.taxonomies.index'))->assertSessionHasNoErrors();
+
+        $option->refresh();
+        $this->assertSame('East African', $option->label);
+        $this->assertSame('east-african', $option->slug);
+        $this->assertSame(5, $option->sort_order);
+        $this->assertFalse($option->is_active);
+        // type and country_code are immutable through this endpoint.
+        $this->assertSame('ethnicity', $option->type);
+        $this->assertSame('KE', $option->country_code);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'taxonomies.update', 'target_id' => $option->id]);
+    }
+
+    public function test_deleting_an_unused_taxonomy_option_succeeds(): void
+    {
+        $seo = $this->staff('seo');
+        $option = TaxonomyOption::query()->create(['type' => 'language', 'slug' => 'swahili', 'label' => 'Swahili', 'is_active' => true]);
+
+        $this->actingAs($seo)->delete(route('seo.taxonomies.delete', $option))
+            ->assertRedirect(route('seo.taxonomies.index'))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('taxonomy_options', ['id' => $option->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'taxonomies.delete']);
+    }
+
+    public function test_deleting_a_restrict_type_taxonomy_option_in_use_is_refused(): void
+    {
+        $seo = $this->staff('seo');
+        $genderInUse = TaxonomyOption::query()->create(['type' => 'gender', 'slug' => 'woman', 'label' => 'Woman', 'is_active' => true]);
+        $this->createMinimalProfile($genderInUse);
+
+        $this->actingAs($seo)->delete(route('seo.taxonomies.delete', $genderInUse))
+            ->assertSessionHasErrors('taxonomy');
+
+        $this->assertDatabaseHas('taxonomy_options', ['id' => $genderInUse->id]);
+    }
+
+    public function test_deleting_a_null_on_delete_type_taxonomy_option_in_use_is_also_refused(): void
+    {
+        $seo = $this->staff('seo');
+        $hairColor = TaxonomyOption::query()->create(['type' => 'hair_color', 'slug' => 'black', 'label' => 'Black', 'is_active' => true]);
+        $gender = TaxonomyOption::query()->create(['type' => 'gender', 'slug' => 'man', 'label' => 'Man', 'is_active' => true]);
+        $profile = $this->createMinimalProfile($gender);
+        ProfileDetail::query()->create(['profile_id' => $profile->id, 'hair_color_option_id' => $hairColor->id]);
+
+        $this->actingAs($seo)->delete(route('seo.taxonomies.delete', $hairColor))
+            ->assertSessionHasErrors('taxonomy');
+
+        $this->assertDatabaseHas('taxonomy_options', ['id' => $hairColor->id]);
+        $this->assertDatabaseHas('profile_details', ['profile_id' => $profile->id, 'hair_color_option_id' => $hairColor->id]);
+    }
+
+    private function createMinimalProfile(TaxonomyOption $gender): Profile
+    {
+        $city = Location::query()->create([
+            'country_code' => 'KE', 'type' => 'city', 'name' => 'Nairobi', 'slug' => 'nairobi',
+            'full_slug' => 'nairobi', 'status' => 'published',
+        ]);
+        $neighbourhood = Location::query()->create([
+            'parent_id' => $city->id, 'country_code' => 'KE', 'type' => 'neighbourhood',
+            'name' => 'Westlands', 'slug' => 'westlands', 'full_slug' => 'nairobi/westlands',
+            'status' => 'published',
+        ]);
+        $ethnicity = TaxonomyOption::query()->create(['type' => 'ethnicity', 'slug' => 'african', 'label' => 'African', 'is_active' => true]);
+        $build = TaxonomyOption::query()->create(['type' => 'build', 'slug' => 'average', 'label' => 'Average', 'is_active' => true]);
+
+        return Profile::query()->create([
+            'display_name' => 'Test Profile', 'slug' => 'test-profile-'.uniqid(),
+            'description' => 'A minimal profile used to exercise taxonomy usage checks.',
+            'primary_location_id' => $city->id, 'sublocation_id' => $neighbourhood->id,
+            'gender_option_id' => $gender->id, 'date_of_birth' => now()->subYears(25),
+            'ethnicity_option_id' => $ethnicity->id, 'build_option_id' => $build->id,
+        ]);
     }
 
     private function staff(string $role): User

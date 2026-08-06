@@ -8,9 +8,12 @@ use App\Http\Requests\StoreTaxonomyOptionRequest;
 use App\Http\Requests\UpdateAgencyDirectoryContentRequest;
 use App\Http\Requests\UpdateHomepageContentRequest;
 use App\Http\Requests\UpdateLocationContentRequest;
+use App\Http\Requests\UpdateTaxonomyOptionRequest;
 use App\Models\AuditLog;
 use App\Models\Location;
 use App\Models\PageContent;
+use App\Models\Profile;
+use App\Models\ProfileDetail;
 use App\Models\TaxonomyOption;
 use App\Services\LocationInventoryService;
 use Illuminate\Http\RedirectResponse;
@@ -259,6 +262,74 @@ class DirectoryConfigurationController extends Controller
         ], 'Created through directory configuration.');
 
         return redirect()->route('seo.taxonomies.index')->with('status', "Option {$option->label} created.");
+    }
+
+    public function updateTaxonomy(UpdateTaxonomyOptionRequest $request, TaxonomyOption $taxonomyOption): RedirectResponse
+    {
+        $validated = $request->validated();
+        $slug = Str::slug($validated['label']);
+
+        if (! $slug) {
+            return back()->withErrors(['label' => 'Enter a label that can produce a stable identifier.']);
+        }
+
+        if (TaxonomyOption::query()->where([
+            'type' => $taxonomyOption->type,
+            'slug' => $slug,
+            'country_code' => $taxonomyOption->country_code,
+        ])->whereKeyNot($taxonomyOption->id)->exists()) {
+            return back()->withErrors(['label' => 'That option already exists for this type and country.']);
+        }
+
+        $previous = $taxonomyOption->only(['label', 'slug', 'sort_order', 'is_active', 'settings']);
+        $taxonomyOption->update([
+            'label' => $validated['label'],
+            'slug' => $slug,
+            'sort_order' => $validated['sort_order'],
+            'is_active' => $validated['is_active'],
+            'settings' => $taxonomyOption->type === 'gender'
+                ? ['requires_bust_size' => $validated['requires_bust_size']]
+                : $taxonomyOption->settings,
+        ]);
+
+        $this->auditUpdate($request->user()->id, 'taxonomies.update', $taxonomyOption->id, $previous, $taxonomyOption->fresh()->only(array_keys($previous)));
+
+        return redirect()->route('seo.taxonomies.index')->with('status', "Option {$taxonomyOption->label} updated.");
+    }
+
+    public function destroyTaxonomy(TaxonomyOption $taxonomyOption): RedirectResponse
+    {
+        Gate::authorize('seo.content');
+
+        if ($this->taxonomyOptionInUse($taxonomyOption)) {
+            return back()->withErrors(['taxonomy' => "\"{$taxonomyOption->label}\" is used by at least one profile — deactivate it instead of deleting."]);
+        }
+
+        $previous = $taxonomyOption->only(['type', 'label', 'slug', 'country_code']);
+        $label = $taxonomyOption->label;
+        $taxonomyOptionId = $taxonomyOption->id;
+        $taxonomyOption->delete();
+
+        $this->auditUpdate(request()->user()->id, 'taxonomies.delete', $taxonomyOptionId, $previous, []);
+
+        return redirect()->route('seo.taxonomies.index')->with('status', "Option {$label} deleted.");
+    }
+
+    private function taxonomyOptionInUse(TaxonomyOption $option): bool
+    {
+        return match ($option->type) {
+            'gender' => Profile::query()->where('gender_option_id', $option->id)->exists(),
+            'ethnicity' => Profile::query()->where('ethnicity_option_id', $option->id)->exists(),
+            'build' => Profile::query()->where('build_option_id', $option->id)->exists(),
+            'bust_size' => Profile::query()->where('bust_size_option_id', $option->id)->exists(),
+            'hair_color' => ProfileDetail::query()->where('hair_color_option_id', $option->id)->exists(),
+            'hair_length' => ProfileDetail::query()->where('hair_length_option_id', $option->id)->exists(),
+            'sexual_orientation' => ProfileDetail::query()->where('sexual_orientation_option_id', $option->id)->exists(),
+            'service' => DB::table('profile_services')->where('service_option_id', $option->id)->exists(),
+            'language' => DB::table('profile_languages')->where('language_option_id', $option->id)->exists(),
+            'rate_period' => DB::table('profile_rates')->where('rate_period_option_id', $option->id)->exists(),
+            default => true,
+        };
     }
 
     /** @param  array<string, mixed>  $state */

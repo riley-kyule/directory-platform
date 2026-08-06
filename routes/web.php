@@ -142,6 +142,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/locations/{location}/content', [DirectoryConfigurationController::class, 'updateLocation'])->name('locations.content.update');
         Route::get('/taxonomies', [DirectoryConfigurationController::class, 'taxonomiesIndex'])->name('taxonomies.index');
         Route::post('/taxonomies', [DirectoryConfigurationController::class, 'storeTaxonomy'])->name('taxonomies.store');
+        Route::patch('/taxonomies/{taxonomyOption}', [DirectoryConfigurationController::class, 'updateTaxonomy'])->name('taxonomies.update');
+        Route::delete('/taxonomies/{taxonomyOption}', [DirectoryConfigurationController::class, 'destroyTaxonomy'])->name('taxonomies.delete');
         Route::get('/redirects', [RedirectManagementController::class, 'index'])->name('redirects.index');
         Route::post('/redirects', [RedirectManagementController::class, 'store'])->name('redirects.store');
         Route::patch('/redirects/{redirect}/toggle', [RedirectManagementController::class, 'toggle'])->name('redirects.toggle');

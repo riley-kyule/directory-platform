@@ -26,19 +26,38 @@
             <section class="bg-white p-6 shadow-sm sm:rounded-lg">
                 <h3 class="text-lg font-semibold">Existing options</h3>
                 <p class="mt-1 text-sm text-gray-600">Grouped by type, in the order they appear in dropdowns.</p>
+                <p class="mt-1 text-sm text-gray-600">Type and country are fixed once created. Options in use by at least one profile can't be deleted — deactivate them instead.</p>
                 @php $grouped = $taxonomyOptions->groupBy('type'); @endphp
                 <div class="mt-6 space-y-6">
                     @forelse ($grouped as $type => $options)
                         <div>
                             <h4 class="text-sm font-semibold uppercase tracking-wide text-gray-500">{{ str($type)->replace('_', ' ')->title() }}</h4>
-                            <div class="mt-2 divide-y rounded-md border">
+                            <div class="mt-2 space-y-2">
                                 @foreach ($options as $option)
-                                    <div class="flex items-center justify-between px-4 py-2 text-sm">
-                                        <span class="font-medium text-gray-900">{{ $option->label }}</span>
-                                        <span class="flex items-center gap-3 text-gray-500">
-                                            @if ($option->country_code)<span>{{ $option->country_code }}</span>@endif
-                                            <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $option->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">{{ $option->is_active ? 'Active' : 'Inactive' }}</span>
-                                        </span>
+                                    <div class="rounded-md border border-gray-200 p-3">
+                                        <form method="POST" action="{{ route('seo.taxonomies.update', $option) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
+                                            @csrf
+                                            @method('PATCH')
+                                            <div class="lg:col-span-2">
+                                                <x-input-label :for="'label_'.$option->id" value="Label" />
+                                                <x-text-input :id="'label_'.$option->id" name="label" class="mt-1 block w-full" :value="$option->label" required />
+                                            </div>
+                                            <div>
+                                                <x-input-label :for="'sort_order_'.$option->id" value="Sort order" />
+                                                <x-text-input :id="'sort_order_'.$option->id" name="sort_order" type="number" min="0" max="65535" class="mt-1 block w-full" :value="$option->sort_order" required />
+                                            </div>
+                                            <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" name="is_active" value="1" @checked($option->is_active)> Active</label>
+                                            @if ($type === 'gender')
+                                                <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" name="requires_bust_size" value="1" @checked($option->settings['requires_bust_size'] ?? false)> Requires bust size</label>
+                                            @endif
+                                            <div class="text-xs text-gray-500">{{ $option->country_code ?: 'All countries' }}</div>
+                                            <div><x-primary-button>Save</x-primary-button></div>
+                                        </form>
+                                        <form method="POST" action="{{ route('seo.taxonomies.delete', $option) }}" onsubmit="return confirm('Delete &quot;{{ $option->label }}&quot;? This cannot be undone.');" class="mt-2">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-xs font-semibold text-red-600 hover:text-red-800">Delete</button>
+                                        </form>
                                     </div>
                                 @endforeach
                             </div>
