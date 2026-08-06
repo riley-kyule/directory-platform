@@ -72,6 +72,9 @@ fi
 echo "==> Running migrations"
 "$PHP_BIN" artisan migrate --force
 
+echo "==> Seeding baseline directory data (settings, packages, taxonomy, default policies)"
+"$PHP_BIN" artisan db:seed --class=DirectoryDefaultsSeeder --force
+
 echo "==> Caching config/routes/views"
 "$PHP_BIN" artisan optimize
 
