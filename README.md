@@ -141,6 +141,20 @@ DEPLOY_REPO_URL=git@github.com:riley-kyule/directory-platform.git ./deploy/deplo
 
 Requires non-interactive git access from the server (an SSH deploy key or a token-embedded HTTPS remote) and PHP 8.3+ available. MultiPHP Manager only controls which PHP handles *web* requests — the SSH shell's bare `php`/`composer` are commonly a much older system default regardless, so `PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php` (path varies by host) is usually needed to point `deploy.sh` at the right CLI binary explicitly; see the script's own header comment. `deploy.sh` runs the production launch check before activating a release and leaves the previous one live if it fails. `rollback.sh` only ever moves symlinks and re-warms caches — it never touches the database; see the destructive-rollback guidance above. Each script's own header comment has the full details, including `DEPLOY_APP_ROOT`/`DEPLOY_DOCROOT` for running multiple domains under one cPanel account.
 
+### Deploying from the admin panel (no SSH)
+
+Once a host has been bootstrapped via SSH at least once, Admin → Settings can check for and trigger deploys itself, so routine updates never need a shell session. It works by running the exact same `deploy/deploy.sh` from a queued job — same atomic-release safety, same launch-check gate. Requires `proc_open` to be enabled (some shared hosts disable it) and these set in the production `.env`:
+
+```bash
+SELF_DEPLOY_ENABLED=true
+SELF_DEPLOY_REPO_URL=https://github.com/riley-kyule/directory-platform.git
+SELF_DEPLOY_BRANCH=main
+SELF_DEPLOY_APP_ROOT=/home/youruser/yourdomain.com   # same value as DEPLOY_APP_ROOT
+SELF_DEPLOY_MANAGE_DOCROOT=true                      # same value as DEPLOY_MANAGE_DOCROOT
+```
+
+The "Check for updates" button does a read-only `git ls-remote` — no code changes. "Deploy now" only appears once that check finds a newer commit, and queues `App\Jobs\RunSelfDeploy`, which the cron-driven queue worker above picks up (its 900s job timeout overrides the worker's `--timeout=45` flag, so a slow `composer install` won't get killed mid-deploy). The settings page shows the latest run's status and captured output.
+
 ## Security
 
 Never commit environment files, credentials, production data, private uploads, or generated application keys. Configure deployment secrets through the hosting environment.

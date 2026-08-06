@@ -124,4 +124,5 @@ ls -1t | tail -n "+$((KEEP_RELEASES + 1))" | while read -r old; do
     rm -rf "$RELEASES_DIR/$old"
 done
 
+echo "SELF_DEPLOY_COMMIT=$(git -C "$RELEASE_DIR" rev-parse HEAD)"
 echo "==> Deployed $RELEASE_NAME"
