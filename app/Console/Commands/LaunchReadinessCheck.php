@@ -12,27 +12,34 @@ use Illuminate\Support\Facades\DB;
 
 class LaunchReadinessCheck extends Command
 {
-    protected $signature = 'system:launch-check {--production : Enforce production-only configuration requirements}';
+    protected $signature = 'system:launch-check
+        {--production : Enforce production-only configuration requirements}
+        {--allow-cold-start : Do not block on scheduler-heartbeat/backup freshness. Only for a first-ever deploy, before cron or any backup has had a chance to run yet — every later run should omit this so a real regression still fails the check.}';
 
     protected $description = 'Validate critical application, security, scheduler, policy, and backup launch requirements';
 
     public function handle(): int
     {
         $production = (bool) $this->option('production');
+        $coldStart = (bool) $this->option('allow-cold-start');
         $mfaEnforced = app(DirectorySettings::class)->boolean('security.privileged_mfa_enforced');
-        $checks = [
+
+        $failed = $this->runChecks([
             ['Application key configured', filled(config('app.key'))],
             ['Database responds', $this->databaseResponds()],
             ['Storage directory is writable', is_writable(storage_path())],
             ['Privileged MFA enrollment complete when enabled', ! $mfaEnforced || ! User::query()->whereHas('roles', fn ($query) => $query->whereIn('slug', ['admin', 'csr', 'seo']))->whereNull('two_factor_confirmed_at')->exists()],
             ['All policy types published', PolicyVersion::query()->published()->distinct()->count('policy_type') === count(PolicyVersion::TYPES)],
+        ]);
+
+        $failed = $this->runChecks([
             ['Scheduler heartbeat is fresh', SystemHeartbeat::query()->where('name', 'scheduler')->where('last_seen_at', '>=', now()->subMinutes(config('operations.scheduler_stale_minutes')))->exists()],
             ['Database backup is fresh and verified', BackupRecord::query()->whereNotNull('verified_at')->where('path', 'like', '%/database-%')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
             ['Media backup is fresh and verified', BackupRecord::query()->whereNotNull('verified_at')->where('path', 'like', '%/media-%')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
-        ];
+        ], allowFailureWithWarning: $coldStart) || $failed;
+
         if ($production) {
             $checks = [
-                ...$checks,
                 ['APP_ENV is production', app()->environment('production')],
                 ['Debug mode is disabled', ! config('app.debug')],
                 ['Canonical application URL uses HTTPS', str_starts_with(config('app.url'), 'https://')],
@@ -44,15 +51,28 @@ class LaunchReadinessCheck extends Command
             if (config('security.require_google_admin_sso')) {
                 $checks[] = ['Google Admin SSO is configured', filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect'))];
             }
-        }
-
-        $failed = false;
-        foreach ($checks as [$label, $passed]) {
-            $passed ? $this->components->info($label) : $this->components->error($label);
-            $failed = $failed || ! $passed;
+            $failed = $this->runChecks($checks) || $failed;
         }
 
         return $failed ? self::FAILURE : self::SUCCESS;
+    }
+
+    /** @param array<int, array{0: string, 1: bool}> $checks */
+    private function runChecks(array $checks, bool $allowFailureWithWarning = false): bool
+    {
+        $failed = false;
+        foreach ($checks as [$label, $passed]) {
+            if ($passed) {
+                $this->components->info($label);
+            } elseif ($allowFailureWithWarning) {
+                $this->components->warn("{$label} (skipped: --allow-cold-start)");
+            } else {
+                $this->components->error($label);
+                $failed = true;
+            }
+        }
+
+        return $failed;
     }
 
     private function databaseResponds(): bool

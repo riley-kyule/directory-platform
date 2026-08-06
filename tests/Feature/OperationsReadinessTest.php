@@ -159,6 +159,29 @@ class OperationsReadinessTest extends TestCase
         $this->assertStringContainsString('Google Admin SSO is configured', Artisan::output());
     }
 
+    public function test_allow_cold_start_turns_missing_heartbeat_and_backup_into_warnings_not_failures(): void
+    {
+        Artisan::call('system:launch-check', ['--allow-cold-start' => true]);
+        $output = Artisan::output();
+
+        // The "(skipped: --allow-cold-start)" suffix only appears on the
+        // warning branch, never the error branch — its presence alone proves
+        // these two specific checks were downgraded rather than left as
+        // blocking failures (this test class doesn't seed policies, so the
+        // overall exit code is still 1 from an unrelated check either way).
+        $this->assertStringContainsString('Scheduler heartbeat is fresh (skipped: --allow-cold-start)', $output);
+        $this->assertStringContainsString('Database backup is fresh and verified (skipped: --allow-cold-start)', $output);
+    }
+
+    public function test_allow_cold_start_does_not_silence_other_failing_checks(): void
+    {
+        $exit = Artisan::call('system:launch-check', ['--production' => true, '--allow-cold-start' => true]);
+
+        // Local/testing config fails several production-only checks
+        // (APP_ENV, debug, HTTPS, sqlite) regardless of cold-start.
+        $this->assertSame(1, $exit);
+    }
+
     private function staff(string $role): User
     {
         $user = User::factory()->create();

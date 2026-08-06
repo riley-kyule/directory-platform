@@ -70,7 +70,14 @@ echo "==> Caching config/routes/views"
 "$PHP_BIN" artisan optimize
 
 echo "==> Running the production launch check"
-if ! "$PHP_BIN" "$COMPOSER_PATH" launch-check; then
+LAUNCH_CHECK_ARGS=(--production)
+if [ ! -L "$APP_ROOT/current" ]; then
+    echo "    No existing $APP_ROOT/current symlink — first deploy for this app root, so the"
+    echo "    scheduler-heartbeat/backup-freshness checks are allowed to warn instead of block"
+    echo "    (neither can possibly have run yet). Every later deploy enforces them normally."
+    LAUNCH_CHECK_ARGS+=(--allow-cold-start)
+fi
+if ! "$PHP_BIN" artisan system:launch-check "${LAUNCH_CHECK_ARGS[@]}"; then
     echo "error: launch check failed — leaving $APP_ROOT/current pointed at the previous release." >&2
     echo "       This release is left in place at $RELEASE_DIR for inspection; it was not activated." >&2
     exit 1
