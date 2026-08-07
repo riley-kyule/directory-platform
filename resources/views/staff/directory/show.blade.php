@@ -41,6 +41,19 @@
                         <form method="POST" action="{{ route('staff.directory.update', $profile) }}" class="space-y-3 bg-white p-5 shadow-sm sm:rounded-lg">@csrf @method('PATCH')<input type="hidden" name="action" value="ban"><h3 class="font-bold">Ban instead</h3><textarea name="reason" rows="3" class="block w-full rounded-md border-gray-300" placeholder="Required reason" required></textarea><x-danger-button>Ban profile</x-danger-button></form>
                     @elseif ($profile->status === \App\Enums\ProfileStatus::Banned)
                         <div class="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-800">This profile is banned. Reactivation requires a future explicit unban workflow and cannot be performed as a renewal.</div>
+                    @elseif ($profile->status === \App\Enums\ProfileStatus::Draft)
+                        <div class="space-y-4 bg-white p-5 shadow-sm sm:rounded-lg">
+                            <h3 class="font-bold text-gray-900">Complete onboarding</h3>
+                            <p class="text-sm text-gray-600">Requested package: {{ $profile->packageRequests->first()?->requestedPackage?->name ?? 'None' }}</p>
+                            <p class="text-sm text-gray-600">{{ $profile->images->count() }} image(s) uploaded ({{ $profile->images->whereIn('status', ['pending_review', 'approved'])->count() }} reviewed or approved).</p>
+                            <a href="{{ route('profiles.media.index', $profile) }}" class="inline-block rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white">Manage media</a>
+
+                            <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="space-y-4 border-t pt-4">
+                                @csrf
+                                <x-policy-acceptances :policies="$submissionPolicies" label="Confirm the provider has agreed to the" />
+                                <x-primary-button>Submit for review</x-primary-button>
+                            </form>
+                        </div>
                     @else
                         <div class="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">This profile is in the {{ str($profile->status->value)->replace('_', ' ') }} workflow. Complete that workflow before applying lifecycle management actions.</div>
                     @endif

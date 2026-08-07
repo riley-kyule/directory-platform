@@ -24,6 +24,7 @@ use App\Http\Controllers\Seo\SearchInsightsController;
 use App\Http\Controllers\Seo\SeoAuditController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Staff\ModerationController;
+use App\Http\Controllers\Staff\ProfileCreationController;
 use App\Http\Controllers\Staff\ProfileManagementController;
 use App\Http\Controllers\Staff\ProfileReviewController;
 use App\Http\Controllers\Staff\ReviewModerationController;
@@ -140,6 +141,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/verification', [VerificationController::class, 'index'])->name('verification.index');
         Route::post('/verification', [VerificationController::class, 'store'])->name('verification.store');
         Route::get('/directory', [ProfileManagementController::class, 'index'])->name('directory.index');
+        Route::get('/directory/create', [ProfileCreationController::class, 'create'])->name('directory.create');
+        Route::post('/directory', [ProfileCreationController::class, 'store'])->name('directory.store');
         Route::get('/directory/{profile}', [ProfileManagementController::class, 'show'])->name('directory.show');
         Route::patch('/directory/{profile}', [ProfileManagementController::class, 'update'])->name('directory.update');
         Route::get('/profiles', [ProfileReviewController::class, 'index'])->name('profiles.index');

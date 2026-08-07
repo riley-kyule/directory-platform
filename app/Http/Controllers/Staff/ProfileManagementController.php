@@ -11,10 +11,12 @@ use App\Models\Package;
 use App\Models\PackageDurationOption;
 use App\Models\Profile;
 use App\Services\LocationInventoryService;
+use App\Services\PolicyAcceptanceService;
 use App\Services\ProfileImageVisibility;
 use App\Services\PublicProfileListings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -25,6 +27,7 @@ class ProfileManagementController extends Controller
         private readonly PublicProfileListings $listings,
         private readonly LocationInventoryService $locationInventory,
         private readonly ProfileImageVisibility $imageVisibility,
+        private readonly PolicyAcceptanceService $policies,
     ) {}
 
     public function index(): View
@@ -42,17 +45,25 @@ class ProfileManagementController extends Controller
         ]);
     }
 
-    public function show(Profile $profile): View
+    public function show(Request $request, Profile $profile): View
     {
         Gate::authorize('profiles.view-private');
 
+        $profile->load([
+            'primaryLocation', 'sublocation', 'microLocation', 'owner', 'currentAgency.owner', 'contacts', 'images',
+            'packageAssignments.package', 'services',
+        ]);
+        if ($profile->status === ProfileStatus::Draft) {
+            $profile->load('packageRequests.requestedPackage');
+        }
+
         return view('staff.directory.show', [
-            'profile' => $profile->load([
-                'primaryLocation', 'sublocation', 'microLocation', 'owner', 'currentAgency.owner', 'contacts', 'images',
-                'packageAssignments.package', 'services',
-            ]),
+            'profile' => $profile,
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
             'durations' => PackageDurationOption::query()->where('is_active', true)->orderBy('display_order')->get(),
+            'submissionPolicies' => $profile->status === ProfileStatus::Draft
+                ? $this->policies->outstanding('profile_submission', $request->user(), $profile)
+                : collect(),
             'audits' => AuditLog::query()
                 ->where('target_type', 'profile')
                 ->where('target_id', $profile->id)
