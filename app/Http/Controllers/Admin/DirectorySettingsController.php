@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ManagePackageDurationRequest;
+use App\Http\Requests\UpdateBrandingRequest;
 use App\Http\Requests\UpdateDirectorySettingsRequest;
 use App\Http\Requests\UpdatePackageRequest;
 use App\Models\AuditLog;
@@ -16,8 +17,11 @@ use App\Services\DirectorySettings;
 use App\Services\LocationInventoryService;
 use App\Services\SelfDeployService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class DirectorySettingsController extends Controller
@@ -33,6 +37,8 @@ class DirectorySettingsController extends Controller
         Gate::authorize('settings.manage');
 
         return view('admin.settings.index', [
+            'logoUrl' => $this->settings->logoUrl(),
+            'faviconUrl' => $this->settings->faviconUrl(),
             'settings' => [
                 'platform_name' => $this->settings->string('site.platform_name'),
                 'support_email' => $this->settings->string('site.support_email'),
@@ -117,6 +123,61 @@ class DirectorySettingsController extends Controller
             ->eachById(fn (Location $location) => $this->locationInventory->sync($location->id));
 
         return back()->with('status', 'Directory settings updated.');
+    }
+
+    public function updateBranding(UpdateBrandingRequest $request): RedirectResponse
+    {
+        $updates = [];
+
+        if ($request->boolean('remove_logo')) {
+            $this->deleteBrandingFile('site.logo_path');
+            $updates['site.logo_path'] = '';
+        } elseif ($request->hasFile('logo')) {
+            $updates['site.logo_path'] = $this->storeBrandingFile($request->file('logo'), 'logo', 'site.logo_path');
+        }
+
+        if ($request->boolean('remove_favicon')) {
+            $this->deleteBrandingFile('site.favicon_path');
+            $updates['site.favicon_path'] = '';
+        } elseif ($request->hasFile('favicon')) {
+            $updates['site.favicon_path'] = $this->storeBrandingFile($request->file('favicon'), 'favicon', 'site.favicon_path');
+        }
+
+        if ($updates === []) {
+            return back()->withErrors(['logo' => 'Choose a file to upload, or check remove.']);
+        }
+
+        DB::transaction(function () use ($request, $updates): void {
+            $previous = DirectorySetting::query()->whereIn('key', array_keys($updates))->pluck('value', 'key')->all();
+            foreach ($updates as $key => $value) {
+                DirectorySetting::query()->updateOrCreate(['key' => $key], [
+                    'value' => $value,
+                    'value_type' => 'string',
+                    'group' => 'site',
+                    'updated_by' => $request->user()->id,
+                ]);
+            }
+            $this->audit($request->user()->id, 'settings.branding-update', null, $previous, $updates);
+        });
+
+        return back()->with('status', 'Branding updated.');
+    }
+
+    private function storeBrandingFile(UploadedFile $file, string $prefix, string $settingKey): string
+    {
+        $this->deleteBrandingFile($settingKey);
+        $filename = $prefix.'-'.now()->timestamp.'-'.Str::random(8).'.'.$file->extension();
+        Storage::disk('branding')->putFileAs('', $file, $filename);
+
+        return $filename;
+    }
+
+    private function deleteBrandingFile(string $settingKey): void
+    {
+        $path = $this->settings->string($settingKey);
+        if ($path !== '') {
+            Storage::disk('branding')->delete($path);
+        }
     }
 
     public function updatePackage(UpdatePackageRequest $request, Package $package): RedirectResponse

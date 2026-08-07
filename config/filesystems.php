@@ -76,6 +76,14 @@ return [
             'throw' => true,
         ],
 
+        'branding' => [
+            'driver' => 'local',
+            'root' => public_path('branding'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/branding',
+            'visibility' => 'public',
+            'throw' => true,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

@@ -100,6 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin/settings')->name('admin.settings.')->group(function () {
         Route::get('/', [DirectorySettingsController::class, 'index'])->name('index');
         Route::patch('/', [DirectorySettingsController::class, 'update'])->name('update');
+        Route::post('/branding', [DirectorySettingsController::class, 'updateBranding'])->name('branding.update');
         Route::patch('/packages/{package}', [DirectorySettingsController::class, 'updatePackage'])->name('packages.update');
         Route::post('/durations', [DirectorySettingsController::class, 'storeDuration'])->name('durations.store');
         Route::patch('/durations/{duration}', [DirectorySettingsController::class, 'updateDuration'])->name('durations.update');

@@ -8,6 +8,7 @@
         <meta name="robots" content="{{ $robots ?? 'index,follow' }}">
         <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}">
         <meta name="theme-color" content="#171717">
+        <x-favicon-link />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         {!! \App\Support\JsonLd::script([\App\Support\JsonLd::organization(), \App\Support\JsonLd::website()]) !!}
         {!! $structuredData ?? '' !!}
@@ -15,8 +16,13 @@
     <body class="min-h-screen bg-stone-50 font-sans text-stone-900 antialiased">
         <header class="sticky top-0 z-40 border-b border-white/10 bg-stone-950/95 text-white backdrop-blur">
             <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                @php $logoUrl = app(\App\Services\DirectorySettings::class)->logoUrl(); @endphp
                 <a href="{{ route('directory.home') }}" class="flex items-center gap-2.5" aria-label="{{ config('app.name') }} home">
-                    <span class="grid h-9 w-9 place-items-center rounded-full bg-rose-500 text-lg font-black">D</span>
+                    @if ($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" class="h-9 w-auto">
+                    @else
+                        <span class="grid h-9 w-9 place-items-center rounded-full bg-rose-500 text-lg font-black">D</span>
+                    @endif
                     <span class="text-lg font-semibold tracking-tight">{{ config('app.name') }}</span>
                 </a>
                 <nav class="flex items-center gap-2 text-sm font-medium">

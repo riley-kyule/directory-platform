@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DirectorySetting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class DirectorySettings
 {
@@ -12,6 +13,8 @@ class DirectorySettings
         'site.platform_name' => '',
         'site.support_email' => '',
         'site.age_gate_enabled' => false,
+        'site.logo_path' => '',
+        'site.favicon_path' => '',
         'security.privileged_mfa_enforced' => false,
         'profiles.agency_limit' => 15,
         'listings.new_profile_days' => 14,
@@ -59,5 +62,19 @@ class DirectorySettings
     public function defaults(): array
     {
         return self::FALLBACKS;
+    }
+
+    public function logoUrl(): ?string
+    {
+        $path = $this->string('site.logo_path');
+
+        return $path === '' ? null : Storage::disk('branding')->url($path);
+    }
+
+    public function faviconUrl(): ?string
+    {
+        $path = $this->string('site.favicon_path');
+
+        return $path === '' ? null : Storage::disk('branding')->url($path);
     }
 }
