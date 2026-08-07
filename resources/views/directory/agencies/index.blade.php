@@ -3,7 +3,7 @@
         <header>
             <nav class="mb-4 text-sm text-stone-500" aria-label="Breadcrumb"><a href="{{ route('directory.home') }}" class="hover:text-stone-950">Home</a><span class="mx-2">/</span><span>Agencies</span></nav>
             <h1 class="text-3xl font-black tracking-tight sm:text-4xl">{{ $content->heading }}</h1>
-            <p class="mt-3 max-w-3xl text-base leading-7 text-stone-600">{{ $content->intro_content }}</p>
+            <div class="directory-content mt-3 max-w-3xl text-base leading-7 text-stone-600">{!! Str::markdown($content->intro_content, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
         </header>
 
         <section class="mt-10" aria-label="Public agencies">

@@ -187,7 +187,7 @@ class SeoDirectoryConfigurationTest extends TestCase
 
         $this->actingAs($seo)->patch(route('seo.pages.homepage.update'), [
             'heading' => 'Find trusted independent providers',
-            'intro_content' => 'Browse active provider profiles across every available package.',
+            'intro_content' => 'Browse **active** provider profiles across every available package.',
             'bottom_content' => "## Helpful directory guide\n\nUse the filters to discover profiles.",
             'seo_title' => 'Independent Provider Directory',
             'meta_description' => 'Browse active independent provider profiles by location, package and recently activated status.',
@@ -203,6 +203,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             ->assertOk()
             ->assertSee('Find trusted independent providers')
             ->assertSee('Exclusive Profiles')
+            ->assertSee('<strong>active</strong>', false)
             ->assertSee('<h2>Helpful directory guide</h2>', false);
         $this->assertDatabaseHas('audit_logs', ['action' => 'pages.content-update']);
     }
@@ -216,7 +217,7 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->actingAs($seo)->patch(route('seo.locations.content.update', $location), [
             'status' => 'published',
             'heading' => 'Independent Nairobi Profiles',
-            'intro_content' => str_repeat('Updated original introduction for Nairobi visitors. ', 3),
+            'intro_content' => str_repeat('Updated **original** introduction for Nairobi visitors. ', 3),
             'bottom_content' => "## Choosing a Nairobi profile\n\nReview each listing before making contact.",
             'seo_title' => 'Independent Nairobi Profiles and Escorts',
             'meta_description' => 'Browse independently managed Nairobi profiles with current package and location information.',
@@ -231,6 +232,7 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->get('/nairobi-escorts')
             ->assertOk()
             ->assertSee('Independent Nairobi Profiles')
+            ->assertSee('<strong>original</strong>', false)
             ->assertSee('<h2>Choosing a Nairobi profile</h2>', false);
         $this->assertDatabaseHas('audit_logs', ['action' => 'locations.content-update', 'target_id' => $location->id]);
     }
@@ -325,7 +327,7 @@ class SeoDirectoryConfigurationTest extends TestCase
 
         $this->actingAs($seo)->patch(route('seo.pages.agencies.update'), [
             'heading' => 'Independent Escort Agencies',
-            'intro_content' => 'Browse agencies with active and currently available provider profiles.',
+            'intro_content' => 'Browse agencies with **active** and currently available provider profiles.',
             'bottom_content' => "## Working with agencies\n\nReview each agency and its active profiles.",
             'seo_title' => 'Independent Escort Agencies',
             'meta_description' => 'Browse independent escort agencies with active provider profiles and current public listings.',
@@ -339,6 +341,7 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->get(route('directory.agencies.index'))
             ->assertOk()
             ->assertSee('Independent Escort Agencies')
+            ->assertSee('<strong>active</strong>', false)
             ->assertSee('<h2>Working with agencies</h2>', false);
     }
 
