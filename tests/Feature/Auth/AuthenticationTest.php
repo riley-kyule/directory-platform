@@ -53,6 +53,18 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect('/');
     }
 
+    public function test_authenticated_navigation_uses_a_javascript_free_logout_form(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertOk()
+            ->assertSee('action="'.route('logout').'"', false)
+            ->assertSee('<button type="submit"', false)
+            ->assertDontSee('onclick="event.preventDefault(); this.closest(\'form\').submit();"', false);
+    }
+
     public function test_authenticated_activity_refreshes_last_seen_at_without_writing_on_every_request(): void
     {
         $user = User::factory()->create(['last_seen_at' => now()->subMinutes(10)]);
