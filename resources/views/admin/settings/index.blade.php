@@ -30,8 +30,8 @@
                                 <span class="text-sm text-gray-500">Using the default mark.</span>
                             @endif
                         </div>
-                        <input type="file" name="logo" accept=".svg,.png,.jpg,.jpeg,.webp" class="mt-2 block w-full text-sm text-gray-700">
-                        <p class="mt-1 text-xs text-gray-500">SVG, PNG, JPG, or WebP. Up to 2 MB.</p>
+                        <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" class="mt-2 block w-full text-sm text-gray-700">
+                        <p class="mt-1 text-xs text-gray-500">PNG, JPEG, or WebP up to 2 MB. Automatically fitted to a transparent 600×180 canvas.</p>
                         <x-input-error :messages="$errors->get('logo')" class="mt-2" />
                     </div>
                     <div>
@@ -44,8 +44,8 @@
                                 <span class="text-sm text-gray-500">Using the default icon.</span>
                             @endif
                         </div>
-                        <input type="file" name="favicon" accept=".ico,.png,.svg" class="mt-2 block w-full text-sm text-gray-700">
-                        <p class="mt-1 text-xs text-gray-500">ICO, PNG, or SVG. Up to 512 KB.</p>
+                        <input type="file" name="favicon" accept=".png,.jpg,.jpeg,.webp" class="mt-2 block w-full text-sm text-gray-700">
+                        <p class="mt-1 text-xs text-gray-500">PNG, JPEG, or WebP up to 512 KB. Automatically fitted to a transparent 512×512 square.</p>
                         <x-input-error :messages="$errors->get('favicon')" class="mt-2" />
                     </div>
                     <div class="sm:col-span-2 flex justify-end"><x-primary-button>Save branding</x-primary-button></div>

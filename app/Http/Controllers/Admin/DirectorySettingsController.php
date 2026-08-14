@@ -13,6 +13,7 @@ use App\Models\DirectorySetting;
 use App\Models\Location;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
+use App\Services\BrandingImageProcessor;
 use App\Services\DirectorySettings;
 use App\Services\LocationInventoryService;
 use App\Services\SelfDeployService;
@@ -30,6 +31,7 @@ class DirectorySettingsController extends Controller
         private readonly DirectorySettings $settings,
         private readonly LocationInventoryService $locationInventory,
         private readonly SelfDeployService $selfDeploy,
+        private readonly BrandingImageProcessor $brandingImageProcessor,
     ) {}
 
     public function index(): View
@@ -165,9 +167,10 @@ class DirectorySettingsController extends Controller
 
     private function storeBrandingFile(UploadedFile $file, string $prefix, string $settingKey): string
     {
+        $processed = $this->brandingImageProcessor->process($file, $prefix);
         $this->deleteBrandingFile($settingKey);
-        $filename = $prefix.'-'.now()->timestamp.'-'.Str::random(8).'.'.$file->extension();
-        Storage::disk('branding')->putFileAs('', $file, $filename);
+        $filename = $prefix.'-'.now()->timestamp.'-'.Str::random(8).'.'.$processed['extension'];
+        Storage::disk('branding')->put($filename, $processed['contents']);
 
         return $filename;
     }

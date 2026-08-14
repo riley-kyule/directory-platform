@@ -42,6 +42,9 @@ class AdminBrandingTest extends TestCase
         $path = app(DirectorySettings::class)->string('site.logo_path');
         $this->assertNotSame('', $path);
         Storage::disk('branding')->assertExists($path);
+        $dimensions = getimagesize(Storage::disk('branding')->path($path));
+        $this->assertSame([600, 180], [$dimensions[0], $dimensions[1]]);
+        $this->assertSame('image/png', $dimensions['mime']);
         $this->assertNotNull(app(DirectorySettings::class)->logoUrl());
 
         $this->actingAs($admin)->get(route('admin.settings.index'))
@@ -59,6 +62,9 @@ class AdminBrandingTest extends TestCase
 
         $path = app(DirectorySettings::class)->string('site.favicon_path');
         Storage::disk('branding')->assertExists($path);
+        $dimensions = getimagesize(Storage::disk('branding')->path($path));
+        $this->assertSame([512, 512], [$dimensions[0], $dimensions[1]]);
+        $this->assertSame('image/png', $dimensions['mime']);
         $this->assertNotNull(app(DirectorySettings::class)->faviconUrl());
     }
 
