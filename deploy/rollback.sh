@@ -19,6 +19,7 @@ APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 RELEASES_DIR="$APP_ROOT/releases"
 DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"
 MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
+PHP_BIN="${PHP_BIN:-php}"
 
 if [ ! -L "$APP_ROOT/current" ]; then
     echo "error: $APP_ROOT/current is not a symlink — this environment wasn't deployed with deploy.sh. Refusing to guess what to roll back." >&2
@@ -47,13 +48,13 @@ TARGET_DIR="$RELEASES_DIR/$TARGET_RELEASE"
 
 echo "==> Rolling back: $CURRENT_RELEASE -> $TARGET_RELEASE"
 echo "==> Migration status of the target release (informational only — nothing is applied or reversed):"
-(cd "$TARGET_DIR" && php artisan migrate:status) || true
+(cd "$TARGET_DIR" && "$PHP_BIN" artisan migrate:status) || true
 
 ln -sfn "$TARGET_DIR" "$APP_ROOT/current"
 if [ "$MANAGE_DOCROOT" = "1" ] && [ -L "$DOCROOT" ]; then
     ln -sfn "$TARGET_DIR/public" "$DOCROOT"
 fi
-(cd "$TARGET_DIR" && php artisan optimize)
+(cd "$TARGET_DIR" && "$PHP_BIN" artisan optimize)
 
 echo "==> Rolled back to $TARGET_RELEASE"
 echo "==> This only reverted code. If $CURRENT_RELEASE ran a migration that $TARGET_RELEASE doesn't"

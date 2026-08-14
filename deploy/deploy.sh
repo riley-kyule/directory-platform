@@ -38,6 +38,7 @@ PHP_BIN="${PHP_BIN:-php}"
 COMPOSER_PATH="$(command -v "${COMPOSER_BIN:-composer}")"
 RELEASE_NAME="$(date +%Y%m%d%H%M%S)"
 RELEASE_DIR="$RELEASES_DIR/$RELEASE_NAME"
+CPANEL_HANDLER_FILE="$SHARED_DIR/cpanel-php-handler.conf"
 
 if [ ! -f "$SHARED_DIR/.env" ]; then
     echo "error: $SHARED_DIR/.env is missing. Run bootstrap.sh and put a production .env there first." >&2
@@ -46,6 +47,37 @@ fi
 
 echo "==> Cloning $BRANCH into $RELEASE_DIR"
 git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$RELEASE_DIR"
+
+# MultiPHP Manager commonly persists the selected WEB PHP version as a
+# cPanel-generated AddHandler block inside the current document root's
+# .htaccess. Atomic releases replace that file, so without carrying the
+# handler forward the new release silently falls back to the account default
+# (often PHP 8.2) even though Composer/artisan correctly used PHP 8.3+.
+CPANEL_PHP_PACKAGE="$(printf '%s\n' "$PHP_BIN" | sed -n 's#^/opt/cpanel/\(ea-php[0-9][0-9]*\)/root/usr/bin/php$#\1#p')"
+if [ -n "$CPANEL_PHP_PACKAGE" ]; then
+    echo "==> Configuring cPanel web PHP handler for $CPANEL_PHP_PACKAGE"
+    {
+        echo '# php -- BEGIN cPanel-generated handler, do not edit'
+        echo "# Set the '$CPANEL_PHP_PACKAGE' package as the default PHP programming language."
+        echo '<IfModule mime_module>'
+        echo "  AddHandler application/x-httpd-$CPANEL_PHP_PACKAGE .php .php8 .phtml"
+        echo '</IfModule>'
+        echo '# php -- END cPanel-generated handler, do not edit'
+    } > "$CPANEL_HANDLER_FILE"
+elif [ -f "$APP_ROOT/current/public/.htaccess" ] && grep -q '# php -- BEGIN cPanel-generated handler' "$APP_ROOT/current/public/.htaccess"; then
+    echo '==> Preserving the current cPanel web PHP handler'
+    sed -n '/# php -- BEGIN cPanel-generated handler/,/# php -- END cPanel-generated handler/p' \
+        "$APP_ROOT/current/public/.htaccess" > "$CPANEL_HANDLER_FILE"
+fi
+
+if [ -s "$CPANEL_HANDLER_FILE" ]; then
+    if ! grep -q '# php -- BEGIN cPanel-generated handler' "$RELEASE_DIR/public/.htaccess"; then
+        printf '\n' >> "$RELEASE_DIR/public/.htaccess"
+        cat "$CPANEL_HANDLER_FILE" >> "$RELEASE_DIR/public/.htaccess"
+    fi
+else
+    echo 'warning: no cPanel web PHP handler could be derived or preserved; confirm this domain inherits PHP 8.3+ at the vhost level.' >&2
+fi
 
 echo "==> Linking shared resources into the release"
 rm -rf "$RELEASE_DIR/storage"
