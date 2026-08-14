@@ -131,6 +131,19 @@ class AdminBrandingTest extends TestCase
             ->assertSee('<img src="', false);
     }
 
+    public function test_public_header_hides_the_platform_name_when_a_logo_is_available(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('admin.settings.branding.update'), [
+            'logo' => UploadedFile::fake()->image('logo.png', 600, 180),
+        ]);
+
+        $this->get(route('directory.home'))
+            ->assertOk()
+            ->assertSee(app(DirectorySettings::class)->logoUrl(), false)
+            ->assertDontSee('<span class="text-lg font-semibold tracking-tight">'.config('app.name').'</span>', false);
+    }
+
     private function admin(): User
     {
         $user = User::factory()->create();

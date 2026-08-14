@@ -22,8 +22,8 @@
                         <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" class="h-14 w-auto max-w-[11rem] object-contain">
                     @else
                         <span class="grid h-9 w-9 place-items-center rounded-full bg-rose-500 text-lg font-black">D</span>
+                        <span class="text-lg font-semibold tracking-tight">{{ config('app.name') }}</span>
                     @endif
-                    <span class="text-lg font-semibold tracking-tight">{{ config('app.name') }}</span>
                 </a>
                 <nav class="flex items-center gap-2 text-sm font-medium">
                     <a href="{{ route('directory.search') }}" class="rounded-full px-4 py-2 hover:bg-white/10">Search</a>
