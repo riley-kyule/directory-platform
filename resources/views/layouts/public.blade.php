@@ -15,11 +15,11 @@
     </head>
     <body class="min-h-screen bg-stone-50 font-sans text-stone-900 antialiased">
         <header class="sticky top-0 z-40 border-b border-white/10 bg-stone-950/95 text-white backdrop-blur">
-            <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 @php $logoUrl = app(\App\Services\DirectorySettings::class)->logoUrl(); @endphp
                 <a href="{{ route('directory.home') }}" class="flex items-center gap-2.5" aria-label="{{ config('app.name') }} home">
                     @if ($logoUrl)
-                        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" class="h-9 w-auto">
+                        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" class="h-14 w-auto max-w-[11rem] object-contain">
                     @else
                         <span class="grid h-9 w-9 place-items-center rounded-full bg-rose-500 text-lg font-black">D</span>
                     @endif
