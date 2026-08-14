@@ -61,6 +61,7 @@ mkdir -p "$APP_ROOT/releases"
 mkdir -p "$SHARED_DIR/storage/app/public" "$SHARED_DIR/storage/app/private/quarantine" "$SHARED_DIR/storage/app/private/media-review" "$SHARED_DIR/storage/media-staging"
 mkdir -p "$SHARED_DIR/storage/framework/cache/data" "$SHARED_DIR/storage/framework/sessions" "$SHARED_DIR/storage/framework/views" "$SHARED_DIR/storage/logs"
 mkdir -p "$SHARED_DIR/public/media/profiles"
+mkdir -p "$SHARED_DIR/public/branding"
 
 if [ -f "$SHARED_DIR/.env" ]; then
     echo "==> $SHARED_DIR/.env already exists, leaving it alone"

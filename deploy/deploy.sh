@@ -54,6 +54,13 @@ ln -sf "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
 rm -rf "$RELEASE_DIR/public/media/profiles"
 mkdir -p "$RELEASE_DIR/public/media"
 ln -s "$SHARED_DIR/public/media/profiles" "$RELEASE_DIR/public/media/profiles"
+mkdir -p "$SHARED_DIR/public/branding"
+if [ -d "$APP_ROOT/current/public/branding" ] && [ ! -L "$APP_ROOT/current/public/branding" ]; then
+    echo "==> Migrating existing branding files into shared storage"
+    cp -a "$APP_ROOT/current/public/branding/." "$SHARED_DIR/public/branding/"
+fi
+rm -rf "$RELEASE_DIR/public/branding"
+ln -s "$SHARED_DIR/public/branding" "$RELEASE_DIR/public/branding"
 
 echo "==> Installing PHP dependencies (using $PHP_BIN: $("$PHP_BIN" -v | head -n 1))"
 cd "$RELEASE_DIR"
@@ -111,10 +118,13 @@ ln -sfn "$RELEASE_DIR" "$APP_ROOT/current"
 if [ "$MANAGE_DOCROOT" != "1" ]; then
     : # cPanel's own Document Root points at $APP_ROOT/current/public
       # directly, which just moved above.
-elif [ -L "$DOCROOT" ]; then
+elif [ -L "$DOCROOT" ] || [ ! -e "$DOCROOT" ]; then
+    # Already a symlink (repoint it), or never existed yet (first deploy for
+    # this app root, e.g. primary-domain public_html before any release) —
+    # either way it's safe for `ln -sfn` to create/update it directly.
     ln -sfn "$RELEASE_DIR/public" "$DOCROOT"
 else
-    echo "warning: $DOCROOT is not a symlink — run bootstrap.sh first (with the same DEPLOY_DOCROOT if you set one), or confirm your cPanel document root already points at $APP_ROOT/current/public." >&2
+    echo "warning: $DOCROOT exists and is not a symlink — run bootstrap.sh first (with the same DEPLOY_DOCROOT if you set one), or confirm your cPanel document root already points at $APP_ROOT/current/public." >&2
 fi
 
 echo "==> Pruning old releases (keeping the $KEEP_RELEASES most recent)"
