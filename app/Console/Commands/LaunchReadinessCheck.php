@@ -49,7 +49,7 @@ class LaunchReadinessCheck extends Command
                 ['Cache storage is shared/persistent', in_array(config('cache.default'), ['database', 'redis', 'memcached', 'dynamodb'], true)],
             ];
             if (config('security.require_google_admin_sso')) {
-                $checks[] = ['Google Admin SSO is configured', filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect'))];
+                $checks[] = ['Google Staff SSO is configured', filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect'))];
             }
             $failed = $this->runChecks($checks) || $failed;
         }

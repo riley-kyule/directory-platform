@@ -26,11 +26,11 @@ class GoogleAdminSsoTest extends TestCase
         config()->set('services.google.admin_allowed_domains', []);
     }
 
-    public function test_login_screen_offers_google_admin_sign_in_when_configured(): void
+    public function test_login_screen_offers_google_staff_sign_in_when_configured(): void
     {
         $this->get(route('login'))
             ->assertOk()
-            ->assertSee('Continue with Google as Admin');
+            ->assertSee('Continue with Google as Staff');
 
         $response = $this->get(route('auth.google.redirect'))->assertRedirect();
         $query = [];
@@ -62,8 +62,28 @@ class GoogleAdminSsoTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'actor_user_id' => $admin->id,
             'action' => 'security.google-sso-login',
-            'reason' => 'verified-existing-admin',
+            'reason' => 'verified-existing-staff',
         ]);
+    }
+
+    public function test_existing_csr_and_seo_staff_can_sign_in_with_google(): void
+    {
+        foreach (['csr', 'seo'] as $role) {
+            $staff = $this->staff("{$role}@example.com", $role);
+            Socialite::fake('google', GoogleUser::fake([
+                'id' => "google-{$role}-subject",
+                'email' => strtoupper($staff->email),
+                'email_verified' => true,
+            ]));
+
+            $this->get($this->callbackUrl())
+                ->assertRedirect(route('dashboard', absolute: false));
+
+            $this->assertAuthenticatedAs($staff);
+            $this->assertSame("google-{$role}-subject", $staff->refresh()->google_subject);
+
+            auth()->logout();
+        }
     }
 
     public function test_google_sign_in_never_creates_users_or_promotes_subscribers(): void
@@ -127,7 +147,7 @@ class GoogleAdminSsoTest extends TestCase
     {
         config()->set('services.google.client_id');
 
-        $this->get(route('login'))->assertDontSee('Continue with Google as Admin');
+        $this->get(route('login'))->assertDontSee('Continue with Google as Staff');
         $this->get(route('auth.google.redirect'))->assertNotFound();
         $this->get(route('auth.google.callback'))->assertNotFound();
     }
@@ -159,9 +179,14 @@ class GoogleAdminSsoTest extends TestCase
 
     private function admin(string $email): User
     {
-        $admin = User::factory()->create(['email' => $email]);
-        $admin->roles()->attach(Role::query()->where('slug', 'admin')->firstOrFail());
+        return $this->staff($email, 'admin');
+    }
 
-        return $admin;
+    private function staff(string $email, string $role): User
+    {
+        $staff = User::factory()->create(['email' => $email]);
+        $staff->roles()->attach(Role::query()->where('slug', $role)->firstOrFail());
+
+        return $staff;
     }
 }

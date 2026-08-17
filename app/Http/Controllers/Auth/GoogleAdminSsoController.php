@@ -67,8 +67,8 @@ class GoogleAdminSsoController extends Controller
         }
 
         $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
-        if (! $user || ! $user->hasRole('admin')) {
-            $this->audit($request, $user, 'security.google-sso-rejected', 'existing-admin-account-required');
+        if (! $user || ! $user->isPrivileged()) {
+            $this->audit($request, $user, 'security.google-sso-rejected', 'existing-staff-account-required');
 
             return $this->rejected();
         }
@@ -104,7 +104,7 @@ class GoogleAdminSsoController extends Controller
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
-        $this->audit($request, $user, 'security.google-sso-login', 'verified-existing-admin');
+        $this->audit($request, $user, 'security.google-sso-login', 'verified-existing-staff');
 
         return redirect()->intended(route('dashboard', absolute: false));
     }
@@ -155,7 +155,7 @@ class GoogleAdminSsoController extends Controller
     private function rejected(): RedirectResponse
     {
         return redirect()->route('login')->withErrors([
-            'google_sso' => 'Google sign-in could not be completed for an authorized Admin account.',
+            'google_sso' => 'Google sign-in could not be completed for an authorized staff account.',
         ]);
     }
 

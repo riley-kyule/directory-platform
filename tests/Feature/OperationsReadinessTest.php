@@ -150,13 +150,13 @@ class OperationsReadinessTest extends TestCase
         $this->assertSame(1, $exit);
     }
 
-    public function test_production_launch_check_reports_missing_google_admin_sso_configuration(): void
+    public function test_production_launch_check_reports_missing_google_staff_sso_configuration(): void
     {
         config()->set('services.google.client_id');
 
         Artisan::call('system:launch-check', ['--production' => true]);
 
-        $this->assertStringContainsString('Google Admin SSO is configured', Artisan::output());
+        $this->assertStringContainsString('Google Staff SSO is configured', Artisan::output());
     }
 
     public function test_allow_cold_start_turns_missing_heartbeat_and_backup_into_warnings_not_failures(): void

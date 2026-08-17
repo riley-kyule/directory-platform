@@ -17,7 +17,7 @@ class AuthenticatedSessionController extends Controller
     public function create(): View
     {
         return view('auth.login', [
-            'googleAdminSsoConfigured' => filled(config('services.google.client_id'))
+            'googleStaffSsoConfigured' => filled(config('services.google.client_id'))
                 && filled(config('services.google.client_secret'))
                 && filled(config('services.google.redirect')),
         ]);
