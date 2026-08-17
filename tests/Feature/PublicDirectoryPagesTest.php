@@ -63,6 +63,7 @@ class PublicDirectoryPagesTest extends TestCase
             'build_option_id' => TaxonomyOption::query()->ofType('build')->firstOrFail()->id,
             'allows_incall' => true, 'allows_outcall' => true,
             'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'last_activated_at' => now()->subDay(), 'expires_at' => now()->addMonth(), 'listing_rank' => 10,
         ]);
         $this->profile->packageAssignments()->create([

@@ -11,10 +11,12 @@ use App\Models\ProfileReport;
 use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Notifications\UrgentProfileReportNotification;
 use App\Services\ModerationMetricsService;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -54,6 +56,7 @@ class ModerationWorkflowTest extends TestCase
             'date_of_birth' => now()->subYears(25), 'ethnicity_option_id' => $ethnicity->id,
             'build_option_id' => TaxonomyOption::query()->ofType('build')->firstOrFail()->id,
             'allows_incall' => true, 'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'published_at' => now(), 'last_activated_at' => now(), 'expires_at' => now()->addMonth(),
         ]);
         $this->profile->packageAssignments()->create([
@@ -65,6 +68,12 @@ class ModerationWorkflowTest extends TestCase
 
     public function test_public_can_submit_confidential_urgent_report(): void
     {
+        Notification::fake();
+        $admin = $this->staff('admin');
+        $csr = $this->staff('csr');
+        $inactiveCsr = $this->staff('csr');
+        $inactiveCsr->update(['status' => 'suspended']);
+
         $this->get(route('directory.profiles.report.create', $this->profile))
             ->assertOk()
             ->assertSee('Report a concern')
@@ -81,6 +90,8 @@ class ModerationWorkflowTest extends TestCase
         $this->assertSame('reporter@example.com', $report->reporter_email);
         $this->assertNotSame('reporter@example.com', $report->getRawOriginal('reporter_email'));
         $this->assertNotNull($report->source_fingerprint);
+        Notification::assertSentTo([$admin, $csr], UrgentProfileReportNotification::class);
+        Notification::assertNotSentTo($inactiveCsr, UrgentProfileReportNotification::class);
     }
 
     public function test_only_admin_and_csr_can_access_report_evidence(): void

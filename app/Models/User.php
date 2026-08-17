@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Enums\AccountType;
 use App\Enums\OnboardingStatus;
 use App\Enums\ProviderType;
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,10 +32,14 @@ use Illuminate\Support\Str;
     'status',
 ])]
 #[Hidden(['password', 'remember_token', 'google_subject'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
+
+    protected $attributes = [
+        'status' => 'active',
+    ];
 
     protected static function booted(): void
     {
@@ -88,6 +92,11 @@ class User extends Authenticatable
     public function isPrivileged(): bool
     {
         return $this->roles()->whereIn('slug', ['admin', 'csr', 'seo'])->exists();
+    }
+
+    public function canOverrideListingRequirements(): bool
+    {
+        return $this->roles()->whereIn('slug', ['admin', 'csr'])->exists();
     }
 
     /**

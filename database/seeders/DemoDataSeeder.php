@@ -411,6 +411,21 @@ class DemoDataSeeder extends Seeder
         ]);
         $profile->update(['last_activated_at' => $startsAt, 'published_at' => $startsAt, 'expires_at' => $startsAt->copy()->addDays($duration->duration_days)]);
 
+        $verificationTypes = ['adult_age', 'identity', 'publishing_rights'];
+        if ($ownerless) {
+            $verificationTypes[] = 'agency_authorization';
+        }
+        foreach ($verificationTypes as $type) {
+            $profile->verificationChecks()->create([
+                'check_type' => $type,
+                'status' => 'verified',
+                'evidence_reference' => 'DEMO-VERIFICATION-'.$seed.'-'.$type,
+                'notes' => 'Synthetic verification evidence created only for non-production demo data.',
+                'checked_at' => now(),
+            ]);
+        }
+        $profile->update(['verification_status' => 'verified']);
+
         if (! ($config['skip_image'] ?? false)) {
             $this->attachDemoImage($profile, $seed);
         }

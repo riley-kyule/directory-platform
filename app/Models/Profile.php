@@ -204,6 +204,7 @@ class Profile extends Model
     {
         return $query
             ->where('status', ProfileStatus::Active->value)
+            ->where('verification_status', 'verified')
             ->where(fn (Builder $query) => $query
                 ->whereNull('expires_at')
                 ->orWhere('expires_at', '>', now()))

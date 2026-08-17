@@ -67,7 +67,7 @@ class GoogleAdminSsoController extends Controller
         }
 
         $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
-        if (! $user || ! $user->isPrivileged()) {
+        if (! $user || $user->status !== 'active' || ! $user->isPrivileged()) {
             $this->audit($request, $user, 'security.google-sso-rejected', 'existing-staff-account-required');
 
             return $this->rejected();

@@ -234,6 +234,7 @@ class AccountDeletionTest extends TestCase
             'date_of_birth' => now()->subYears(25), 'ethnicity_option_id' => $this->ethnicity->id,
             'build_option_id' => TaxonomyOption::query()->ofType('build')->firstOrFail()->id,
             'allows_incall' => true, 'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'published_at' => now(), 'last_activated_at' => now(), 'expires_at' => now()->addMonth(),
         ]);
         $profile->packageAssignments()->create([

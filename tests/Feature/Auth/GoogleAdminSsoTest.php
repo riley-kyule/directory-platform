@@ -111,6 +111,24 @@ class GoogleAdminSsoTest extends TestCase
         $this->assertNull($subscriber->refresh()->google_subject);
     }
 
+    public function test_inactive_staff_account_cannot_sign_in_with_google(): void
+    {
+        $admin = $this->admin('inactive-admin@example.com');
+        $admin->update(['status' => 'suspended']);
+        Socialite::fake('google', GoogleUser::fake([
+            'id' => 'inactive-google-subject',
+            'email' => $admin->email,
+            'email_verified' => true,
+        ]));
+
+        $this->get($this->callbackUrl())
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('google_sso');
+
+        $this->assertGuest();
+        $this->assertNull($admin->refresh()->google_subject);
+    }
+
     public function test_unverified_disallowed_or_mismatched_google_identity_is_rejected(): void
     {
         $admin = $this->admin('admin@example.com');

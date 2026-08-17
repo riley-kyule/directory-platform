@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\ProfileStatus;
 use App\Models\AuditLog;
 use App\Models\Profile;
+use App\Notifications\ProfilePackageExpiredNotification;
 use App\Services\LocationInventoryService;
 use App\Services\ProfileImageVisibility;
 use Illuminate\Console\Command;
@@ -45,6 +46,8 @@ class ExpireProfiles extends Command
                             'new_state' => ['profile_status' => ProfileStatus::Expired->value],
                             'reason' => 'Package assignment expired.',
                         ]);
+                        $owner = $profile->owner ?? $profile->currentAgency()->first()?->owner;
+                        $owner?->notify(new ProfilePackageExpiredNotification($profile->id, $profile->display_name));
                         $expired++;
                     });
                 }

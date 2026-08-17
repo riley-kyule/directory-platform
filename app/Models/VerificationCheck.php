@@ -50,6 +50,7 @@ class VerificationCheck extends Model
             'notes' => 'encrypted',
             'checked_at' => 'datetime',
             'expires_at' => 'datetime',
+            'is_override' => 'boolean',
         ];
     }
 }

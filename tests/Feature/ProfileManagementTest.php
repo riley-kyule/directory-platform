@@ -47,6 +47,7 @@ class ProfileManagementTest extends TestCase
             'date_of_birth' => now()->subYears(25), 'ethnicity_option_id' => $ethnicity->id,
             'build_option_id' => TaxonomyOption::query()->ofType('build')->firstOrFail()->id,
             'allows_incall' => true, 'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'published_at' => now(), 'last_activated_at' => now(),
             'expires_at' => now()->addMonth(), 'listing_rank' => 100,
         ]);
@@ -61,6 +62,15 @@ class ProfileManagementTest extends TestCase
             'file_size' => 1000, 'exact_hash' => hash('sha256', 'managed-jane'),
             'derivatives' => ['card' => ['file' => 'card-640.webp', 'width' => 640, 'height' => 800, 'size' => 100]],
         ]);
+        foreach (['adult_age', 'identity', 'publishing_rights'] as $type) {
+            $this->profile->verificationChecks()->create([
+                'check_type' => $type,
+                'status' => 'verified',
+                'evidence_reference' => 'TEST-'.$type,
+                'notes' => 'Verified fixture evidence for lifecycle management.',
+                'checked_at' => now(),
+            ]);
+        }
         Queue::fake();
     }
 
@@ -132,6 +142,43 @@ class ProfileManagementTest extends TestCase
         ]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'profiles.renew', 'target_id' => $this->profile->id]);
         Queue::assertPushed(PublishProfileImages::class, fn ($job) => $job->profileId === $this->profile->id);
+    }
+
+    public function test_csr_can_assign_a_package_and_activate_any_non_banned_profile_by_override(): void
+    {
+        $this->profile->verificationChecks()->delete();
+        $this->profile->images()->delete();
+        $this->profile->packageAssignments()->delete();
+        $this->profile->update([
+            'status' => ProfileStatus::Draft,
+            'verification_status' => 'unverified',
+            'expires_at' => null,
+        ]);
+        $csr = $this->staff('csr');
+        $basic = Package::query()->where('code', 'basic')->firstOrFail();
+
+        $this->actingAs($csr)->patch(route('staff.directory.update', $this->profile), [
+            'action' => 'assign_package',
+            'package_id' => $basic->id,
+            'duration_option_id' => PackageDurationOption::query()->where('duration_days', 30)->value('id'),
+            'override_requirements' => '1',
+            'reason' => 'CSR intentionally approves this exceptional direct package assignment.',
+        ])->assertRedirect(route('staff.directory.show', $this->profile))->assertSessionHasNoErrors();
+
+        $this->assertSame(ProfileStatus::Active, $this->profile->refresh()->status);
+        $this->assertSame('verified', $this->profile->verification_status);
+        $this->assertSame(3, $this->profile->verificationChecks()->where('is_override', true)->count());
+        $this->assertDatabaseHas('profile_package_assignments', [
+            'profile_id' => $this->profile->id,
+            'package_id' => $basic->id,
+            'assignment_source' => 'staff_override',
+            'assigned_by' => $csr->id,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'profiles.assign_package',
+            'target_id' => $this->profile->id,
+        ]);
     }
 
     public function test_banned_profile_cannot_be_renewed(): void

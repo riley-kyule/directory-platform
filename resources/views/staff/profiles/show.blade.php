@@ -13,6 +13,21 @@
                     <div class="mt-5"><p class="text-sm text-gray-500">About</p><p class="mt-1 whitespace-pre-line text-gray-800">{{ $packageRequest->profile->description }}</p></div>
                     <div class="mt-5"><p class="text-sm text-gray-500">Services</p><p class="mt-1 text-gray-800">{{ $packageRequest->profile->services->pluck('label')->join(', ') }}</p></div>
                     <div class="mt-5"><p class="text-sm text-gray-500">Contact methods</p><ul class="mt-1 space-y-1">@foreach ($packageRequest->profile->contacts as $contact)<li>{{ str($contact->type)->replace('_', ' ')->title() }}: {{ $contact->display_value }}</li>@endforeach</ul></div>
+                    <div class="mt-5 rounded-lg border {{ $missingVerificationTypes === [] ? 'border-green-200 bg-green-50' : 'border-amber-300 bg-amber-50' }} p-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <p class="font-semibold text-gray-900">Verification requirements</p>
+                            <span class="rounded-full bg-white px-3 py-1 text-xs font-bold uppercase">{{ $packageRequest->profile->verification_status }}</span>
+                        </div>
+                        <ul class="mt-3 space-y-1 text-sm">
+                            @foreach ($requiredVerificationTypes as $type)
+                                <li class="flex items-center gap-2">
+                                    <span aria-hidden="true">{{ in_array($type, $missingVerificationTypes, true) ? '○' : '✓' }}</span>
+                                    {{ \App\Models\VerificationCheck::TYPES[$type] }}
+                                    @if (in_array($type, $missingVerificationTypes, true))<span class="font-semibold text-amber-800">Missing</span>@endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                     <div class="mt-5"><p class="text-sm text-gray-500">Media</p><div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">@forelse ($packageRequest->profile->images as $image)@if (in_array($image->status, ['pending_review', 'approved']) && isset($image->derivatives['thumb']))<img src="{{ route('profiles.media.preview', [$packageRequest->profile, $image, 'thumb']) }}" alt="Submitted media" class="aspect-[4/5] w-full rounded-md object-cover">@else<div class="flex aspect-[4/5] items-center justify-center rounded-md bg-gray-100 p-2 text-center text-xs text-gray-500">{{ str($image->status)->replace('_', ' ')->title() }}</div>@endif @empty<p class="col-span-full text-sm text-red-700">No media submitted.</p>@endforelse</div></div>
                 </div>
             </section>
@@ -26,6 +41,14 @@
                     <div><x-input-label for="assigned_package_id" value="Assigned package" /><select id="assigned_package_id" name="assigned_package_id" class="mt-1 block w-full rounded-md border-gray-300"><option value="">Choose package</option>@foreach ($packages as $package)<option value="{{ $package->id }}" @selected(old('assigned_package_id', $packageRequest->requested_package_id) == $package->id)>{{ $package->name }}</option>@endforeach</select><x-input-error :messages="$errors->get('assigned_package_id')" class="mt-2" /></div>
                     <div><x-input-label for="duration_option_id" value="Duration" /><select id="duration_option_id" name="duration_option_id" class="mt-1 block w-full rounded-md border-gray-300"><option value="">Choose duration</option>@foreach ($durations as $duration)<option value="{{ $duration->id }}" @selected(old('duration_option_id') == $duration->id)>{{ $duration->label }}</option>@endforeach</select><x-input-error :messages="$errors->get('duration_option_id')" class="mt-2" /></div>
                     <div><x-input-label for="reason" value="Decision reason" /><textarea id="reason" name="reason" rows="5" required class="mt-1 block w-full rounded-md border-gray-300">{{ old('reason') }}</textarea><x-input-error :messages="$errors->get('reason')" class="mt-2" /></div>
+                    @if ($canOverrideRequirements)
+                        <label class="block rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                            <span class="flex items-start gap-3">
+                                <input type="checkbox" name="override_requirements" value="1" @checked(old('override_requirements')) class="mt-0.5 rounded border-red-300 text-red-700 focus:ring-red-600">
+                                <span><strong>Admin/CSR override</strong><br>Approve even if verification or reviewed-media requirements are missing. Missing verification checks will be marked verified as a permanent, attributable staff override. The decision reason will be retained in the audit log.</span>
+                            </span>
+                        </label>
+                    @endif
                     <x-primary-button>Save decision</x-primary-button>
                 </form>
             </aside>

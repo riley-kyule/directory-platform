@@ -12,7 +12,9 @@ use App\Models\AuditLog;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
 use App\Models\ProfilePackageRequest;
+use App\Notifications\ProfileReviewDecisionNotification;
 use App\Services\LocationInventoryService;
+use App\Services\ProfileVerificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -21,7 +23,10 @@ use Illuminate\View\View;
 
 class ProfileReviewController extends Controller
 {
-    public function __construct(private readonly LocationInventoryService $locationInventory) {}
+    public function __construct(
+        private readonly LocationInventoryService $locationInventory,
+        private readonly ProfileVerificationService $verification,
+    ) {}
 
     public function index(): View
     {
@@ -42,13 +47,18 @@ class ProfileReviewController extends Controller
         Gate::authorize('profiles.activate');
         abort_unless($packageRequest->status === PackageRequestStatus::Pending, 404);
 
+        $packageRequest->load([
+            'profile.primaryLocation', 'profile.sublocation', 'profile.microLocation', 'profile.contacts', 'profile.images',
+            'profile.services', 'profile.verificationChecks.performer', 'requestedPackage', 'requestedBy',
+        ]);
+
         return view('staff.profiles.show', [
-            'packageRequest' => $packageRequest->load([
-                'profile.primaryLocation', 'profile.sublocation', 'profile.microLocation', 'profile.contacts', 'profile.images',
-                'profile.services', 'requestedPackage', 'requestedBy',
-            ]),
+            'packageRequest' => $packageRequest,
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
             'durations' => PackageDurationOption::query()->where('is_active', true)->orderBy('display_order')->get(),
+            'requiredVerificationTypes' => $this->verification->requiredTypes($packageRequest->profile),
+            'missingVerificationTypes' => $this->verification->missingTypes($packageRequest->profile),
+            'canOverrideRequirements' => request()->user()->canOverrideListingRequirements(),
         ]);
     }
 
@@ -59,6 +69,10 @@ class ProfileReviewController extends Controller
             abort_unless($packageRequest->status === PackageRequestStatus::Pending, 409, 'This request has already been reviewed.');
 
             $profile = $packageRequest->profile()->lockForUpdate()->firstOrFail();
+            $override = $request->boolean('override_requirements');
+            if ($override) {
+                abort_unless($request->user()->canOverrideListingRequirements(), 403, 'Only an Admin or CSR may override listing requirements.');
+            }
             $previousState = [
                 'profile_status' => $profile->status->value,
                 'request_status' => $packageRequest->status->value,
@@ -82,11 +96,18 @@ class ProfileReviewController extends Controller
                 return;
             }
 
-            abort_unless(
-                $profile->images()->whereIn('status', ['pending_review', 'approved'])->exists(),
-                422,
-                'At least one successfully processed image is required for activation.',
-            );
+            $hasReviewedImage = $profile->images()->whereIn('status', ['pending_review', 'approved'])->exists();
+            abort_if(! $hasReviewedImage && ! $override, 422, 'At least one successfully processed image is required for activation.');
+
+            $missingVerificationTypes = $this->verification->missingTypes($profile);
+            abort_if($missingVerificationTypes !== [] && ! $override, 422, 'Complete every required verification check or use an authorized staff override.');
+
+            $overrideCheckIds = [];
+            if ($missingVerificationTypes !== []) {
+                $overrideCheckIds = $this->verification->override($profile, $request->user(), $request->validated('reason'));
+            } else {
+                $this->verification->sync($profile);
+            }
 
             $duration = PackageDurationOption::query()->where('is_active', true)->findOrFail($request->integer('duration_option_id'));
             $packageId = $request->integer('assigned_package_id');
@@ -142,10 +163,26 @@ class ProfileReviewController extends Controller
                 'assignment_id' => $assignment->id,
                 'assigned_package_id' => $packageId,
                 'expires_at' => $expiresAt->toIso8601String(),
+                'requirements_override' => $override ? [
+                    'used' => true,
+                    'missing_reviewed_image' => ! $hasReviewedImage,
+                    'verification_types_overridden' => $missingVerificationTypes,
+                    'verification_check_ids' => $overrideCheckIds,
+                ] : ['used' => false],
             ], $request->validated('reason'));
 
             PublishProfileImages::dispatch($profile->id)->afterCommit();
         });
+
+        $reviewedRequest = $packageRequest->fresh(['profile.owner', 'profile.currentAgency.owner']);
+        $reviewedProfile = $reviewedRequest->profile;
+        $owner = $reviewedProfile->owner ?? $reviewedProfile->currentAgency->first()?->owner;
+        $owner?->notify(new ProfileReviewDecisionNotification(
+            $reviewedProfile->id,
+            $reviewedProfile->display_name,
+            $reviewedRequest->status === PackageRequestStatus::Rejected ? 'rejected' : 'approved',
+            $reviewedRequest->decision_reason,
+        ));
 
         return redirect()->route('staff.profiles.index')->with('status', 'Profile review completed.');
     }

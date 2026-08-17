@@ -18,19 +18,22 @@ class ManageProfileLifecycleRequest extends FormRequest
             'ban' => $user?->hasPermission('profiles.ban') ?? false,
             'renew' => ($user?->hasPermission('profiles.renew') ?? false)
                 && ($user?->hasPermission('packages.assign') ?? false),
+            'assign_package' => ($user?->canOverrideListingRequirements() ?? false)
+                && ($user?->hasPermission('packages.assign') ?? false),
             default => false,
         };
     }
 
     public function rules(): array
     {
-        $renewing = $this->input('action') === 'renew';
+        $assigning = in_array($this->input('action'), ['renew', 'assign_package'], true);
 
         return [
-            'action' => ['required', Rule::in(['deactivate', 'ban', 'renew', 'remove_package'])],
-            'package_id' => [Rule::requiredIf($renewing), 'nullable', Rule::exists('packages', 'id')->where('is_active', true)],
-            'duration_option_id' => [Rule::requiredIf($renewing), 'nullable', Rule::exists('package_duration_options', 'id')->where('is_active', true)],
+            'action' => ['required', Rule::in(['deactivate', 'ban', 'renew', 'remove_package', 'assign_package'])],
+            'package_id' => [Rule::requiredIf($assigning), 'nullable', Rule::exists('packages', 'id')->where('is_active', true)],
+            'duration_option_id' => [Rule::requiredIf($assigning), 'nullable', Rule::exists('package_duration_options', 'id')->where('is_active', true)],
             'reason' => ['required', 'string', 'min:5', 'max:2000'],
+            'override_requirements' => ['sometimes', 'boolean'],
         ];
     }
 }

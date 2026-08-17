@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProfileReportRequest;
 use App\Models\Profile;
 use App\Models\ProfileReport;
+use App\Models\User;
+use App\Notifications\UrgentProfileReportNotification;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\View\View;
 
 class ProfileReportController extends Controller
@@ -40,6 +43,18 @@ class ProfileReportController extends Controller
             'status' => 'new',
             'source_fingerprint' => hash_hmac('sha256', $fingerprintInput, config('app.key')),
         ]);
+
+        if ($report->priority === 'urgent') {
+            $recipients = User::query()
+                ->where('status', 'active')
+                ->whereHas('roles', fn ($query) => $query->whereIn('slug', ['admin', 'csr']))
+                ->get();
+            Notification::send($recipients, new UrgentProfileReportNotification(
+                $report->public_id,
+                $profile->display_name,
+                ProfileReport::CATEGORIES[$report->category] ?? $report->category,
+            ));
+        }
 
         return redirect()->route('directory.profiles.show', $profile->slug)
             ->with('report_status', 'Thank you. Your confidential report reference is '.$report->public_id.'.');

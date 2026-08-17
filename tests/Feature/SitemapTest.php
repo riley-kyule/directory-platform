@@ -61,6 +61,7 @@ class SitemapTest extends TestCase
             'date_of_birth' => now()->subYears(25), 'ethnicity_option_id' => $ethnicity->id,
             'build_option_id' => TaxonomyOption::query()->ofType('build')->firstOrFail()->id,
             'allows_incall' => true, 'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'last_activated_at' => now(), 'expires_at' => now()->addMonth(), 'listing_rank' => 10,
         ]);
         $this->profile->packageAssignments()->create([

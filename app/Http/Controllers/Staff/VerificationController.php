@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\OverrideProfileVerificationRequest;
 use App\Http\Requests\StoreVerificationCheckRequest;
 use App\Models\AuditLog;
 use App\Models\Profile;
@@ -48,6 +49,7 @@ class VerificationController extends Controller
                 'profile_id' => $profile->id,
                 'check_type' => $request->validated('check_type'),
                 'status' => $request->validated('status'),
+                'is_override' => false,
                 'evidence_reference' => $request->validated('evidence_reference'),
                 'notes' => $request->validated('notes'),
                 'performed_by' => $request->user()->id,
@@ -79,5 +81,41 @@ class VerificationController extends Controller
 
         return redirect()->route('staff.verification.index', ['profile' => $check->profile_id])
             ->with('status', 'Verification check recorded.');
+    }
+
+    public function override(OverrideProfileVerificationRequest $request): RedirectResponse
+    {
+        $profile = Profile::query()->findOrFail($request->integer('profile_id'));
+        $previousStatus = $profile->verification_status;
+        $missingTypes = $this->verification->missingTypes($profile);
+        abort_if($missingTypes === [], 409, 'This profile already satisfies every verification requirement.');
+
+        $checkIds = DB::transaction(function () use ($request, $profile, $previousStatus, $missingTypes): array {
+            $profile = Profile::query()->lockForUpdate()->findOrFail($profile->id);
+            $checkIds = $this->verification->override($profile, $request->user(), $request->validated('reason'));
+
+            AuditLog::query()->create([
+                'actor_user_id' => $request->user()->id,
+                'action' => 'verification.override',
+                'target_type' => 'profile',
+                'target_id' => $profile->id,
+                'previous_state' => [
+                    'verification_status' => $previousStatus,
+                    'missing_types' => $missingTypes,
+                ],
+                'new_state' => [
+                    'verification_status' => $profile->refresh()->verification_status,
+                    'override_check_ids' => $checkIds,
+                ],
+                'reason' => $request->validated('reason'),
+                'ip_address' => $request->ip(),
+                'user_agent' => str($request->userAgent())->limit(500)->toString(),
+            ]);
+
+            return $checkIds;
+        });
+
+        return redirect()->route('staff.verification.index', ['profile' => $profile->id])
+            ->with('status', count($checkIds).' verification requirement(s) marked verified by staff override.');
     }
 }

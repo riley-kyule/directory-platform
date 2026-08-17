@@ -22,6 +22,18 @@
                 </section>
 
                 <aside class="space-y-5">
+                    @if (auth()->user()->canOverrideListingRequirements() && $profile->status !== \App\Enums\ProfileStatus::Banned)
+                        <form method="POST" action="{{ route('staff.directory.update', $profile) }}" class="space-y-4 border-2 border-red-200 bg-red-50 p-5 shadow-sm sm:rounded-lg">@csrf @method('PATCH')
+                            <input type="hidden" name="action" value="assign_package">
+                            <input type="hidden" name="override_requirements" value="1">
+                            <h3 class="font-bold text-red-950">Admin/CSR package override</h3>
+                            <p class="text-xs text-red-800">Assign or replace a package and activate this profile regardless of its current workflow, verification, media, or submission state. Missing verification requirements will be recorded as staff overrides.</p>
+                            <label class="block text-sm"><span class="text-red-900">Package</span><select name="package_id" class="mt-1 block w-full rounded-md border-red-300" required>@foreach ($packages as $package)<option value="{{ $package->id }}">{{ $package->name }}</option>@endforeach</select></label>
+                            <label class="block text-sm"><span class="text-red-900">Duration</span><select name="duration_option_id" class="mt-1 block w-full rounded-md border-red-300" required>@foreach ($durations as $duration)<option value="{{ $duration->id }}">{{ $duration->label }}</option>@endforeach</select></label>
+                            <label class="block text-sm"><span class="text-red-900">Required override reason</span><textarea name="reason" rows="4" minlength="5" class="mt-1 block w-full rounded-md border-red-300" required></textarea></label>
+                            <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-800">Assign package and activate</button>
+                        </form>
+                    @endif
                     @if ($profile->status === \App\Enums\ProfileStatus::Active)
                         <form method="POST" action="{{ route('staff.directory.update', $profile) }}" class="space-y-4 bg-white p-5 shadow-sm sm:rounded-lg">@csrf @method('PATCH')
                             <h3 class="font-bold text-gray-900">Make profile private</h3>
@@ -36,6 +48,9 @@
                             <label class="block text-sm"><span class="text-gray-700">Package</span><select name="package_id" class="mt-1 block w-full rounded-md border-gray-300" required>@foreach ($packages as $package)<option value="{{ $package->id }}">{{ $package->name }}</option>@endforeach</select></label>
                             <label class="block text-sm"><span class="text-gray-700">Duration</span><select name="duration_option_id" class="mt-1 block w-full rounded-md border-gray-300" required>@foreach ($durations as $duration)<option value="{{ $duration->id }}">{{ $duration->label }}</option>@endforeach</select></label>
                             <label class="block text-sm"><span class="text-gray-700">Required reason</span><textarea name="reason" rows="4" class="mt-1 block w-full rounded-md border-gray-300" required></textarea></label>
+                            @if (auth()->user()->canOverrideListingRequirements())
+                                <label class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-900"><input type="checkbox" name="override_requirements" value="1" class="mt-0.5 rounded border-red-300 text-red-700"><span><strong>Admin/CSR override:</strong> reactivate despite missing reviewed media or verification. Missing verification checks will be permanently recorded as staff overrides.</span></label>
+                            @endif
                             <x-primary-button>Renew profile</x-primary-button>
                         </form>
                         <form method="POST" action="{{ route('staff.directory.update', $profile) }}" class="space-y-3 bg-white p-5 shadow-sm sm:rounded-lg">@csrf @method('PATCH')<input type="hidden" name="action" value="ban"><h3 class="font-bold">Ban instead</h3><textarea name="reason" rows="3" class="block w-full rounded-md border-gray-300" placeholder="Required reason" required></textarea><x-danger-button>Ban profile</x-danger-button></form>

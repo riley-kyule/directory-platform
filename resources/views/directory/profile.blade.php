@@ -52,6 +52,7 @@
             <aside>
                 <div class="sticky top-24 rounded-3xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-200/50 sm:p-8">
                     <div class="flex flex-wrap gap-2">
+                        @if ($profile->verification_status === 'verified')<span class="rounded-full bg-emerald-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">Verified</span>@endif
                         @if ($package === 'vip')<span class="rounded-full bg-amber-300 px-3 py-1 text-xs font-black uppercase tracking-wider text-amber-950">VIP</span>@endif
                         @if ($package === 'premium')<span class="rounded-full bg-violet-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">Premium</span>@endif
                         @if ($profile->last_activated_at?->gte(now()->subDays($newProfileDays)))<span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">New</span>@endif

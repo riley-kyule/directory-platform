@@ -17,10 +17,13 @@ use App\Models\ProfilePackageRequest;
 use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Notifications\ProfilePackageExpiredNotification;
+use App\Notifications\ProfileReviewDecisionNotification;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -103,6 +106,16 @@ class StaffProfileReviewTest extends TestCase
             'exact_hash' => hash('sha256', 'review-image'),
             'derivatives' => ['thumb' => ['file' => 'thumb-320.webp', 'width' => 320, 'height' => 400, 'size' => 100]],
         ]);
+        foreach (['adult_age', 'identity', 'publishing_rights'] as $type) {
+            $this->profile->verificationChecks()->create([
+                'check_type' => $type,
+                'status' => 'verified',
+                'evidence_reference' => 'TEST-'.$type,
+                'notes' => 'Verified fixture evidence for the profile review workflow.',
+                'checked_at' => now(),
+            ]);
+        }
+        $this->profile->update(['verification_status' => 'verified']);
         Queue::fake();
     }
 
@@ -115,6 +128,7 @@ class StaffProfileReviewTest extends TestCase
 
     public function test_csr_can_activate_profile_with_selected_package_duration(): void
     {
+        Notification::fake();
         $csr = $this->staff('csr');
         $package = Package::query()->where('code', 'vip')->firstOrFail();
         $duration = PackageDurationOption::query()->where('duration_days', 30)->firstOrFail();
@@ -141,6 +155,48 @@ class StaffProfileReviewTest extends TestCase
         $this->assertTrue($this->profile->primaryLocation->refresh()->is_indexable);
         $this->assertSame(1, $this->profile->primaryLocation->active_profile_count);
         Queue::assertPushed(PublishProfileImages::class, fn ($job) => $job->profileId === $this->profile->id);
+        Notification::assertSentTo($this->provider, ProfileReviewDecisionNotification::class, fn ($notification) => $notification->decision === 'approved');
+    }
+
+    public function test_profile_cannot_be_approved_normally_with_missing_verification(): void
+    {
+        $this->profile->verificationChecks()->delete();
+        $this->profile->update(['verification_status' => 'unverified']);
+
+        $this->actingAs($this->staff('csr'))->patch(route('staff.profiles.update', $this->packageRequest), [
+            'decision' => 'approve',
+            'assigned_package_id' => $this->packageRequest->requested_package_id,
+            'duration_option_id' => PackageDurationOption::query()->where('duration_days', 30)->value('id'),
+            'reason' => 'Attempting normal approval without completed verification.',
+        ])->assertStatus(422);
+
+        $this->assertSame(ProfileStatus::PendingReview, $this->profile->refresh()->status);
+        $this->assertDatabaseMissing('profile_package_assignments', ['profile_id' => $this->profile->id]);
+    }
+
+    public function test_csr_can_explicitly_override_missing_verification_and_media(): void
+    {
+        $this->profile->verificationChecks()->delete();
+        $this->profile->images()->delete();
+        $this->profile->update(['verification_status' => 'unverified']);
+        $csr = $this->staff('csr');
+
+        $this->actingAs($csr)->patch(route('staff.profiles.update', $this->packageRequest), [
+            'decision' => 'approve',
+            'assigned_package_id' => $this->packageRequest->requested_package_id,
+            'duration_option_id' => PackageDurationOption::query()->where('duration_days', 30)->value('id'),
+            'reason' => 'CSR accepts responsibility for this documented exceptional approval.',
+            'override_requirements' => '1',
+        ])->assertRedirect(route('staff.profiles.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame(ProfileStatus::Active, $this->profile->refresh()->status);
+        $this->assertSame('verified', $this->profile->verification_status);
+        $this->assertSame(3, $this->profile->verificationChecks()->where('is_override', true)->count());
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $csr->id,
+            'action' => 'profiles.activate',
+            'target_id' => $this->profile->id,
+        ]);
     }
 
     public function test_staff_package_change_is_retained_in_request_history(): void
@@ -180,6 +236,7 @@ class StaffProfileReviewTest extends TestCase
             'assigned_package_id' => $this->packageRequest->requested_package_id,
             'duration_option_id' => PackageDurationOption::query()->where('duration_days', 30)->value('id'),
             'reason' => 'Agency profile and media were reviewed.',
+            'override_requirements' => '1',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('active', $agency->refresh()->status);
@@ -202,6 +259,7 @@ class StaffProfileReviewTest extends TestCase
 
     public function test_expiration_command_makes_elapsed_profiles_private(): void
     {
+        Notification::fake();
         $csr = $this->staff('csr');
         $duration = PackageDurationOption::query()->where('duration_days', 7)->firstOrFail();
 
@@ -220,6 +278,7 @@ class StaffProfileReviewTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'profiles.expire', 'target_id' => $this->profile->id]);
         $this->assertFalse($this->profile->primaryLocation->refresh()->is_indexable);
         $this->assertSame(0, $this->profile->primaryLocation->active_profile_count);
+        Notification::assertSentTo($this->provider, ProfilePackageExpiredNotification::class);
     }
 
     private function staff(string $role): User

@@ -16,6 +16,17 @@
                             <div><dt class="text-gray-500">Account / agency</dt><dd class="font-semibold">{{ $selectedProfile->owner?->email ?? $selectedProfile->currentAgency->first()?->name ?? 'Unassigned' }}</dd></div>
                         </dl>
                         <p class="mt-5 rounded-md bg-amber-50 p-3 text-xs text-amber-900">Evidence references and notes are encrypted and never displayed publicly. Do not paste document images or full identity numbers here.</p>
+                        @if (auth()->user()->canOverrideListingRequirements() && $selectedProfile->verification_status !== 'verified')
+                            <form method="POST" action="{{ route('staff.verification.override') }}" class="mt-5 space-y-3 rounded-md border border-red-200 bg-red-50 p-4">
+                                @csrf
+                                <input type="hidden" name="profile_id" value="{{ $selectedProfile->id }}">
+                                <p class="text-sm font-bold text-red-900">Admin/CSR verification override</p>
+                                <p class="text-xs text-red-800">This creates immutable verified checks for every unmet requirement without external evidence. Use only when you accept responsibility for the exception.</p>
+                                <label class="block text-sm"><span class="font-medium text-red-900">Override reason</span><textarea name="reason" rows="4" minlength="20" required class="mt-1 block w-full rounded-md border-red-300"></textarea></label>
+                                <label class="flex items-start gap-2 text-xs text-red-900"><input type="checkbox" name="confirm_override" value="1" required class="mt-0.5 rounded border-red-300 text-red-700"><span>I confirm that I am intentionally overriding all unmet verification requirements.</span></label>
+                                <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-800">Mark profile verified by override</button>
+                            </form>
+                        @endif
                     </div>
                     @can('verification.manage')
                         <form method="POST" action="{{ route('staff.verification.store') }}" class="grid gap-4 sm:grid-cols-2">@csrf
@@ -32,7 +43,7 @@
 
                 <section class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="border-b p-5"><h3 class="font-bold">Check history</h3></div>
-                    <div class="divide-y">@forelse($selectedProfile->verificationChecks->sortByDesc('created_at') as $check)<div class="grid gap-3 p-5 text-sm sm:grid-cols-[1fr_1fr_2fr]"><div><p class="font-semibold">{{ $check->label() }}</p><p class="text-xs text-gray-500">{{ $check->created_at->format('j M Y H:i') }}</p></div><div><p class="font-semibold capitalize">{{ $check->status }}</p><p class="text-xs text-gray-500">{{ $check->performer?->email ?? 'Former staff account' }}@if($check->expires_at) · expires {{ $check->expires_at->format('j M Y') }}@endif</p></div><div><p><strong>Reference:</strong> {{ $check->evidence_reference ?? 'Pending' }}</p><p class="mt-1 text-gray-600">{{ $check->notes }}</p></div></div>@empty<p class="p-6 text-sm text-gray-500">No verification checks recorded.</p>@endforelse</div>
+                    <div class="divide-y">@forelse($selectedProfile->verificationChecks->sortByDesc('created_at') as $check)<div class="grid gap-3 p-5 text-sm sm:grid-cols-[1fr_1fr_2fr]"><div><p class="font-semibold">{{ $check->label() }}</p><p class="text-xs text-gray-500">{{ $check->created_at->format('j M Y H:i') }}</p>@if($check->is_override)<span class="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold uppercase text-red-800">Staff override</span>@endif</div><div><p class="font-semibold capitalize">{{ $check->status }}</p><p class="text-xs text-gray-500">{{ $check->performer?->email ?? 'Former staff account' }}@if($check->expires_at) · expires {{ $check->expires_at->format('j M Y') }}@endif</p></div><div><p><strong>Reference:</strong> {{ $check->evidence_reference ?? 'Pending' }}</p><p class="mt-1 text-gray-600">{{ $check->notes }}</p></div></div>@empty<p class="p-6 text-sm text-gray-500">No verification checks recorded.</p>@endforelse</div>
                 </section>
             @endif
 

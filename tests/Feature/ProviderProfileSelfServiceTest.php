@@ -15,6 +15,7 @@ use App\Models\Profile;
 use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Services\PolicyAcceptanceService;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +82,7 @@ class ProviderProfileSelfServiceTest extends TestCase
             'bust_size_option_id' => TaxonomyOption::query()->ofType('bust_size')->firstOrFail()->id,
             'allows_incall' => true,
             'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'published_at' => now(),
             'expires_at' => now()->addMonth(),
         ]);
@@ -88,6 +90,15 @@ class ProviderProfileSelfServiceTest extends TestCase
             ['type' => 'call', 'normalized_value' => '+254700000001', 'display_value' => '+254700000001', 'sort_order' => 10],
             ['type' => 'sms', 'normalized_value' => '+254700000001', 'display_value' => '+254700000001', 'sort_order' => 20],
         ]);
+        foreach (['adult_age', 'identity', 'publishing_rights'] as $type) {
+            $this->profile->verificationChecks()->create([
+                'check_type' => $type,
+                'status' => 'verified',
+                'evidence_reference' => 'TEST-'.$type,
+                'notes' => 'Verified fixture evidence for provider renewal testing.',
+                'checked_at' => now(),
+            ]);
+        }
         $this->profile->services()->sync([$this->options['service']->id]);
     }
 
@@ -284,7 +295,7 @@ class ProviderProfileSelfServiceTest extends TestCase
     /** @return array<int, int> */
     private function outstandingPolicyIds(string $action, User $user, ?Profile $profile = null): array
     {
-        return app(\App\Services\PolicyAcceptanceService::class)
+        return app(PolicyAcceptanceService::class)
             ->outstanding($action, $user, $profile)
             ->pluck('id')
             ->all();

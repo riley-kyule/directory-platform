@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CachePublicPage;
+use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureAgeConfirmed;
 use App\Http\Middleware\EnsurePrivilegedMfa;
 use App\Http\Middleware\ResolveDirectoryRedirects;
@@ -9,7 +10,6 @@ use App\Http\Middleware\TrackUserActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             SecurityHeaders::class,
+            EnsureActiveAccount::class,
             TrackUserActivity::class,
             EnsurePrivilegedMfa::class,
             ResolveDirectoryRedirects::class,

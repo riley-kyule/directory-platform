@@ -2,15 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ProfileStatus;
 use App\Models\Location;
 use App\Models\Profile;
 use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
 use App\Models\VerificationCheck;
+use App\Notifications\ProfileVerificationExpiredNotification;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class VerificationWorkflowTest extends TestCase
@@ -111,6 +114,84 @@ class VerificationWorkflowTest extends TestCase
         ])->assertSessionHasErrors('check_type');
 
         $this->assertDatabaseCount('verification_checks', 0);
+    }
+
+    public function test_admin_or_csr_can_mark_all_missing_checks_verified_by_explicit_override(): void
+    {
+        $csr = $this->staff('csr');
+
+        $this->actingAs($csr)->post(route('staff.verification.override'), [
+            'profile_id' => $this->profile->id,
+            'reason' => 'CSR has approved an exceptional manual verification override for this profile.',
+            'confirm_override' => '1',
+        ])->assertRedirect(route('staff.verification.index', ['profile' => $this->profile->id]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('verified', $this->profile->refresh()->verification_status);
+        $this->assertSame(3, $this->profile->verificationChecks()->where('is_override', true)->count());
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $csr->id,
+            'action' => 'verification.override',
+            'target_id' => $this->profile->id,
+        ]);
+    }
+
+    public function test_subscriber_cannot_use_verification_override(): void
+    {
+        $this->actingAs(User::factory()->create())->post(route('staff.verification.override'), [
+            'profile_id' => $this->profile->id,
+            'reason' => 'A subscriber must never be allowed to perform this override operation.',
+            'confirm_override' => '1',
+        ])->assertForbidden();
+
+        $this->assertSame('unverified', $this->profile->refresh()->verification_status);
+    }
+
+    public function test_expired_verification_makes_an_active_profile_private_and_notifies_owner(): void
+    {
+        Notification::fake();
+        $owner = $this->profile->owner;
+        foreach (['adult_age', 'identity', 'publishing_rights'] as $type) {
+            $this->profile->verificationChecks()->create([
+                'check_type' => $type,
+                'status' => 'verified',
+                'evidence_reference' => 'EXPIRING-'.$type,
+                'notes' => 'Time-limited verification fixture for expiration enforcement.',
+                'checked_at' => now()->subYear(),
+                'expires_at' => now()->subDay(),
+            ]);
+        }
+        $this->profile->update([
+            'verification_status' => 'verified',
+            'status' => ProfileStatus::Active,
+        ]);
+
+        $this->artisan('verification:refresh-statuses')
+            ->expectsOutput('Updated 1 verification status(es).')
+            ->assertSuccessful();
+
+        $this->assertSame(ProfileStatus::Deactivated, $this->profile->refresh()->status);
+        $this->assertSame('unverified', $this->profile->verification_status);
+        Notification::assertSentTo($owner, ProfileVerificationExpiredNotification::class);
+    }
+
+    public function test_verification_audit_reports_noncompliant_active_profiles_and_clears_after_override(): void
+    {
+        $this->profile->update(['status' => ProfileStatus::Active]);
+
+        $this->artisan('profiles:audit-verification')
+            ->expectsOutputToContain('1 active profile(s) are excluded from public discovery')
+            ->assertFailed();
+
+        $this->actingAs($this->staff('admin'))->post(route('staff.verification.override'), [
+            'profile_id' => $this->profile->id,
+            'reason' => 'Administrator accepts responsibility for this audit remediation override.',
+            'confirm_override' => '1',
+        ])->assertSessionHasNoErrors();
+
+        $this->artisan('profiles:audit-verification')
+            ->expectsOutput('All active profiles satisfy current verification requirements.')
+            ->assertSuccessful();
     }
 
     private function staff(string $role): User

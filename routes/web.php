@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DirectorySettingsController;
-use App\Http\Controllers\Admin\SelfDeployController;
 use App\Http\Controllers\Admin\PolicyManagementController;
 use App\Http\Controllers\Admin\RoleManagementController;
+use App\Http\Controllers\Admin\SelfDeployController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AgeGateController;
 use App\Http\Controllers\ModerationAppealController;
@@ -12,12 +12,12 @@ use App\Http\Controllers\PolicyPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProfileReportController;
-use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ProviderOnboardingController;
 use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
 use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\PublicSearchController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Seo\RedirectManagementController;
 use App\Http\Controllers\Seo\SearchInsightsController;
@@ -74,7 +74,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::prefix('onboarding')->name('onboarding.')->group(function () {
+    Route::prefix('onboarding')->name('onboarding.')->middleware('verified')->group(function () {
         Route::get('/', [ProviderOnboardingController::class, 'index'])->name('index');
         Route::post('/agency', [ProviderOnboardingController::class, 'storeAgency'])->name('agency.store');
         Route::get('/profiles/create', [ProviderOnboardingController::class, 'createProfile'])->name('profiles.create');
@@ -82,14 +82,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/profiles/{profile}/submit', [ProviderOnboardingController::class, 'submitProfile'])->name('profiles.submit');
     });
 
-    Route::prefix('profiles/{profile}/media')->name('profiles.media.')->group(function () {
+    Route::prefix('profiles/{profile}/media')->name('profiles.media.')->middleware('verified')->group(function () {
         Route::get('/', [ProfileMediaController::class, 'index'])->name('index');
         Route::post('/', [ProfileMediaController::class, 'store'])->name('store');
         Route::get('/{image}/{slot}', [ProfileMediaController::class, 'preview'])->name('preview');
         Route::delete('/{image}', [ProfileMediaController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('my-profiles/{profile}')->name('provider.profiles.')->group(function () {
+    Route::prefix('my-profiles/{profile}')->name('provider.profiles.')->middleware('verified')->group(function () {
         Route::get('/', [ProviderProfileController::class, 'show'])->name('show');
         Route::get('/edit', [ProviderProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProviderProfileController::class, 'update'])->name('update');
@@ -141,6 +141,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/directory/{profile}/emergency-takedown', [ModerationController::class, 'emergencyTakedown'])->name('directory.emergency-takedown');
         Route::get('/verification', [VerificationController::class, 'index'])->name('verification.index');
         Route::post('/verification', [VerificationController::class, 'store'])->name('verification.store');
+        Route::post('/verification/override', [VerificationController::class, 'override'])->name('verification.override');
         Route::get('/directory', [ProfileManagementController::class, 'index'])->name('directory.index');
         Route::get('/directory/create', [ProfileCreationController::class, 'create'])->name('directory.create');
         Route::post('/directory', [ProfileCreationController::class, 'store'])->name('directory.store');

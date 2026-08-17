@@ -119,6 +119,7 @@ class MicroLocationSeoTest extends TestCase
             'build_option_id' => TaxonomyOption::query()->ofType('build')->firstOrFail()->id,
             'allows_incall' => true,
             'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'published_at' => now(),
             'last_activated_at' => now(),
             'expires_at' => now()->addMonth(),

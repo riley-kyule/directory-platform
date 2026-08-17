@@ -13,6 +13,7 @@ use App\Models\Profile;
 use App\Services\LocationInventoryService;
 use App\Services\PolicyAcceptanceService;
 use App\Services\ProfileImageVisibility;
+use App\Services\ProfileVerificationService;
 use App\Services\PublicProfileListings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +29,7 @@ class ProfileManagementController extends Controller
         private readonly LocationInventoryService $locationInventory,
         private readonly ProfileImageVisibility $imageVisibility,
         private readonly PolicyAcceptanceService $policies,
+        private readonly ProfileVerificationService $verification,
     ) {}
 
     public function index(): View
@@ -87,6 +89,7 @@ class ProfileManagementController extends Controller
                 'remove_package' => $this->makePrivate($profile, ProfileStatus::Deactivated, 'removed'),
                 'ban' => $this->ban($profile),
                 'renew' => $this->renew($request, $profile, $previousAssignment?->id),
+                'assign_package' => $this->assignPackageOverride($request, $profile, $previousAssignment?->id),
             };
 
             $profile->refresh();
@@ -106,6 +109,7 @@ class ProfileManagementController extends Controller
                     'assignment_id' => $profile->packageAssignments()->latest('starts_at')->value('id'),
                     'package_id' => $profile->packageAssignments()->latest('starts_at')->value('package_id'),
                     'expires_at' => $profile->expires_at?->toIso8601String(),
+                    'requirements_override_used' => $request->boolean('override_requirements'),
                 ],
                 'reason' => $request->validated('reason'),
                 'ip_address' => $request->ip(),
@@ -157,7 +161,22 @@ class ProfileManagementController extends Controller
             409,
             'Only an expired or deactivated profile can be renewed.',
         );
-        abort_unless($profile->images()->whereIn('status', ['pending_review', 'approved'])->exists(), 422, 'At least one reviewed image is required.');
+        $override = $request->boolean('override_requirements');
+        if ($override) {
+            abort_unless($request->user()->canOverrideListingRequirements(), 403, 'Only an Admin or CSR may override listing requirements.');
+        }
+        abort_if(
+            ! $profile->images()->whereIn('status', ['pending_review', 'approved'])->exists() && ! $override,
+            422,
+            'At least one reviewed image is required.',
+        );
+        $missingVerificationTypes = $this->verification->missingTypes($profile);
+        abort_if($missingVerificationTypes !== [] && ! $override, 422, 'Complete every required verification check or use an authorized staff override.');
+        if ($missingVerificationTypes !== []) {
+            $this->verification->override($profile, $request->user(), $request->validated('reason'));
+        } else {
+            $this->verification->sync($profile);
+        }
 
         $duration = PackageDurationOption::query()->where('is_active', true)->findOrFail($request->integer('duration_option_id'));
         $startsAt = now();
@@ -175,6 +194,49 @@ class ProfileManagementController extends Controller
         ]);
         $profile->update([
             'status' => ProfileStatus::Active,
+            'last_activated_at' => $startsAt,
+            'expires_at' => $expiresAt,
+            'listing_rank' => random_int(1, 2_147_483_647),
+        ]);
+        PublishProfileImages::dispatch($profile->id)->afterCommit();
+    }
+
+    private function assignPackageOverride(ManageProfileLifecycleRequest $request, Profile $profile, ?int $previousAssignmentId): void
+    {
+        abort_unless($request->user()->canOverrideListingRequirements(), 403, 'Only an Admin or CSR may assign a package by override.');
+        abort_if($profile->status === ProfileStatus::Banned, 409, 'A banned profile must complete the moderation appeal workflow before activation.');
+
+        $missingVerificationTypes = $this->verification->missingTypes($profile);
+        if ($missingVerificationTypes !== []) {
+            $this->verification->override($profile, $request->user(), $request->validated('reason'));
+        } else {
+            $this->verification->sync($profile);
+        }
+
+        $duration = PackageDurationOption::query()->where('is_active', true)->findOrFail($request->integer('duration_option_id'));
+        $startsAt = now();
+        $expiresAt = $startsAt->copy()->addDays($duration->duration_days);
+        $profile->packageAssignments()->where('status', 'active')->update(['status' => 'superseded']);
+        $profile->packageAssignments()->create([
+            'package_id' => $request->integer('package_id'),
+            'previous_assignment_id' => $previousAssignmentId,
+            'starts_at' => $startsAt,
+            'expires_at' => $expiresAt,
+            'status' => 'active',
+            'assigned_by' => $request->user()->id,
+            'assignment_source' => 'staff_override',
+            'reason' => $request->validated('reason'),
+        ]);
+        $profile->packageRequests()->where('status', 'pending')->update([
+            'status' => 'changed',
+            'reviewed_by' => $request->user()->id,
+            'assigned_package_id' => $request->integer('package_id'),
+            'decision_reason' => $request->validated('reason'),
+            'reviewed_at' => now(),
+        ]);
+        $profile->update([
+            'status' => ProfileStatus::Active,
+            'published_at' => $profile->published_at ?? $startsAt,
             'last_activated_at' => $startsAt,
             'expires_at' => $expiresAt,
             'listing_rank' => random_int(1, 2_147_483_647),

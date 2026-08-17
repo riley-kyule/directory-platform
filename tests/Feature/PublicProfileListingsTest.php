@@ -126,6 +126,7 @@ class PublicProfileListingsTest extends TestCase
             'build_option_id' => TaxonomyOption::query()->ofType('build')->firstOrFail()->id,
             'allows_incall' => true,
             'status' => ProfileStatus::Active,
+            'verification_status' => 'verified',
             'last_activated_at' => $activatedAt,
             'expires_at' => now()->addMonth(),
             'listing_rank' => $rank,
