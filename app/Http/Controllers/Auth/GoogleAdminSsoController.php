@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -16,20 +17,31 @@ use Throwable;
 
 class GoogleAdminSsoController extends Controller
 {
+    private const STATE_TTL_SECONDS = 600;
+
     public function redirect(): RedirectResponse
     {
         abort_unless($this->configured(), 404);
 
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')
+            ->stateless()
+            ->with(['state' => $this->makeState()])
+            ->redirect();
     }
 
     public function callback(Request $request): RedirectResponse
     {
         abort_unless($this->configured(), 404);
 
+        if (! $this->validState($request->query('state'))) {
+            $this->audit($request, null, 'security.google-sso-failed', 'invalid-or-expired-oauth-state');
+
+            return $this->rejected();
+        }
+
         try {
             /** @var GoogleUser $googleUser */
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = Socialite::driver('google')->stateless()->user();
         } catch (Throwable $exception) {
             report($exception);
             $this->audit($request, null, 'security.google-sso-failed', 'oauth-callback-failed');
@@ -73,15 +85,22 @@ class GoogleAdminSsoController extends Controller
             return $this->rejected();
         }
 
-        DB::transaction(function () use ($user, $subject): void {
-            $user->forceFill([
-                'google_subject' => $subject,
-                'google_sso_linked_at' => $user->google_sso_linked_at ?? now(),
-                'google_sso_last_login_at' => now(),
-                'email_verified_at' => $user->email_verified_at ?? now(),
-                'last_seen_at' => now(),
-            ])->save();
-        });
+        try {
+            DB::transaction(function () use ($user, $subject): void {
+                $user->forceFill([
+                    'google_subject' => $subject,
+                    'google_sso_linked_at' => $user->google_sso_linked_at ?? now(),
+                    'google_sso_last_login_at' => now(),
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                    'last_seen_at' => now(),
+                ])->save();
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->audit($request, $user, 'security.google-sso-failed', 'google-identity-link-failed');
+
+            return $this->rejected();
+        }
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
@@ -95,6 +114,35 @@ class GoogleAdminSsoController extends Controller
         return filled(config('services.google.client_id'))
             && filled(config('services.google.client_secret'))
             && filled(config('services.google.redirect'));
+    }
+
+    private function makeState(): string
+    {
+        return Crypt::encryptString(json_encode([
+            'provider' => 'google',
+            'nonce' => Str::random(40),
+            'expires_at' => now()->addSeconds(self::STATE_TTL_SECONDS)->timestamp,
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    private function validState(mixed $state): bool
+    {
+        if (! is_string($state) || $state === '') {
+            return false;
+        }
+
+        try {
+            $payload = json_decode(Crypt::decryptString($state), true, flags: JSON_THROW_ON_ERROR);
+
+            return is_array($payload)
+                && ($payload['provider'] ?? null) === 'google'
+                && is_string($payload['nonce'] ?? null)
+                && strlen($payload['nonce']) === 40
+                && is_int($payload['expires_at'] ?? null)
+                && $payload['expires_at'] >= now()->timestamp;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private function domainAllowed(string $email): bool

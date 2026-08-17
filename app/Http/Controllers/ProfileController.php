@@ -51,11 +51,9 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        $this->accountDeletion->deactivatePublicPresence($user);
-
         Auth::logout();
 
-        $user->delete();
+        $this->accountDeletion->deleteAccount($user, $user);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

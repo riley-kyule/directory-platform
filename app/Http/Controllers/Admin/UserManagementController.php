@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateUserRolesRequest;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AccountDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,8 @@ class UserManagementController extends Controller
     /** Roles this panel grants/revokes. "subscriber" is assigned automatically at
      * registration and isn't a privilege to hand out here. */
     private const MANAGEABLE_ROLES = ['admin', 'csr', 'seo'];
+
+    public function __construct(private readonly AccountDeletionService $accountDeletion) {}
 
     public function index(Request $request): View
     {
@@ -113,10 +116,15 @@ class UserManagementController extends Controller
             return back()->withErrors(['user' => 'At least one Admin must remain — assign another Admin before deleting this one.']);
         }
 
-        $this->audit($request, 'users.delete', $user, ['email' => $user->email], []);
-        $user->delete();
+        $name = $user->name;
+        $this->accountDeletion->deleteAccount(
+            $user,
+            $request->user(),
+            'users.delete',
+            'Account deleted by an administrator.',
+        );
 
-        return back()->with('status', "{$user->name} deleted.");
+        return back()->with('status', "{$name} deleted.");
     }
 
     /** @param array<string, mixed> $previous

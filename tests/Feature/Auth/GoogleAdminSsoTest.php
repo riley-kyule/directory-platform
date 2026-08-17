@@ -6,6 +6,8 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as GoogleUser;
 use Tests\TestCase;
@@ -30,9 +32,14 @@ class GoogleAdminSsoTest extends TestCase
             ->assertOk()
             ->assertSee('Continue with Google as Admin');
 
-        Socialite::fake('google');
-        $this->get(route('auth.google.redirect'))
-            ->assertRedirect('https://socialite.fake/google/authorize');
+        $response = $this->get(route('auth.google.redirect'))->assertRedirect();
+        $query = [];
+        parse_str((string) parse_url($response->headers->get('Location'), PHP_URL_QUERY), $query);
+
+        $this->assertArrayHasKey('state', $query);
+        $payload = json_decode(Crypt::decryptString($query['state']), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame('google', $payload['provider']);
+        $this->assertGreaterThan(now()->timestamp, $payload['expires_at']);
     }
 
     public function test_existing_admin_can_sign_in_and_link_verified_google_identity(): void
@@ -44,7 +51,7 @@ class GoogleAdminSsoTest extends TestCase
             'email_verified' => true,
         ]));
 
-        $this->get(route('auth.google.callback'))
+        $this->get($this->callbackUrl())
             ->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertAuthenticatedAs($admin);
@@ -66,7 +73,7 @@ class GoogleAdminSsoTest extends TestCase
             'email' => 'unknown@example.com',
             'email_verified' => true,
         ]));
-        $this->get(route('auth.google.callback'))
+        $this->get($this->callbackUrl())
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors('google_sso');
         $this->assertDatabaseMissing('users', ['email' => 'unknown@example.com']);
@@ -77,7 +84,7 @@ class GoogleAdminSsoTest extends TestCase
             'email' => $subscriber->email,
             'email_verified' => true,
         ]));
-        $this->get(route('auth.google.callback'))
+        $this->get($this->callbackUrl())
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors('google_sso');
         $this->assertGuest();
@@ -92,7 +99,7 @@ class GoogleAdminSsoTest extends TestCase
             'email' => $admin->email,
             'email_verified' => false,
         ]));
-        $this->get(route('auth.google.callback'))->assertRedirect(route('login'));
+        $this->get($this->callbackUrl())->assertRedirect(route('login'));
         $this->assertGuest();
 
         config()->set('services.google.admin_allowed_domains', ['company.test']);
@@ -101,7 +108,7 @@ class GoogleAdminSsoTest extends TestCase
             'email' => $admin->email,
             'email_verified' => true,
         ]));
-        $this->get(route('auth.google.callback'))->assertRedirect(route('login'));
+        $this->get($this->callbackUrl())->assertRedirect(route('login'));
         $this->assertGuest();
 
         config()->set('services.google.admin_allowed_domains', []);
@@ -111,7 +118,7 @@ class GoogleAdminSsoTest extends TestCase
             'email' => $admin->email,
             'email_verified' => true,
         ]));
-        $this->get(route('auth.google.callback'))->assertRedirect(route('login'));
+        $this->get($this->callbackUrl())->assertRedirect(route('login'));
         $this->assertGuest();
         $this->assertSame('original-subject', $admin->refresh()->google_subject);
     }
@@ -123,6 +130,31 @@ class GoogleAdminSsoTest extends TestCase
         $this->get(route('login'))->assertDontSee('Continue with Google as Admin');
         $this->get(route('auth.google.redirect'))->assertNotFound();
         $this->get(route('auth.google.callback'))->assertNotFound();
+    }
+
+    public function test_google_callback_rejects_missing_tampered_and_expired_state(): void
+    {
+        Socialite::fake('google', GoogleUser::fake([
+            'id' => 'google-subject-123',
+            'email' => 'admin@example.com',
+            'email_verified' => true,
+        ]));
+
+        $this->get(route('auth.google.callback'))->assertSessionHasErrors('google_sso');
+        $this->get(route('auth.google.callback', ['state' => 'tampered']))->assertSessionHasErrors('google_sso');
+        $this->get($this->callbackUrl(now()->subSecond()->timestamp))->assertSessionHasErrors('google_sso');
+        $this->assertGuest();
+    }
+
+    private function callbackUrl(?int $expiresAt = null): string
+    {
+        $state = Crypt::encryptString(json_encode([
+            'provider' => 'google',
+            'nonce' => Str::random(40),
+            'expires_at' => $expiresAt ?? now()->addMinutes(10)->timestamp,
+        ], JSON_THROW_ON_ERROR));
+
+        return route('auth.google.callback', ['state' => $state]);
     }
 
     private function admin(string $email): User

@@ -103,11 +103,14 @@ class UserManagementTest extends TestCase
     {
         $admin = $this->userWithRole('admin');
         $csr = $this->userWithRole('csr');
+        $email = $csr->email;
 
         $this->actingAs($admin)->delete(route('admin.users.destroy', $csr))
             ->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertSoftDeleted($csr);
+        $this->assertNotSame($email, $csr->fresh()->email);
+        User::factory()->create(['email' => $email]);
         $this->assertDatabaseHas('audit_logs', [
             'actor_user_id' => $admin->id,
             'action' => 'users.delete',

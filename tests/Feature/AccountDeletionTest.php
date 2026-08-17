@@ -87,12 +87,24 @@ class AccountDeletionTest extends TestCase
 
     public function test_deleting_a_member_account_with_no_profile_or_agency_works_cleanly(): void
     {
-        $member = User::factory()->create();
+        $member = User::factory()->create([
+            'email' => 'reusable@example.test',
+            'google_subject' => 'reusable-google-subject',
+        ]);
 
         $this->actingAs($member)->delete(route('profile.destroy'), ['password' => 'password'])
             ->assertRedirect('/');
 
         $this->assertNotNull($member->fresh()->deleted_at);
+        $this->assertNotSame('reusable@example.test', $member->fresh()->email);
+        $this->assertNull($member->fresh()->google_subject);
+
+        User::factory()->create([
+            'email' => 'reusable@example.test',
+            'google_subject' => 'reusable-google-subject',
+        ]);
+
+        $this->assertDatabaseCount('users', 2);
     }
 
     public function test_purge_command_leaves_recently_deleted_accounts_alone(): void

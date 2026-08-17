@@ -163,7 +163,7 @@ Never commit environment files, credentials, production data, private uploads, o
 
 Privileged authenticator MFA is disabled by default and can be enabled from the Admin directory settings. When enabled, Admin, CSR, and SEO accounts must enroll and pass an MFA challenge. Disabling enforcement preserves existing enrollment and recovery-code data so the control can be re-enabled without resetting accounts.
 
-Google Admin SSO requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the callback URI registered as `GOOGLE_REDIRECT_URI`. Set `GOOGLE_ADMIN_ALLOWED_DOMAINS` to a comma-separated list when sign-in must be restricted further. Google sign-in never creates users or grants roles: the verified Google email must already belong to an Admin account, and the Google subject identifier is permanently linked on first successful sign-in.
+Google Admin SSO requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the callback URI registered as `GOOGLE_REDIRECT_URI`. Set `GOOGLE_ADMIN_ALLOWED_DOMAINS` to a comma-separated list when sign-in must be restricted further. Google sign-in never creates users or grants roles: the verified Google email must already belong to an Admin account, and the Google subject identifier is linked on first successful sign-in. OAuth callback state is a short-lived encrypted token, so the flow remains CSRF-protected without depending on the browser returning the same session cookie after visiting Google.
 
 Session cookies default to `secure` automatically whenever `APP_URL` starts with `https://`, so a forgotten `SESSION_SECURE_COOKIE` can't silently ship insecure cookies on a real domain — set it explicitly only if you need to override that inference.
 
