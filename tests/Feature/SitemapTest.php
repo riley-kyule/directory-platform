@@ -87,6 +87,11 @@ class SitemapTest extends TestCase
 
     public function test_child_sitemaps_only_contain_canonical_public_urls(): void
     {
+        $this->get(route('sitemaps.editorial'))
+            ->assertOk()
+            ->assertSee(route('directory.home'), false)
+            ->assertSee(route('policies.terms'), false)
+            ->assertSee(route('policies.privacy'), false);
         $this->get(route('sitemaps.locations', 1))
             ->assertOk()
             ->assertSee(url('/nairobi-escorts'), false)

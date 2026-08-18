@@ -102,6 +102,24 @@ class MicroLocationSeoTest extends TestCase
             ->assertDontSee('Sarit Profile 2');
     }
 
+    public function test_paginated_location_pages_have_unique_metadata_and_relationship_links(): void
+    {
+        foreach (range(1, 13) as $number) {
+            $this->activeProfile($number, $this->micro);
+        }
+
+        $this->get('/nairobi/westlands/sarit-centre-escorts')
+            ->assertOk()
+            ->assertSee('<link rel="next" href="http://localhost/nairobi/westlands/sarit-centre-escorts/page/2">', false);
+
+        $this->get('/nairobi/westlands/sarit-centre-escorts/page/2')
+            ->assertOk()
+            ->assertSee('<title>Sarit Centre Escorts in Westlands, Nairobi — Page 2</title>', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/nairobi/westlands/sarit-centre-escorts/page/2">', false)
+            ->assertSee('<link rel="prev" href="http://localhost/nairobi/westlands/sarit-centre-escorts">', false)
+            ->assertDontSee('<link rel="next"', false);
+    }
+
     private function activeProfile(int $number, ?Location $micro): Profile
     {
         $owner = User::factory()->create();

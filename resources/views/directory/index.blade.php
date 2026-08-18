@@ -5,7 +5,7 @@
             $breadcrumbItems[] = ['name' => $crumb->name, 'url' => url($crumb->publicPath())];
         }
     }
-    $profileUrls = collect($sections)->flatten(1)->pluck('slug')->map(fn ($slug) => route('directory.profiles.show', $slug))->all();
+    $profileUrls = collect($sections)->flatten(1)->pluck('slug')->unique()->map(fn ($slug) => route('directory.profiles.show', $slug))->values()->all();
     $schemas = [\App\Support\JsonLd::breadcrumbs($breadcrumbItems)];
     if (! empty($profileUrls)) {
         $schemas[] = \App\Support\JsonLd::itemList($profileUrls);
@@ -14,7 +14,7 @@
         $schemas[] = \App\Support\JsonLd::faqPage($faqPairs);
     }
 @endphp
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)">
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :previous-url="$previousUrl ?? null" :next-url="$nextUrl ?? null">
     <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
         <div class="grid gap-10 lg:grid-cols-[260px_1fr] lg:items-start">
             <div class="min-w-0 space-y-16 lg:order-2">

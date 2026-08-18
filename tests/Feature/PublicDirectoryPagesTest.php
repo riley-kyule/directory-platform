@@ -125,6 +125,32 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertDontSee($this->profile->date_of_birth->toDateString());
     }
 
+    public function test_public_profile_exposes_social_metadata_and_safe_entity_schema(): void
+    {
+        $response = $this->get(route('directory.profiles.show', $this->profile->slug));
+
+        $response->assertOk()
+            ->assertSee('<meta property="og:type" content="profile">', false)
+            ->assertSee('<meta property="og:title" content="Jane Public — Westlands, Nairobi">', false)
+            ->assertSee('<meta property="og:url" content="'.route('directory.profiles.show', $this->profile->slug).'">', false)
+            ->assertSee('<meta name="twitter:card" content="summary">', false)
+            ->assertSee('"@type":"ProfilePage"', false)
+            ->assertSee('"@type":"Person"', false)
+            ->assertSee('"addressLocality":"Westlands"', false)
+            ->assertDontSee($this->profile->date_of_birth->toDateString());
+    }
+
+    public function test_public_pages_expose_consistent_open_graph_metadata(): void
+    {
+        $this->get('/nairobi/westlands-escorts')
+            ->assertOk()
+            ->assertSee('<meta property="og:site_name" content="Directory Platform">', false)
+            ->assertSee('<meta property="og:type" content="website">', false)
+            ->assertSee('<meta property="og:title" content="Westlands Escorts | Directory Platform">', false)
+            ->assertSee('<meta property="og:url" content="http://localhost/nairobi/westlands-escorts">', false)
+            ->assertSee('<meta name="twitter:description" content="Browse active and recently added provider profiles in Westlands, Nairobi.">', false);
+    }
+
     public function test_search_is_noindex_and_matches_only_public_profile_text(): void
     {
         $this->get(route('directory.search', ['q' => 'Jane Public']))

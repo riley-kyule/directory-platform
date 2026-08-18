@@ -140,14 +140,21 @@ class PublicDirectoryController extends Controller
             ->firstOrFail();
 
         $reviews = $profile->reviews()->published()->latest()->get();
+        $canonicalUrl = route('directory.profiles.show', $profile->slug);
+        $metaDescription = str($profile->description)->squish()->limit(155)->toString();
+        $socialImage = $profile->images->first()?->publicUrl('profile');
+        if ($socialImage && ! Str::startsWith($socialImage, ['http://', 'https://'])) {
+            $socialImage = url($socialImage);
+        }
 
         return view('directory.profile', [
             'profile' => $profile,
             'relatedProfiles' => $this->listings->relatedTo($profile),
             'contactLinks' => $this->contactLinks->for($profile),
             'metaTitle' => $profile->display_name.' — '.($profile->microLocation?->name ?? $profile->sublocation->name).', '.$profile->primaryLocation->name,
-            'metaDescription' => str($profile->description)->squish()->limit(155),
-            'canonicalUrl' => route('directory.profiles.show', $profile->slug),
+            'metaDescription' => $metaDescription,
+            'canonicalUrl' => $canonicalUrl,
+            'socialImage' => $socialImage,
             'robots' => 'index,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
             'reviews' => $reviews,
@@ -186,9 +193,11 @@ class PublicDirectoryController extends Controller
             'location' => $location,
             'page' => $page,
             'totalPages' => $totalPages,
-            'metaTitle' => $location->content?->seo_title ?? $location->name.' Escorts',
-            'metaDescription' => $location->content?->meta_description ?? 'Browse active provider profiles in '.$location->name.'.',
+            'metaTitle' => ($location->content?->seo_title ?? $location->name.' Escorts').($page > 1 ? ' — Page '.$page : ''),
+            'metaDescription' => ($location->content?->meta_description ?? 'Browse active provider profiles in '.$location->name.'.').($page > 1 ? ' Page '.$page.' of '.$totalPages.'.' : ''),
             'canonicalUrl' => url($canonicalPath),
+            'previousUrl' => $page > 1 ? url($page === 2 ? $basePath : $basePath.'/page/'.($page - 1)) : null,
+            'nextUrl' => $page < $totalPages ? url($basePath.'/page/'.($page + 1)) : null,
             'robots' => $location->is_indexable ? 'index,follow' : 'noindex,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
             'nearbyLocations' => $counts->sum() === 0 ? $this->nearbyLocations($location) : collect(),

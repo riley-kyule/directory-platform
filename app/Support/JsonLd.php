@@ -78,6 +78,73 @@ class JsonLd
         ];
     }
 
+    /**
+     * Describe the public profile without exposing private contact details or
+     * a full date of birth in machine-readable markup.
+     *
+     * @param  array<int, string>  $images
+     * @param  array<int, string>  $languages
+     * @param  array{average: float|int|null, count: int}  $reviewStats
+     */
+    public static function profilePage(
+        string $url,
+        string $name,
+        string $description,
+        string $city,
+        string $area,
+        array $images = [],
+        array $languages = [],
+        array $reviewStats = ['average' => null, 'count' => 0],
+    ): array {
+        $person = array_filter([
+            '@type' => 'Person',
+            '@id' => $url.'#profile',
+            'name' => $name,
+            'description' => $description,
+            'url' => $url,
+            'image' => $images ?: null,
+            'knowsLanguage' => $languages ?: null,
+            'homeLocation' => [
+                '@type' => 'Place',
+                'name' => $area.', '.$city,
+                'address' => [
+                    '@type' => 'PostalAddress',
+                    'addressLocality' => $area,
+                    'addressRegion' => $city,
+                ],
+            ],
+            'aggregateRating' => $reviewStats['count'] > 0 ? [
+                '@type' => 'AggregateRating',
+                'ratingValue' => $reviewStats['average'],
+                'reviewCount' => $reviewStats['count'],
+                'bestRating' => 5,
+                'worstRating' => 1,
+            ] : null,
+        ], fn (mixed $value) => $value !== null);
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'ProfilePage',
+            '@id' => $url.'#webpage',
+            'url' => $url,
+            'name' => $name,
+            'description' => $description,
+            'mainEntity' => $person,
+        ];
+    }
+
+    public static function agency(string $url, string $name, string $description): array
+    {
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'Organization',
+            '@id' => $url.'#agency',
+            'name' => $name,
+            'description' => $description,
+            'url' => $url,
+        ];
+    }
+
     /** @param  array<int, array<string, mixed>>  $schemas */
     public static function script(array $schemas): string
     {

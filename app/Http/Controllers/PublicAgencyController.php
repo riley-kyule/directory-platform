@@ -26,8 +26,10 @@ class PublicAgencyController extends Controller
             'page' => $page,
             'totalPages' => $totalPages,
             'metaTitle' => $content->seo_title.($page > 1 ? ' — Page '.$page : ''),
-            'metaDescription' => $content->meta_description,
+            'metaDescription' => $content->meta_description.($page > 1 ? ' Page '.$page.' of '.$totalPages.'.' : ''),
             'canonicalUrl' => $page === 1 ? route('directory.agencies.index') : route('directory.agencies.page', $page),
+            'previousUrl' => $page > 1 ? ($page === 2 ? route('directory.agencies.index') : route('directory.agencies.page', $page - 1)) : null,
+            'nextUrl' => $page < $totalPages ? route('directory.agencies.page', $page + 1) : null,
             'robots' => 'index,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
         ]);
@@ -59,8 +61,10 @@ class PublicAgencyController extends Controller
             'page' => $page,
             'totalPages' => $totalPages,
             'metaTitle' => $agency->name.' — Active Profiles'.($page > 1 ? ' — Page '.$page : ''),
-            'metaDescription' => str($agency->description ?: 'Browse active profiles represented by '.$agency->name.'.')->squish()->limit(155),
+            'metaDescription' => str($agency->description ?: 'Browse active profiles represented by '.$agency->name.'.')->squish()->limit(140).($page > 1 ? ' Page '.$page.' of '.$totalPages.'.' : ''),
             'canonicalUrl' => $page === 1 ? route('directory.agencies.show', $agency->slug) : route('directory.agencies.show.page', [$agency->slug, $page]),
+            'previousUrl' => $page > 1 ? ($page === 2 ? route('directory.agencies.show', $agency->slug) : route('directory.agencies.show.page', [$agency->slug, $page - 1])) : null,
+            'nextUrl' => $page < $totalPages ? route('directory.agencies.show.page', [$agency->slug, $page + 1]) : null,
             'robots' => 'index,follow',
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
         ]);

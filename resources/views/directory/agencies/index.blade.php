@@ -1,4 +1,12 @@
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots">
+@php
+    $agencyUrls = $agencies->map(fn ($agency) => route('directory.agencies.show', $agency->slug))->all();
+    $schemas = [\App\Support\JsonLd::breadcrumbs([
+        ['name' => 'Home', 'url' => route('directory.home')],
+        ['name' => 'Agencies', 'url' => route('directory.agencies.index')],
+    ])];
+    if ($agencyUrls !== []) $schemas[] = \App\Support\JsonLd::itemList($agencyUrls);
+@endphp
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :previous-url="$previousUrl" :next-url="$nextUrl">
     <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
         <header>
             <nav class="mb-4 text-sm text-stone-500" aria-label="Breadcrumb"><a href="{{ route('directory.home') }}" class="hover:text-stone-950">Home</a><span class="mx-2">/</span><span>Agencies</span></nav>

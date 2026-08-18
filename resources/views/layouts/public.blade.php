@@ -7,6 +7,22 @@
         <meta name="description" content="{{ $metaDescription ?? 'Browse active provider profiles.' }}">
         <meta name="robots" content="{{ $robots ?? 'index,follow' }}">
         <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}">
+        @if ($previousUrl)<link rel="prev" href="{{ $previousUrl }}">@endif
+        @if ($nextUrl)<link rel="next" href="{{ $nextUrl }}">@endif
+        <meta property="og:site_name" content="{{ config('app.name') }}">
+        <meta property="og:type" content="{{ $socialType }}">
+        <meta property="og:title" content="{{ $metaTitle }}">
+        <meta property="og:description" content="{{ $metaDescription }}">
+        <meta property="og:url" content="{{ $canonicalUrl }}">
+        @if ($socialImage)
+            <meta property="og:image" content="{{ $socialImage }}">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:image" content="{{ $socialImage }}">
+        @else
+            <meta name="twitter:card" content="summary">
+        @endif
+        <meta name="twitter:title" content="{{ $metaTitle }}">
+        <meta name="twitter:description" content="{{ $metaDescription }}">
         <meta name="theme-color" content="#171717">
         <x-favicon-link />
         @vite(['resources/css/app.css', 'resources/js/app.js'])

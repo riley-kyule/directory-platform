@@ -1,4 +1,16 @@
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots">
+@php
+    $schemas = [
+        \App\Support\JsonLd::breadcrumbs([
+            ['name' => 'Home', 'url' => route('directory.home')],
+            ['name' => 'Agencies', 'url' => route('directory.agencies.index')],
+            ['name' => $agency->name, 'url' => route('directory.agencies.show', $agency->slug)],
+        ]),
+        \App\Support\JsonLd::agency($canonicalUrl, $agency->name, $metaDescription),
+    ];
+    $profileUrls = $profiles->map(fn ($profile) => route('directory.profiles.show', $profile->slug))->all();
+    if ($profileUrls !== []) $schemas[] = \App\Support\JsonLd::itemList($profileUrls);
+@endphp
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :previous-url="$previousUrl" :next-url="$nextUrl">
     <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
         <nav class="mb-4 text-sm text-stone-500" aria-label="Breadcrumb"><a href="{{ route('directory.home') }}" class="hover:text-stone-950">Home</a><span class="mx-2">/</span><a href="{{ route('directory.agencies.index') }}" class="hover:text-stone-950">Agencies</a><span class="mx-2">/</span><span>{{ $agency->name }}</span></nav>
         <header class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-10">

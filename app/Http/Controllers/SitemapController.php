@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Agency;
 use App\Models\Location;
 use App\Models\LocationContent;
+use App\Models\PageContent;
 use App\Models\Profile;
+use App\Services\PolicyAcceptanceService;
+use Carbon\Carbon;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
@@ -16,7 +19,7 @@ class SitemapController extends Controller
     public function index(): Response
     {
         $maps = collect([
-            ['url' => route('sitemaps.editorial'), 'lastmod' => now()],
+            ['url' => route('sitemaps.editorial'), 'lastmod' => $this->editorialLastmod()],
         ])
             ->merge($this->chunkMaps('locations', $this->locationsQuery()->count(), fn (int $page) => $this->locationsChunkLastmod($page)))
             ->merge($this->chunkMaps('profiles', Profile::query()->publiclyVisible()->count(), fn (int $page) => $this->pageMaxLastmod(Profile::query()->publiclyVisible(), $page, 'content_updated_at')))
@@ -27,11 +30,30 @@ class SitemapController extends Controller
 
     public function editorial(): Response
     {
-        return $this->urlSet(collect([
-            ['url' => route('directory.home'), 'lastmod' => now(), 'changefreq' => 'daily', 'priority' => '1.0'],
-            ['url' => route('directory.locations.index'), 'lastmod' => now(), 'changefreq' => 'daily', 'priority' => '0.8'],
-            ['url' => route('directory.agencies.index'), 'lastmod' => now(), 'changefreq' => 'daily', 'priority' => '0.7'],
-        ]));
+        $pageContent = PageContent::query()->whereIn('page_key', ['homepage', 'agencies'])->get()->keyBy('page_key');
+        $locationsLastmod = $this->latestTimestamp([
+            Location::query()->where('status', 'published')->max('updated_at'),
+            LocationContent::query()->max('updated_at'),
+        ]);
+        $agenciesLastmod = $this->latestTimestamp([
+            $pageContent->get('agencies')?->updated_at,
+            Agency::query()->where('status', 'active')->max('updated_at'),
+        ]);
+
+        $entries = collect([
+            ['url' => route('directory.home'), 'lastmod' => $pageContent->get('homepage')?->updated_at ?? $this->editorialLastmod(), 'changefreq' => 'daily', 'priority' => '1.0'],
+            ['url' => route('directory.locations.index'), 'lastmod' => $locationsLastmod, 'changefreq' => 'daily', 'priority' => '0.8'],
+            ['url' => route('directory.agencies.index'), 'lastmod' => $agenciesLastmod, 'changefreq' => 'daily', 'priority' => '0.7'],
+        ]);
+
+        $policies = app(PolicyAcceptanceService::class)->latestPublished();
+
+        return $this->urlSet($entries->concat($policies->map(fn ($policy) => [
+            'url' => $policy->publicRoute(),
+            'lastmod' => $policy->updated_at,
+            'changefreq' => 'monthly',
+            'priority' => '0.3',
+        ])));
     }
 
     public function locations(int $page): Response
@@ -141,6 +163,28 @@ class SitemapController extends Controller
     private function chunkSize(): int
     {
         return max(1, min(50_000, (int) config('directory.sitemap_chunk_size')));
+    }
+
+    private function editorialLastmod(): Carbon
+    {
+        return $this->latestTimestamp([
+            PageContent::query()->max('updated_at'),
+            LocationContent::query()->max('updated_at'),
+            Agency::query()->where('status', 'active')->max('updated_at'),
+            app(PolicyAcceptanceService::class)->latestPublished()->max('updated_at'),
+        ]);
+    }
+
+    /** @param array<int, mixed> $timestamps */
+    private function latestTimestamp(array $timestamps): Carbon
+    {
+        $latest = collect($timestamps)
+            ->filter()
+            ->map(fn ($timestamp) => Carbon::parse($timestamp))
+            ->sortDesc()
+            ->first();
+
+        return $latest ?? now();
     }
 
     /** @param Collection<int, array{url: string, lastmod: mixed}> $urls */

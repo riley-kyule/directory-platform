@@ -13,6 +13,10 @@ class PublicLayout extends Component
         public readonly string $canonicalUrl,
         public readonly string $robots = 'index,follow',
         public readonly ?string $structuredData = null,
+        public readonly ?string $socialImage = null,
+        public readonly string $socialType = 'website',
+        public readonly ?string $previousUrl = null,
+        public readonly ?string $nextUrl = null,
     ) {}
 
     public function render(): View

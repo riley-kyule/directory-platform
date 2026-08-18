@@ -11,13 +11,27 @@
         ];
     }
     $breadcrumbItems[] = ['name' => $profile->display_name, 'url' => $canonicalUrl];
+    $profileImages = $profile->images->map(fn ($image) => $image->publicUrl('profile'))->filter()->map(fn ($url) => Str::startsWith($url, ['http://', 'https://']) ? $url : url($url))->values()->all();
+    $schemas = [
+        \App\Support\JsonLd::breadcrumbs($breadcrumbItems),
+        \App\Support\JsonLd::profilePage(
+            $canonicalUrl,
+            $profile->display_name,
+            $metaDescription,
+            $profile->primaryLocation->name,
+            $profile->microLocation?->name ?? $profile->sublocation->name,
+            $profileImages,
+            $profile->languages->pluck('label')->all(),
+            $reviewStats,
+        ),
+    ];
 @endphp
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script([\App\Support\JsonLd::breadcrumbs($breadcrumbItems)])">
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :social-image="$socialImage" social-type="profile">
     @if (session('report_status'))
         <div class="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{{ session('report_status') }}</div></div>
     @endif
     @php($package = $profile->currentPackageAssignment?->package?->code)
-    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <div class="mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8 lg:py-12">
         <nav class="mb-7 text-sm text-stone-500" aria-label="Breadcrumb">
             <a href="{{ route('directory.home') }}" class="hover:text-stone-950">Home</a><span class="mx-2">/</span>
             <a href="{{ route('directory.cities.show', $profile->primaryLocation->slug) }}" class="hover:text-stone-950">{{ $profile->primaryLocation->name }}</a><span class="mx-2">/</span>
@@ -135,8 +149,8 @@
     </div>
 
     @if ($contactLinks)
-        <div class="fixed inset-x-0 bottom-0 z-50 grid grid-flow-col border-t border-stone-200 bg-white p-2 shadow-2xl md:hidden">
+        <nav class="fixed inset-x-0 bottom-0 z-50 grid grid-flow-col border-t border-stone-200 bg-white/95 p-2 shadow-2xl backdrop-blur md:hidden" aria-label="Contact {{ $profile->display_name }}">
             @foreach ($contactLinks as $type => $contact)<a href="{{ $contact['href'] }}" @if (in_array($type, ['whatsapp', 'telegram'])) target="_blank" rel="noopener noreferrer" @endif class="rounded-lg px-2 py-3 text-center text-xs font-bold {{ $type === 'call' ? 'bg-rose-500 text-white' : '' }}">{{ $contact['label'] }}</a>@endforeach
-        </div>
+        </nav>
     @endif
 </x-public-layout>
