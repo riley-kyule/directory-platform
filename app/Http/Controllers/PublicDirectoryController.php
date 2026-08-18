@@ -9,6 +9,7 @@ use App\Services\DirectorySettings;
 use App\Services\LocationSidebarTree;
 use App\Services\PublicContactLinks;
 use App\Services\PublicProfileListings;
+use App\Services\PublicSearchOptions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -21,13 +22,14 @@ class PublicDirectoryController extends Controller
         private readonly PublicProfileListings $listings,
         private readonly PublicContactLinks $contactLinks,
         private readonly DirectorySettings $settings,
+        private readonly PublicSearchOptions $searchOptions,
     ) {}
 
     public function home(): View
     {
         $content = PageContent::query()->where('page_key', 'homepage')->firstOrFail();
 
-        return view('directory.index', [
+        return view('directory.index', $this->searchOptions->all() + [
             'heading' => $content->heading,
             'intro' => $content->intro_content,
             'bottomContent' => $content->bottom_content,

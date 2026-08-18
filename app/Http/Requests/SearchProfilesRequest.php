@@ -35,6 +35,7 @@ class SearchProfilesRequest extends FormRequest
             'build' => $this->taxonomyRule('build'),
             'bust_size' => $this->taxonomyRule('bust_size'),
             'availability' => ['nullable', Rule::in(['incall', 'outcall', 'both'])],
+            'sort' => ['nullable', Rule::in(['recommended', 'newest', 'name'])],
             'services' => ['array', 'max:10'],
             'services.*' => [
                 'string', 'distinct',

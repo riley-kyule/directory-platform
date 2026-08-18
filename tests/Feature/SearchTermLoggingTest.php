@@ -84,6 +84,8 @@ class SearchTermLoggingTest extends TestCase
         $this->actingAs($seo)
             ->get(route('seo.search-insights.index'))
             ->assertOk()
+            ->assertSee('Search and conversion insights')
+            ->assertSee('Contact intent — last 30 days')
             ->assertSee('popular viewable term')
             ->assertSee('42');
     }

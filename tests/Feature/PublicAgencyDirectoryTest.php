@@ -71,6 +71,7 @@ class PublicAgencyDirectoryTest extends TestCase
         $this->get(route('directory.agencies.show', $agency->slug))
             ->assertOk()
             ->assertSee('Active Jane')
+            ->assertSee('Agency managed · Nairobi Agency')
             ->assertSee('"@type":"Organization"', false)
             ->assertSee('"@id":"'.route('directory.agencies.show', $agency->slug).'#agency"', false)
             ->assertDontSee('Expired Jane')

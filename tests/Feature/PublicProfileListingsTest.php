@@ -111,6 +111,18 @@ class PublicProfileListingsTest extends TestCase
         $this->assertFalse($related->contains($invalidPackage));
     }
 
+    public function test_search_results_can_be_sorted_by_newest_or_name(): void
+    {
+        $olderAlpha = $this->activeProfile('Alpha Profile', 'basic', 1, now()->subDays(10));
+        $newerZulu = $this->activeProfile('Zulu Profile', 'basic', 2, now()->subDay());
+
+        $newest = app(PublicProfileListings::class)->search(['sort' => 'newest'])->pluck('id')->all();
+        $alphabetical = app(PublicProfileListings::class)->search(['sort' => 'name'])->pluck('id')->all();
+
+        $this->assertSame([$newerZulu->id, $olderAlpha->id], $newest);
+        $this->assertSame([$olderAlpha->id, $newerZulu->id], $alphabetical);
+    }
+
     private function activeProfile(string $name, string $packageCode, int $rank, mixed $activatedAt): Profile
     {
         $profile = Profile::query()->create([

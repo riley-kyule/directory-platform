@@ -6,9 +6,12 @@ use App\Enums\ProfileStatus;
 use App\Models\Location;
 use App\Models\Package;
 use App\Models\Profile;
+use App\Models\ProfileConversionDaily;
+use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
 use App\Services\ModerationEnforcementService;
+use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -85,7 +88,10 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertOk()
             ->assertSeeInOrder(['VIP Escorts', 'Premium Escorts', 'Basic Escorts', 'New Escorts'])
             ->assertSee('Jane Public')
-            ->assertSee('Call Jane Public');
+            ->assertSee('Call Jane Public')
+            ->assertSee('Name, service or profile text')
+            ->assertSee('Browse locations')
+            ->assertSee('mobile-public-navigation');
     }
 
     public function test_profile_card_call_button_truncates_instead_of_wrapping(): void
@@ -122,7 +128,95 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertSee('sms:+254700000000', false)
             ->assertSee('https://wa.me/254700000000', false)
             ->assertSee('https://t.me/janepublic', false)
+            ->assertSee('data-placement="profile_page"', false)
+            ->assertSee('data-placement="mobile_bar"', false)
+            ->assertSee('Verification reviewed.')
+            ->assertSee('Independent listing')
             ->assertDontSee($this->profile->date_of_birth->toDateString());
+    }
+
+    public function test_contact_events_are_stored_only_as_daily_aggregates(): void
+    {
+        $payload = [
+            'profile' => $this->profile->public_id,
+            'channel' => 'call',
+            'placement' => 'profile_page',
+        ];
+
+        $this->post(route('conversion.contact'), $payload)->assertNoContent();
+        $this->post(route('conversion.contact'), $payload)->assertNoContent();
+
+        $this->assertDatabaseHas('profile_conversion_daily', [
+            'event_date' => now()->toDateString(),
+            'profile_id' => $this->profile->id,
+            'channel' => 'call',
+            'placement' => 'profile_page',
+            'contact_count' => 2,
+        ]);
+        $this->assertDatabaseCount('profile_conversion_daily', 1);
+    }
+
+    public function test_authorized_staff_can_see_aggregated_profile_conversion_counts(): void
+    {
+        foreach (range(1, 2) as $_) {
+            $this->post(route('conversion.contact'), [
+                'profile' => $this->profile->public_id,
+                'channel' => 'whatsapp',
+                'placement' => 'mobile_bar',
+            ])->assertNoContent();
+        }
+
+        $this->seed(AccessControlSeeder::class);
+        $seo = User::factory()->create();
+        $seo->roles()->attach(Role::query()->where('slug', 'seo')->firstOrFail());
+
+        $this->actingAs($seo)
+            ->get(route('seo.search-insights.index'))
+            ->assertOk()
+            ->assertSee('Jane Public')
+            ->assertSee('WhatsApp')
+            ->assertSee('Mobile Bar');
+    }
+
+    public function test_contact_tracking_rejects_invalid_events_and_private_profiles(): void
+    {
+        $this->post(route('conversion.contact'), [
+            'profile' => $this->profile->public_id,
+            'channel' => 'email',
+            'placement' => 'profile_page',
+        ])->assertSessionHasErrors('channel');
+
+        $this->profile->update(['status' => ProfileStatus::Deactivated]);
+        $this->post(route('conversion.contact'), [
+            'profile' => $this->profile->public_id,
+            'channel' => 'call',
+            'placement' => 'profile_page',
+        ])->assertNotFound();
+
+        $this->assertDatabaseCount('profile_conversion_daily', 0);
+    }
+
+    public function test_old_conversion_aggregates_are_pruned_by_retention_policy(): void
+    {
+        ProfileConversionDaily::query()->create([
+            'event_date' => now()->subDays(401)->toDateString(),
+            'profile_id' => $this->profile->id,
+            'channel' => 'call',
+            'placement' => 'profile_page',
+            'contact_count' => 5,
+        ]);
+        ProfileConversionDaily::query()->create([
+            'event_date' => now()->toDateString(),
+            'profile_id' => $this->profile->id,
+            'channel' => 'whatsapp',
+            'placement' => 'mobile_bar',
+            'contact_count' => 2,
+        ]);
+
+        $this->artisan('conversion:prune')->assertSuccessful();
+
+        $this->assertDatabaseMissing('profile_conversion_daily', ['channel' => 'call']);
+        $this->assertDatabaseHas('profile_conversion_daily', ['channel' => 'whatsapp']);
     }
 
     public function test_public_profile_exposes_social_metadata_and_safe_entity_schema(): void
@@ -138,6 +232,31 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertSee('"@type":"Person"', false)
             ->assertSee('"addressLocality":"Westlands"', false)
             ->assertDontSee($this->profile->date_of_birth->toDateString());
+    }
+
+    public function test_profile_gallery_exposes_accessible_open_and_close_controls(): void
+    {
+        $this->profile->images()->create([
+            'storage_directory' => 'profiles/test-image',
+            'mime_type' => 'image/jpeg',
+            'file_size' => 1000,
+            'exact_hash' => hash('sha256', 'profile-gallery-test'),
+            'width' => 800,
+            'height' => 1000,
+            'aspect_ratio' => 0.8,
+            'status' => 'approved',
+            'sort_order' => 1,
+            'derivatives' => [
+                'profile' => ['file' => 'profile.webp', 'width' => 800, 'height' => 1000],
+                'card' => ['file' => 'card.webp', 'width' => 640, 'height' => 800],
+            ],
+        ]);
+
+        $this->get(route('directory.profiles.show', $this->profile->slug))
+            ->assertOk()
+            ->assertSee('Open image 1 of 1')
+            ->assertSee('Close image gallery')
+            ->assertSee('role="dialog"', false);
     }
 
     public function test_public_pages_expose_consistent_open_graph_metadata(): void
@@ -193,6 +312,12 @@ class PublicDirectoryPagesTest extends TestCase
             'city' => 'nairobi',
             'neighbourhood' => 'nyali',
         ]))->assertSessionHasErrors('neighbourhood');
+
+        $this->get(route('directory.search', ['sort' => 'newest']))
+            ->assertOk()
+            ->assertSee('Sorted by newest');
+        $this->get(route('directory.search', ['sort' => 'unreviewed']))
+            ->assertSessionHasErrors('sort');
     }
 
     public function test_search_query_is_escaped_when_rendered(): void

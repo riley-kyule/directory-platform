@@ -21,9 +21,13 @@ class DirectorySchemaTest extends TestCase
             'locations', 'agencies', 'profiles', 'packages', 'profile_package_requests',
             'profile_package_assignments', 'profile_contact_methods', 'profile_rates',
             'profile_services', 'profile_images', 'policy_acceptances', 'audit_logs',
+            'profile_conversion_daily',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Expected {$table} to exist.");
         }
+
+        $conversionColumns = Schema::getColumnListing('profile_conversion_daily');
+        $this->assertEmpty(array_intersect($conversionColumns, ['user_id', 'session_id', 'ip_address', 'user_agent', 'fingerprint']));
     }
 
     public function test_default_packages_have_the_agreed_image_limits(): void

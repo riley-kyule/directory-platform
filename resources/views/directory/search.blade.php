@@ -23,7 +23,7 @@
         <section class="mt-12" aria-labelledby="search-results">
             <div class="mb-6 flex items-end justify-between border-b border-stone-300 pb-4">
                 <h2 id="search-results" class="text-2xl font-black">Active profiles</h2>
-                <p class="text-sm font-semibold text-stone-500">{{ $profiles->total() }} {{ Str::plural('result', $profiles->total()) }}</p>
+                <div class="text-right"><p class="text-sm font-semibold text-stone-500">{{ $profiles->total() }} {{ Str::plural('result', $profiles->total()) }}</p><p class="mt-1 text-xs text-stone-400">Sorted by {{ match($filters['sort'] ?? 'recommended') { 'newest' => 'newest', 'name' => 'name', default => 'recommended order' } }}</p></div>
             </div>
 
             @if ($profiles->isNotEmpty())

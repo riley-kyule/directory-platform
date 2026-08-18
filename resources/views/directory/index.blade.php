@@ -40,6 +40,18 @@
                     @endif
                 </header>
 
+                @if (! $location)
+                    <section aria-label="Find a profile">
+                        <x-search-filters
+                            :filters="[]"
+                            :search-cities="$searchCities"
+                            :search-neighbourhoods="$searchNeighbourhoods"
+                            :search-taxonomies="$searchTaxonomies"
+                            class="-mt-8"
+                        />
+                    </section>
+                @endif
+
                 @if ($nearbyLocations->isNotEmpty())
                     <div class="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-8 text-center">
                         <p class="font-bold text-stone-900">Nothing active here yet — try a nearby area instead.</p>

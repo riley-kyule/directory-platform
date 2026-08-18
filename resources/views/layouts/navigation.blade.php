@@ -80,7 +80,7 @@
                         @endcan
                         @can('seo.search-insights')
                             <x-responsive-nav-link :href="route('seo.search-insights.index')" :active="request()->routeIs('seo.search-insights.*')">
-                                {{ __('Search Insights') }}
+                                {{ __('Search & Conversions') }}
                             </x-responsive-nav-link>
                         @endcan
                         @can('seo.metadata')

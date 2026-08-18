@@ -10,6 +10,7 @@ use App\Http\Controllers\AgeGateController;
 use App\Http\Controllers\ModerationAppealController;
 use App\Http\Controllers\PolicyPageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfileConversionController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProfileReportController;
 use App\Http\Controllers\ProviderOnboardingController;
@@ -33,6 +34,9 @@ use App\Http\Controllers\SystemHealthController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/age-gate/confirm', [AgeGateController::class, 'confirm'])->name('age-gate.confirm');
+Route::post('/conversion/contact', ProfileConversionController::class)
+    ->middleware('throttle:30,1')
+    ->name('conversion.contact');
 
 Route::get('/', [PublicDirectoryController::class, 'home'])->middleware(['age.gate', 'cache.public'])->name('directory.home');
 Route::get('/locations', [PublicDirectoryController::class, 'allLocations'])->middleware(['age.gate', 'cache.public'])->name('directory.locations.index');

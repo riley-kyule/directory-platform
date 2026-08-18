@@ -63,7 +63,7 @@ class PublicProfileListings
     /** @param array<string, mixed> $filters */
     public function search(array $filters): Builder
     {
-        return $this->baseQuery()
+        $query = $this->baseQuery()
             ->when($filters['q'] ?? null, function (Builder $query, string $term): void {
                 if ($query->getConnection()->getDriverName() === 'mysql') {
                     $query->whereFullText(
@@ -102,6 +102,12 @@ class PublicProfileListings
             })
             ->when($filters['services'] ?? [], fn (Builder $query, array $slugs) => $query
                 ->whereHas('services', fn (Builder $query) => $query->whereIn('slug', $slugs)));
+
+        return match ($filters['sort'] ?? 'recommended') {
+            'newest' => $query->reorder()->orderByDesc('last_activated_at')->orderBy('id'),
+            'name' => $query->reorder()->orderBy('display_name')->orderBy('id'),
+            default => $query,
+        };
     }
 
     /**
