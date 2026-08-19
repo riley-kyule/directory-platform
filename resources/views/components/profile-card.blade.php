@@ -1,4 +1,4 @@
-@props(['profile', 'isNew' => false])
+@props(['profile', 'isNew' => false, 'priority' => false])
 @php
     $image = $profile->images->first();
     $package = $profile->currentPackageAssignment?->package?->code;
@@ -9,7 +9,7 @@
 <article class="group overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
     <a href="{{ route('directory.profiles.show', $profile->slug) }}" class="relative block aspect-[4/5] overflow-hidden bg-gradient-to-br from-stone-200 via-stone-100 to-rose-100">
         @if ($image?->publicUrl('card'))
-            <img src="{{ $image->publicUrl('card') }}" alt="{{ $profile->display_name }} in {{ $profile->microLocation?->name ?? $profile->sublocation->name }}" width="{{ $image->derivatives['card']['width'] ?? 640 }}" height="{{ $image->derivatives['card']['height'] ?? 800 }}" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]">
+            <img src="{{ $image->publicUrl('card') }}" srcset="{{ $image->responsiveSrcset(['thumb', 'card', 'profile']) }}" sizes="(min-width: 1280px) 280px, (min-width: 1024px) 30vw, (min-width: 420px) 50vw, 100vw" alt="{{ $profile->display_name }} in {{ $profile->microLocation?->name ?? $profile->sublocation->name }}" width="{{ $image->derivatives['card']['width'] ?? 640 }}" height="{{ $image->derivatives['card']['height'] ?? 800 }}" loading="{{ $priority ? 'eager' : 'lazy' }}" fetchpriority="{{ $priority ? 'high' : 'low' }}" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]">
         @else
             <div class="grid h-full place-items-center px-6 text-center">
                 <span class="text-5xl font-black text-stone-300">{{ str($profile->display_name)->substr(0, 1)->upper() }}</span>
@@ -38,9 +38,9 @@
             <span class="shrink-0 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-600">{{ $profile->date_of_birth->age }}</span>
         </div>
         <div class="mt-4 flex gap-2">
-            <a href="{{ route('directory.profiles.show', $profile->slug) }}" class="min-w-0 flex-1 truncate rounded-xl border border-stone-200 px-3 py-2.5 text-center text-sm font-semibold transition hover:border-stone-400">View profile</a>
+            <a href="{{ route('directory.profiles.show', $profile->slug) }}" class="min-w-0 flex-1 truncate rounded-xl border border-stone-200 px-3 py-3 text-center text-sm font-semibold transition hover:border-stone-400">View profile</a>
             @if ($call)
-                <a href="tel:{{ $call->normalized_value }}" title="Call {{ $profile->display_name }}" data-conversion data-profile="{{ $profile->public_id }}" data-channel="call" data-placement="profile_card" class="min-w-0 flex-1 truncate rounded-xl bg-rose-500 px-3 py-2.5 text-center text-sm font-bold text-white transition hover:bg-rose-600">Call {{ $profile->display_name }}</a>
+                <a href="tel:{{ $call->normalized_value }}" title="Call {{ $profile->display_name }}" data-conversion data-profile="{{ $profile->public_id }}" data-channel="call" data-placement="profile_card" class="min-w-0 flex-1 truncate rounded-xl bg-rose-500 px-3 py-3 text-center text-sm font-bold text-white transition hover:bg-rose-600">Call {{ $profile->display_name }}</a>
             @endif
         </div>
     </div>

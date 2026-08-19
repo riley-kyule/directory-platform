@@ -12,6 +12,8 @@
     }
     $breadcrumbItems[] = ['name' => $profile->display_name, 'url' => $canonicalUrl];
     $profileImages = $profile->images->map(fn ($image) => $image->publicUrl('profile'))->filter()->map(fn ($url) => Str::startsWith($url, ['http://', 'https://']) ? $url : url($url))->values()->all();
+    $primaryImage = $profile->images->first();
+    $profileImageSizes = '(min-width: 1024px) 58vw, (min-width: 640px) 50vw, 100vw';
     $schemas = [
         \App\Support\JsonLd::breadcrumbs($breadcrumbItems),
         \App\Support\JsonLd::profilePage(
@@ -26,7 +28,7 @@
         ),
     ];
 @endphp
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :social-image="$socialImage" social-type="profile">
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :social-image="$socialImage" social-type="profile" :preload-image="$primaryImage?->publicUrl('profile')" :preload-image-srcset="$primaryImage?->responsiveSrcset()" :preload-image-sizes="$primaryImage ? $profileImageSizes : null">
     @if (session('report_status'))
         <div class="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{{ session('report_status') }}</div></div>
     @endif
@@ -47,12 +49,36 @@
 
         <div class="grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,.65fr)]">
             <div>
-                <div x-data="{ selectedImage: null }" @keydown.escape.window="selectedImage = null">
+                <div x-data="{
+                    selectedImage: null,
+                    returnFocus: null,
+                    imageCount: {{ $profile->images->count() }},
+                    openGallery(index, trigger) {
+                        this.selectedImage = index;
+                        this.returnFocus = trigger;
+                        this.$nextTick(() => this.$refs.galleryClose?.focus());
+                    },
+                    closeGallery() {
+                        this.selectedImage = null;
+                        this.$nextTick(() => this.returnFocus?.focus());
+                    },
+                    stepGallery(direction) {
+                        this.selectedImage = (this.selectedImage + direction + this.imageCount) % this.imageCount;
+                    },
+                    trapGalleryTab(event) {
+                        const controls = [...this.$refs.galleryDialog.querySelectorAll('button:not([disabled])')];
+                        if (controls.length === 0) return;
+                        const first = controls[0];
+                        const last = controls[controls.length - 1];
+                        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                        if (! event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+                    },
+                }" x-effect="document.body.classList.toggle('overflow-hidden', selectedImage !== null)" @keydown.escape.window="if (selectedImage !== null) closeGallery()">
                     <div class="grid gap-3 sm:grid-cols-2">
                         @forelse ($profile->images as $image)
                             @php($imageSlot = $loop->first ? 'profile' : 'card')
-                            <button type="button" @click="selectedImage = {{ $loop->index }}" aria-label="Open image {{ $loop->iteration }} of {{ $profile->images->count() }}" class="group relative overflow-hidden rounded-2xl text-left focus:outline-none focus:ring-4 focus:ring-rose-300 {{ $loop->first ? 'sm:row-span-2' : '' }}">
-                                <img src="{{ $image->publicUrl($imageSlot) }}" alt="{{ $profile->display_name }} profile image {{ $loop->iteration }}" width="{{ $image->derivatives[$imageSlot]['width'] ?? 640 }}" height="{{ $image->derivatives[$imageSlot]['height'] ?? 800 }}" @if ($loop->first) fetchpriority="high" @else loading="lazy" @endif class="aspect-[4/5] h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
+                            <button type="button" @click="openGallery({{ $loop->index }}, $event.currentTarget)" aria-label="Open image {{ $loop->iteration }} of {{ $profile->images->count() }}" class="group relative overflow-hidden rounded-2xl text-left focus:outline-none focus:ring-4 focus:ring-rose-300 {{ $loop->first ? 'sm:row-span-2' : '' }}">
+                                <img src="{{ $image->publicUrl($imageSlot) }}" srcset="{{ $image->responsiveSrcset() }}" sizes="(min-width: 1024px) 58vw, (min-width: 640px) 50vw, 100vw" alt="{{ $profile->display_name }} profile image {{ $loop->iteration }}" width="{{ $image->derivatives[$imageSlot]['width'] ?? 640 }}" height="{{ $image->derivatives[$imageSlot]['height'] ?? 800 }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}" fetchpriority="{{ $loop->first ? 'high' : 'low' }}" decoding="async" class="aspect-[4/5] h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
                                 <span class="absolute bottom-3 right-3 rounded-full bg-stone-950/75 px-3 py-1.5 text-xs font-bold text-white opacity-0 backdrop-blur transition group-hover:opacity-100 group-focus:opacity-100">View image</span>
                             </button>
                         @empty
@@ -61,16 +87,16 @@
                     </div>
 
                     @if ($profile->images->isNotEmpty())
-                        <div x-show="selectedImage !== null" x-cloak x-transition.opacity class="fixed inset-0 z-50 grid place-items-center bg-stone-950/95 p-4 sm:p-8" role="dialog" aria-modal="true" aria-label="{{ $profile->display_name }} image gallery" @click.self="selectedImage = null">
-                            <button type="button" @click="selectedImage = null" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-2xl text-white hover:bg-white/20" aria-label="Close image gallery">&times;</button>
+                        <div x-ref="galleryDialog" x-show="selectedImage !== null" x-cloak x-transition.opacity class="fixed inset-0 z-50 grid place-items-center bg-stone-950/95 p-4 sm:p-8" role="dialog" aria-modal="true" aria-label="{{ $profile->display_name }} image gallery" tabindex="-1" @click.self="closeGallery()" @keydown.tab="trapGalleryTab($event)" @keydown.arrow-left.prevent="stepGallery(-1)" @keydown.arrow-right.prevent="stepGallery(1)">
+                            <button x-ref="galleryClose" type="button" @click="closeGallery()" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-2xl text-white hover:bg-white/20" aria-label="Close image gallery">&times;</button>
                             @foreach ($profile->images as $image)
-                                <img x-show="selectedImage === {{ $loop->index }}" src="{{ $image->publicUrl('profile') ?? $image->publicUrl('card') }}" alt="{{ $profile->display_name }} enlarged profile image {{ $loop->iteration }}" class="max-h-[88vh] max-w-full rounded-xl object-contain shadow-2xl">
+                                <img x-show="selectedImage === {{ $loop->index }}" src="{{ $image->publicUrl('full') ?? $image->publicUrl('profile') ?? $image->publicUrl('card') }}" alt="{{ $profile->display_name }} enlarged profile image {{ $loop->iteration }}" loading="lazy" decoding="async" class="max-h-[88vh] max-w-full rounded-xl object-contain shadow-2xl">
                             @endforeach
                             @if ($profile->images->count() > 1)
                                 <div class="absolute inset-x-4 bottom-5 flex items-center justify-center gap-3">
-                                    <button type="button" @click="selectedImage = (selectedImage - 1 + {{ $profile->images->count() }}) % {{ $profile->images->count() }}" class="rounded-full bg-white px-5 py-2 text-sm font-bold text-stone-950">Previous</button>
-                                    <span class="rounded-full bg-stone-950/70 px-3 py-2 text-xs font-semibold text-white"><span x-text="selectedImage + 1"></span> / {{ $profile->images->count() }}</span>
-                                    <button type="button" @click="selectedImage = (selectedImage + 1) % {{ $profile->images->count() }}" class="rounded-full bg-white px-5 py-2 text-sm font-bold text-stone-950">Next</button>
+                                    <button type="button" @click="stepGallery(-1)" class="min-h-11 rounded-full bg-white px-5 py-2 text-sm font-bold text-stone-950">Previous</button>
+                                    <span class="rounded-full bg-stone-950/70 px-3 py-2 text-xs font-semibold text-white" aria-live="polite"><span x-text="selectedImage + 1"></span> / {{ $profile->images->count() }}</span>
+                                    <button type="button" @click="stepGallery(1)" class="min-h-11 rounded-full bg-white px-5 py-2 text-sm font-bold text-stone-950">Next</button>
                                 </div>
                             @endif
                         </div>
@@ -151,6 +177,7 @@
                 <h2 id="reviews" class="text-2xl font-black tracking-tight sm:text-3xl">Reviews</h2>
                 @if ($reviewStats['count'] > 0)
                     <p class="mt-1 text-sm text-stone-500">{{ number_format($reviewStats['average'], 1) }} ★ average from {{ $reviewStats['count'] }} review{{ $reviewStats['count'] === 1 ? '' : 's' }}</p>
+                    @if ($reviewStats['shown'] < $reviewStats['count'])<p class="mt-1 text-xs text-stone-400">Showing the latest {{ $reviewStats['shown'] }} reviews.</p>@endif
                 @else
                     <p class="mt-1 text-sm text-stone-500">No reviews yet — be the first.</p>
                 @endif

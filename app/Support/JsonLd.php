@@ -84,7 +84,7 @@ class JsonLd
      *
      * @param  array<int, string>  $images
      * @param  array<int, string>  $languages
-     * @param  array{average: float|int|null, count: int}  $reviewStats
+     * @param  array{average: float|int|null, count: int, shown?: int}  $reviewStats
      */
     public static function profilePage(
         string $url,

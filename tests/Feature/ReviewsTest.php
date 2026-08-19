@@ -12,7 +12,9 @@ use App\Models\TaxonomyOption;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -167,6 +169,35 @@ class ReviewsTest extends TestCase
         ])->assertSessionHasErrors('reason');
 
         $this->assertSame('pending', $review->refresh()->status);
+    }
+
+    public function test_public_profile_shows_aggregate_stats_but_bounds_rendered_reviews(): void
+    {
+        foreach (range(1, 21) as $number) {
+            Review::query()->create([
+                'profile_id' => $this->profile->id,
+                'reviewer_name' => $number === 1 ? 'Oldest Review Marker' : ($number === 21 ? 'Newest Review Marker' : 'Reviewer '.$number),
+                'rating' => 5,
+                'body' => 'Published review number '.$number.' with enough useful detail for the public review section.',
+                'status' => 'published',
+                'created_at' => now()->subMinutes(22 - $number),
+            ]);
+        }
+
+        $reviewQueryCount = 0;
+        DB::listen(function (QueryExecuted $query) use (&$reviewQueryCount): void {
+            if (str_contains(strtolower($query->sql), 'from "reviews"') || str_contains(strtolower($query->sql), 'from `reviews`')) {
+                $reviewQueryCount++;
+            }
+        });
+
+        $this->get(route('directory.profiles.show', $this->profile->slug))
+            ->assertOk()
+            ->assertSee('5.0 ★ average from 21 reviews')
+            ->assertSee('Showing the latest 20 reviews.')
+            ->assertSee('Newest Review Marker')
+            ->assertDontSee('Oldest Review Marker');
+        $this->assertSame(2, $reviewQueryCount, 'Review volume must not cause per-review or unbounded follow-up queries.');
     }
 
     private function pendingReview(): Review

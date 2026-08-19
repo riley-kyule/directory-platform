@@ -94,6 +94,17 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertSee('mobile-public-navigation');
     }
 
+    public function test_public_layout_has_skip_navigation_and_accessible_interaction_targets(): void
+    {
+        $this->get(route('directory.home'))
+            ->assertOk()
+            ->assertSee('href="#main-content"', false)
+            ->assertSee('<main id="main-content" tabindex="-1">', false)
+            ->assertSee('aria-controls="mobile-public-navigation"', false)
+            ->assertSee('aria-controls="advanced-search-filters"', false)
+            ->assertSee('role="region" aria-label="Advanced search filters"', false);
+    }
+
     public function test_profile_card_call_button_truncates_instead_of_wrapping(): void
     {
         // The call button's label includes the display name (`Call {name}`),
@@ -236,27 +247,32 @@ class PublicDirectoryPagesTest extends TestCase
 
     public function test_profile_gallery_exposes_accessible_open_and_close_controls(): void
     {
-        $this->profile->images()->create([
-            'storage_directory' => 'profiles/test-image',
-            'mime_type' => 'image/jpeg',
-            'file_size' => 1000,
-            'exact_hash' => hash('sha256', 'profile-gallery-test'),
-            'width' => 800,
-            'height' => 1000,
-            'aspect_ratio' => 0.8,
-            'status' => 'approved',
-            'sort_order' => 1,
-            'derivatives' => [
-                'profile' => ['file' => 'profile.webp', 'width' => 800, 'height' => 1000],
-                'card' => ['file' => 'card.webp', 'width' => 640, 'height' => 800],
-            ],
-        ]);
+        $this->addApprovedImage();
 
         $this->get(route('directory.profiles.show', $this->profile->slug))
             ->assertOk()
             ->assertSee('Open image 1 of 1')
             ->assertSee('Close image gallery')
-            ->assertSee('role="dialog"', false);
+            ->assertSee('role="dialog"', false)
+            ->assertSee('<link rel="preload" as="image"', false)
+            ->assertSee('imagesrcset="', false)
+            ->assertSee('imagesizes="(min-width: 1024px) 58vw', false)
+            ->assertSee('srcset="', false)
+            ->assertSee('sizes="(min-width: 1024px) 58vw', false)
+            ->assertSee('loading="eager" fetchpriority="high" decoding="async"', false)
+            ->assertSee('@keydown.tab="trapGalleryTab($event)"', false);
+    }
+
+    public function test_listing_page_preloads_and_prioritizes_only_one_card_image(): void
+    {
+        $this->addApprovedImage();
+
+        $response = $this->get(route('directory.home'))->assertOk();
+
+        $this->assertSame(2, substr_count($response->getContent(), 'fetchpriority="high"'));
+        $response->assertSee('imagesizes="(min-width: 1280px) 280px', false)
+            ->assertSee('loading="eager" fetchpriority="high" decoding="async"', false)
+            ->assertSee('srcset="', false);
     }
 
     public function test_public_pages_expose_consistent_open_graph_metadata(): void
@@ -436,5 +452,25 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertOk()
             ->assertSee('More profiles near Jane Public')
             ->assertSee('Related Jane');
+    }
+
+    private function addApprovedImage(): void
+    {
+        $this->profile->images()->create([
+            'storage_directory' => 'profiles/test-image',
+            'mime_type' => 'image/webp',
+            'file_size' => 1000,
+            'exact_hash' => hash('sha256', 'profile-gallery-test'),
+            'width' => 800,
+            'height' => 1000,
+            'aspect_ratio' => 0.8,
+            'status' => 'approved',
+            'sort_order' => 1,
+            'derivatives' => [
+                'thumb' => ['file' => 'thumb.webp', 'width' => 320, 'height' => 400],
+                'card' => ['file' => 'card.webp', 'width' => 640, 'height' => 800],
+                'profile' => ['file' => 'profile.webp', 'width' => 800, 'height' => 1000],
+            ],
+        ]);
     }
 }

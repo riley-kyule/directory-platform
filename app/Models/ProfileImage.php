@@ -40,6 +40,34 @@ class ProfileImage extends Model
         return Storage::disk('profile_media')->url($this->storage_directory.'/'.$file);
     }
 
+    /** @param list<string> $slots */
+    public function responsiveSrcset(array $slots = ['thumb', 'card', 'profile', 'full']): ?string
+    {
+        if ($this->status !== 'approved') {
+            return null;
+        }
+
+        $sources = collect($slots)
+            ->map(function (string $slot): ?array {
+                $derivative = $this->derivatives[$slot] ?? null;
+                if (! is_array($derivative) || ! isset($derivative['file'], $derivative['width'])) {
+                    return null;
+                }
+
+                return [
+                    'url' => Storage::disk('profile_media')->url($this->storage_directory.'/'.$derivative['file']),
+                    'width' => (int) $derivative['width'],
+                ];
+            })
+            ->filter()
+            ->unique('width')
+            ->sortBy('width');
+
+        return $sources->isEmpty()
+            ? null
+            : $sources->map(fn (array $source) => $source['url'].' '.$source['width'].'w')->implode(', ');
+    }
+
     protected function casts(): array
     {
         return [

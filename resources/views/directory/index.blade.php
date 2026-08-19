@@ -13,8 +13,12 @@
     if (! empty($faqPairs ?? [])) {
         $schemas[] = \App\Support\JsonLd::faqPage($faqPairs);
     }
+    $prioritySection = collect(['vip', 'premium', 'basic', 'new'])
+        ->first(fn ($section) => $sections[$section]->isNotEmpty());
+    $priorityImage = $prioritySection ? $sections[$prioritySection]->first()?->images->first() : null;
+    $listingImageSizes = '(min-width: 1280px) 280px, (min-width: 1024px) 30vw, (min-width: 420px) 50vw, 100vw';
 @endphp
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :previous-url="$previousUrl ?? null" :next-url="$nextUrl ?? null">
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :previous-url="$previousUrl ?? null" :next-url="$nextUrl ?? null" :preload-image="$priorityImage?->publicUrl('card')" :preload-image-srcset="$priorityImage?->responsiveSrcset(['thumb', 'card', 'profile'])" :preload-image-sizes="$priorityImage ? $listingImageSizes : null">
     <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
         <div class="grid gap-10 lg:grid-cols-[260px_1fr] lg:items-start">
             <div class="min-w-0 space-y-16 lg:order-2">
@@ -79,7 +83,7 @@
                         @if ($sections[$key]->isNotEmpty())
                             <div class="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 @foreach ($sections[$key] as $profile)
-                                    <x-profile-card :profile="$profile" :is-new="$key === 'new' || $profile->last_activated_at?->gte(now()->subDays($newProfileDays))" />
+                                    <x-profile-card :profile="$profile" :is-new="$key === 'new' || $profile->last_activated_at?->gte(now()->subDays($newProfileDays))" :priority="$key === $prioritySection && $loop->first" />
                                 @endforeach
                             </div>
                         @else

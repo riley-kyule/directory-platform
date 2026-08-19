@@ -141,7 +141,12 @@ class PublicDirectoryController extends Controller
             ])
             ->firstOrFail();
 
-        $reviews = $profile->reviews()->published()->latest()->get();
+        $reviewAggregate = $profile->reviews()
+            ->published()
+            ->selectRaw('COUNT(*) as review_count, AVG(rating) as average_rating')
+            ->first();
+        $reviewCount = (int) ($reviewAggregate?->review_count ?? 0);
+        $reviews = $profile->reviews()->published()->latest()->limit(20)->get();
         $canonicalUrl = route('directory.profiles.show', $profile->slug);
         $metaDescription = str($profile->description)->squish()->limit(155)->toString();
         $socialImage = $profile->images->first()?->publicUrl('profile');
@@ -161,8 +166,9 @@ class PublicDirectoryController extends Controller
             'newProfileDays' => $this->settings->integer('listings.new_profile_days'),
             'reviews' => $reviews,
             'reviewStats' => [
-                'average' => $reviews->isNotEmpty() ? round($reviews->avg('rating'), 1) : null,
-                'count' => $reviews->count(),
+                'average' => $reviewCount > 0 ? round((float) $reviewAggregate->average_rating, 1) : null,
+                'count' => $reviewCount,
+                'shown' => $reviews->count(),
             ],
         ]);
     }

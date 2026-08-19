@@ -45,7 +45,7 @@
     </div>
 
     <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-4">
-        <button type="button" @click="advanced = ! advanced" :aria-expanded="advanced.toString()" class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-stone-700 hover:bg-stone-100">
+        <button type="button" @click="advanced = ! advanced" :aria-expanded="advanced.toString()" aria-controls="advanced-search-filters" class="inline-flex min-h-11 items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-stone-700 hover:bg-stone-100">
             <span x-text="advanced ? 'Fewer filters' : 'More filters'">More filters</span>
             <svg class="h-4 w-4 transition" :class="advanced && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
         </button>
@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    <div x-show="advanced" x-cloak class="mt-5 border-t border-stone-100 pt-5">
+    <div id="advanced-search-filters" x-show="advanced" x-cloak class="mt-5 border-t border-stone-100 pt-5" role="region" aria-label="Advanced search filters">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             @foreach (['gender' => 'Gender', 'ethnicity' => 'Ethnicity', 'build' => 'Build', 'bust_size' => 'Bust size'] as $type => $label)
             <label>
@@ -94,7 +94,7 @@
                 <legend class="text-sm font-bold text-stone-700">Services</legend>
                 <div class="mt-2 flex flex-wrap gap-2">
                     @foreach ($searchTaxonomies->get('service') as $service)
-                        <label class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-stone-300 px-3 py-2 text-sm transition hover:border-stone-500">
+                        <label class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-stone-300 px-3 py-2 text-sm transition hover:border-stone-500">
                             <input type="checkbox" name="services[]" value="{{ $service->slug }}" @checked(in_array($service->slug, $filters['services'] ?? [], true)) class="rounded border-stone-300 text-rose-600 focus:ring-rose-500">
                             {{ $service->label }}
                         </label>

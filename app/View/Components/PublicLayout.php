@@ -17,6 +17,9 @@ class PublicLayout extends Component
         public readonly string $socialType = 'website',
         public readonly ?string $previousUrl = null,
         public readonly ?string $nextUrl = null,
+        public readonly ?string $preloadImage = null,
+        public readonly ?string $preloadImageSrcset = null,
+        public readonly ?string $preloadImageSizes = null,
     ) {}
 
     public function render(): View

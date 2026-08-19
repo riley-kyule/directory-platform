@@ -52,6 +52,7 @@ class ProfileImageProcessingTest extends TestCase
 
         $image->refresh();
         $this->assertSame('pending_review', $image->status);
+        $this->assertNull($image->responsiveSrcset());
         $this->assertSame('image/webp', $image->mime_type);
         $this->assertNotNull($image->perceptual_hash);
         $this->assertCount(4, $image->derivatives);
@@ -68,6 +69,10 @@ class ProfileImageProcessingTest extends TestCase
         $profile->update(['status' => ProfileStatus::Active, 'expires_at' => now()->addDays(30)]);
         (new PublishProfileImages($profile->id))->handle(app(ProfileImageVisibility::class));
         $this->assertSame('approved', $image->refresh()->status);
+        $srcset = $image->responsiveSrcset();
+        $this->assertStringContainsString('thumb-320.webp 320w', $srcset);
+        $this->assertStringContainsString('card-640.webp 640w', $srcset);
+        $this->assertSame(1, substr_count($srcset, ' 800w'));
         Storage::disk('media_review')->assertMissing($image->storage_directory.'/card-640.webp');
         Storage::disk('profile_media')->assertExists($image->storage_directory.'/card-640.webp');
 
