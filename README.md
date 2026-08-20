@@ -44,6 +44,7 @@ The project is in active development. Its current foundation provides account re
 - Versioned policy acceptance evidence across registration, profile submission, media upload, and renewal
 - Database-backed sessions, cache, and queues
 - Readiness monitoring for database, cache, scheduler, queues, disk, and database/media backup freshness
+- Blocking production launch gate, bounded post-deploy load smoke, and an incident/recovery runbook
 - Scheduled native database and media backups with compression, checksum records, verification, and retention pruning
 - Admin-editable site identity (website title, support email) that feeds page titles, structured data, and policy content
 - Generic, portable starting legal policies (Terms, Privacy, Provider, Media, Agency) seeded and published by default
@@ -131,7 +132,15 @@ php artisan optimize
 composer launch-check
 ```
 
-The launch check fails closed when key security, Google Staff SSO, policy, enabled MFA, scheduler, backup, HTTPS, queue, cache, session, database, or storage requirements are missing (`--allow-cold-start` downgrades just the scheduler-heartbeat/backup-freshness checks to warnings, for a genuinely first-ever deploy where neither can have run yet). Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the incident plan.
+After activation, run the bounded public smoke test (`--production` is required when `APP_ENV=production`):
+
+```bash
+php artisan system:load-smoke --production --base-url=https://example.com --requests=40 --concurrency=5 --max-p95-ms=1500
+```
+
+The complete deploy, verification, incident, rollback, queue/SSO outage, and disaster-recovery procedures are in [`docs/production-runbook.md`](docs/production-runbook.md).
+
+The launch check fails closed when key security, Google Staff SSO, policy, enabled MFA, scheduler, queue-worker, backup, mail delivery, HTTPS, queue, cache, session, database, or storage requirements are missing (`--allow-cold-start` downgrades heartbeat/backup freshness checks to warnings only for a genuinely first-ever deploy). Support email, Search Console ownership, moderation/privacy maintenance freshness, restore-drill freshness, and failed-job cleanup are explicit advisories. Deployments should keep the previous release artifact and database compatibility window available for rollback. Do not roll back a database destructively; restore into an isolated database first and follow the runbook.
 
 **`public/build/` is committed to the repo**, not built on the deploy target — shared hosting frequently ships a Node version years behind what current Vite requires (this project hit Node 16 on a cPanel host against Vite 8's Node ≥20 requirement), and unlike PHP there's rarely an easy alternate-version binary to reach for. Run `npm run build` locally and commit the output before every push that touches frontend code; `deploy.sh` checks for `public/build/manifest.json` in the freshly cloned release and skips `npm` entirely when it's already there. If a future host *does* have a compatible Node, re-add `/public/build` to `.gitignore` and stop committing it — `deploy.sh` falls back to `npm ci && npm run build` automatically whenever the manifest isn't present in the clone.
 

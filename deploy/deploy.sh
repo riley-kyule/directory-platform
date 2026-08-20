@@ -121,7 +121,7 @@ echo "==> Running the production launch check"
 LAUNCH_CHECK_ARGS=(--production)
 if [ ! -L "$APP_ROOT/current" ]; then
     echo "    No existing $APP_ROOT/current symlink — first deploy for this app root, so the"
-    echo "    scheduler-heartbeat/backup-freshness checks are allowed to warn instead of block"
+    echo "    operational-heartbeat/backup-freshness checks are allowed to warn instead of block"
     echo "    (neither can possibly have run yet). Every later deploy enforces them normally."
     LAUNCH_CHECK_ARGS+=(--allow-cold-start)
 fi

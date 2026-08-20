@@ -189,8 +189,10 @@ class OperationsReadinessTest extends TestCase
         config()->set('services.google.client_id');
 
         Artisan::call('system:launch-check', ['--production' => true]);
+        $output = Artisan::output();
 
-        $this->assertStringContainsString('Google Staff SSO is configured', Artisan::output());
+        $this->assertStringContainsString('Google Staff SSO is configured', $output);
+        $this->assertStringContainsString('Notification mailer delivers externally', $output);
     }
 
     public function test_allow_cold_start_turns_missing_heartbeat_and_backup_into_warnings_not_failures(): void
@@ -204,7 +206,11 @@ class OperationsReadinessTest extends TestCase
         // blocking failures (this test class doesn't seed policies, so the
         // overall exit code is still 1 from an unrelated check either way).
         $this->assertStringContainsString('Scheduler heartbeat is fresh (skipped: --allow-cold-start)', $output);
+        $this->assertStringContainsString('Queue worker heartbeat is fresh (skipped: --allow-cold-start)', $output);
         $this->assertStringContainsString('Database backup is fresh and verified (skipped: --allow-cold-start)', $output);
+        $this->assertStringContainsString('Google Search Console ownership tag is configured (advisory)', $output);
+        $this->assertStringContainsString('Moderation escalation scan is fresh (advisory)', $output);
+        $this->assertStringContainsString('Privacy-retention cleanup is fresh (advisory)', $output);
     }
 
     public function test_allow_cold_start_does_not_silence_other_failing_checks(): void

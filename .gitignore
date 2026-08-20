@@ -30,3 +30,5 @@ Homestead.yaml
 Thumbs.db
 **/*.md
 !/README.md
+!/docs/
+!/docs/production-runbook.md
