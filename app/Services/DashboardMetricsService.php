@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\Location;
+use App\Models\ModerationAppeal;
 use App\Models\PageContent;
 use App\Models\Profile;
+use App\Models\ProfileReport;
 use App\Models\Role;
 use App\Models\SearchTermLog;
 use App\Models\User;
@@ -35,6 +37,8 @@ class DashboardMetricsService
             'search_total_last_7_days' => (int) SearchTermLog::query()
                 ->where('search_date', '>=', now()->subDays(7)->toDateString())
                 ->sum('search_count'),
+            'moderation_overdue' => ProfileReport::query()->overdue()->count()
+                + ModerationAppeal::query()->overdue()->count(),
         ];
     }
 

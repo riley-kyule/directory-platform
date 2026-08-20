@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\BackupRecord;
+use App\Models\ModerationAppeal;
+use App\Models\ProfileReport;
 use App\Models\SystemHeartbeat;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +21,13 @@ class SystemHealthService
             'database' => $this->database(),
             'cache' => $this->cache(),
             'scheduler' => $this->scheduler(),
+            'queue_worker' => $this->queueWorker(),
             'queue' => $this->queue(),
             'failed_jobs' => $this->failedJobs(),
+            'moderation_escalation' => $this->moderationEscalation(),
+            'moderation_sla' => $this->moderationSla(),
+            'privacy_retention' => $this->privacyRetention(),
+            'mail' => $this->mail(),
             'disk' => $this->disk(),
             'backup' => $this->backup(),
             'restore_drill' => $this->restoreDrill(),
@@ -85,6 +92,16 @@ class SystemHealthService
         }
     }
 
+    private function queueWorker(): array
+    {
+        return $this->heartbeat(
+            'queue_worker',
+            now()->subMinutes(config('operations.queue_worker_stale_minutes')),
+            'Queue worker heartbeat is current.',
+            'Queue worker heartbeat is missing or stale.',
+        );
+    }
+
     private function failedJobs(): array
     {
         try {
@@ -94,6 +111,69 @@ class SystemHealthService
         } catch (Throwable) {
             return $this->result('warning', 'Failed-job count cannot be read.');
         }
+    }
+
+    private function moderationEscalation(): array
+    {
+        try {
+            $heartbeat = SystemHeartbeat::query()->find('moderation_escalation');
+            $fresh = $heartbeat?->last_seen_at?->gte(now()->subMinutes(config('operations.moderation_escalation_stale_minutes')));
+            $runStatus = $heartbeat?->metadata['status'] ?? null;
+            $healthy = $fresh && in_array($runStatus, ['ok', 'delivered'], true);
+
+            return $this->result(
+                $healthy ? 'ok' : 'warning',
+                match (true) {
+                    ! $fresh => 'Moderation escalation scan is missing or stale.',
+                    $runStatus === 'blocked' => 'Overdue cases could not be escalated because no active recipient exists.',
+                    $runStatus === 'failed' => 'The latest moderation escalation notification failed.',
+                    default => 'Moderation escalation scan is current.',
+                },
+                $heartbeat?->last_seen_at?->toIso8601String(),
+            );
+        } catch (Throwable) {
+            return $this->result('warning', 'Moderation escalation scan cannot be read.');
+        }
+    }
+
+    private function moderationSla(): array
+    {
+        try {
+            $reports = ProfileReport::query()->overdue()->count();
+            $appeals = ModerationAppeal::query()->overdue()->count();
+            $total = $reports + $appeals;
+
+            return $this->result(
+                $total > 0 ? 'warning' : 'ok',
+                $total > 0 ? 'Moderation cases have exceeded response targets.' : 'No moderation cases are overdue.',
+                $total,
+            );
+        } catch (Throwable) {
+            return $this->result('warning', 'Moderation SLA status cannot be read.');
+        }
+    }
+
+    private function privacyRetention(): array
+    {
+        return $this->heartbeat(
+            'privacy_retention',
+            now()->subHours(config('operations.privacy_retention_stale_hours')),
+            'Privacy-retention cleanup is current.',
+            'Privacy-retention cleanup is missing or stale.',
+        );
+    }
+
+    private function mail(): array
+    {
+        $mailer = (string) config('mail.default');
+        $placeholder = in_array($mailer, ['log', 'array'], true);
+        $warning = app()->environment('production') && $placeholder;
+
+        return $this->result(
+            $warning ? 'warning' : 'ok',
+            $warning ? 'Production notifications are using a non-delivery mailer.' : "Notification mailer is configured as {$mailer}.",
+            $mailer,
+        );
     }
 
     private function disk(): array
@@ -147,6 +227,22 @@ class SystemHealthService
             );
         } catch (Throwable) {
             return $this->result('warning', 'Restore drill freshness cannot be read.');
+        }
+    }
+
+    private function heartbeat(string $name, \DateTimeInterface $cutoff, string $healthyMessage, string $staleMessage): array
+    {
+        try {
+            $heartbeat = SystemHeartbeat::query()->find($name);
+            $fresh = $heartbeat?->last_seen_at?->gte($cutoff);
+
+            return $this->result(
+                $fresh ? 'ok' : 'warning',
+                $fresh ? $healthyMessage : $staleMessage,
+                $heartbeat?->last_seen_at?->toIso8601String(),
+            );
+        } catch (Throwable) {
+            return $this->result('warning', $staleMessage);
         }
     }
 

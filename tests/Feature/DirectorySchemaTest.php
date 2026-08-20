@@ -28,6 +28,8 @@ class DirectorySchemaTest extends TestCase
 
         $conversionColumns = Schema::getColumnListing('profile_conversion_daily');
         $this->assertEmpty(array_intersect($conversionColumns, ['user_id', 'session_id', 'ip_address', 'user_agent', 'fingerprint']));
+        $this->assertTrue(Schema::hasColumn('reports', 'sla_escalated_at'));
+        $this->assertTrue(Schema::hasColumn('moderation_appeals', 'sla_escalated_at'));
     }
 
     public function test_default_packages_have_the_agreed_image_limits(): void

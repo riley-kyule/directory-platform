@@ -4,7 +4,7 @@
         <div class="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
             <a href="{{ route('staff.moderation.index') }}" class="text-sm font-semibold text-indigo-600">&larr; Back to moderation queue</a>
 
-            <div class="grid gap-6 sm:grid-cols-2">
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <section class="bg-white p-6 shadow-sm sm:rounded-lg">
                     <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Open urgent reports</h3>
                     <p class="mt-2 text-4xl font-black text-red-600">{{ $metrics['open_urgent_reports'] }}</p>
@@ -13,7 +13,17 @@
                 <section class="bg-white p-6 shadow-sm sm:rounded-lg">
                     <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Average resolution time</h3>
                     <p class="mt-2 text-4xl font-black text-gray-900">{{ $metrics['average_resolution_hours'] !== null ? number_format($metrics['average_resolution_hours'], 1).'h' : '—' }}</p>
-                    <p class="mt-1 text-sm text-gray-500">From report submission to resolved or dismissed, all time.</p>
+                    <p class="mt-1 text-sm text-gray-500">From submission to closure for cases resolved in the last 90 days.</p>
+                </section>
+                <section class="bg-white p-6 shadow-sm sm:rounded-lg">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Overdue reports</h3>
+                    <p class="mt-2 text-4xl font-black {{ $metrics['overdue_urgent_reports'] > 0 ? 'text-red-600' : 'text-gray-900' }}">{{ $metrics['overdue_urgent_reports'] + $metrics['overdue_normal_reports'] }}</p>
+                    <p class="mt-1 text-sm text-gray-500">{{ $metrics['overdue_urgent_reports'] }} urgent · {{ $metrics['overdue_normal_reports'] }} normal</p>
+                </section>
+                <section class="bg-white p-6 shadow-sm sm:rounded-lg">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Queue ownership</h3>
+                    <p class="mt-2 text-4xl font-black text-gray-900">{{ $metrics['unassigned_open_reports'] }}</p>
+                    <p class="mt-1 text-sm text-gray-500">Unassigned open reports · oldest {{ $metrics['oldest_open_hours'] !== null ? number_format($metrics['oldest_open_hours'], 1).'h' : '—' }}</p>
                 </section>
             </div>
 

@@ -56,6 +56,7 @@ class AdminDashboardTest extends TestCase
         $this->assertArrayHasKey('users_by_role', $metrics);
         $this->assertArrayHasKey('recent_activity', $metrics);
         $this->assertArrayHasKey('search_top_terms', $metrics);
+        $this->assertArrayHasKey('moderation_overdue', $metrics);
         $this->assertSame(2, $metrics['pages_count']); // homepage + agencies, no locations seeded here
         $this->assertSame(0, $metrics['profiles_active']);
     }

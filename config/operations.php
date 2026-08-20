@@ -16,4 +16,10 @@ return [
     'review_duplicate_window_days' => (int) env('OPS_REVIEW_DUPLICATE_WINDOW_DAYS', 90),
     'review_pii_retention_days' => (int) env('OPS_REVIEW_PII_RETENTION_DAYS', 90),
     'report_pii_retention_days' => (int) env('OPS_REPORT_PII_RETENTION_DAYS', 365),
+    'moderation_urgent_sla_minutes' => (int) env('OPS_MODERATION_URGENT_SLA_MINUTES', 60),
+    'moderation_normal_sla_hours' => (int) env('OPS_MODERATION_NORMAL_SLA_HOURS', 24),
+    'moderation_appeal_sla_hours' => (int) env('OPS_MODERATION_APPEAL_SLA_HOURS', 72),
+    'moderation_escalation_stale_minutes' => (int) env('OPS_MODERATION_ESCALATION_STALE_MINUTES', 30),
+    'queue_worker_stale_minutes' => (int) env('OPS_QUEUE_WORKER_STALE_MINUTES', 5),
+    'privacy_retention_stale_hours' => (int) env('OPS_PRIVACY_RETENTION_STALE_HOURS', 26),
 ];

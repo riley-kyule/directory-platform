@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ProfileReport;
 use App\Models\Review;
+use App\Models\SystemHeartbeat;
 use Illuminate\Console\Command;
 
 class PrunePublicSubmissionPii extends Command
@@ -46,6 +47,11 @@ class PrunePublicSubmissionPii extends Command
                 'reporter_email_hash' => null,
                 'source_fingerprint' => null,
             ]);
+
+        SystemHeartbeat::query()->updateOrCreate(
+            ['name' => 'privacy_retention'],
+            ['last_seen_at' => now(), 'metadata' => ['reviews_redacted' => $reviews, 'reports_redacted' => $reports]],
+        );
 
         $this->info("Redacted {$reviews} review submission(s) and {$reports} report submission(s).");
 

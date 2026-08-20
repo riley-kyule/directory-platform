@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\RecordQueueWorkerHeartbeat;
 use App\Models\BackupRecord;
 use App\Models\Role;
 use App\Models\SystemHeartbeat;
@@ -51,7 +52,10 @@ class OperationsReadinessTest extends TestCase
             ->get(route('admin.system-health'))
             ->assertOk()
             ->assertSee('Operational checks')
-            ->assertSee('Scheduler');
+            ->assertSee('Scheduler')
+            ->assertSee('Queue worker heartbeat')
+            ->assertSee('Moderation escalation scan')
+            ->assertSee('Privacy-retention cleanup');
     }
 
     public function test_health_reports_queue_delay_failed_jobs_and_backup_freshness_without_making_warnings_unready(): void
@@ -105,6 +109,20 @@ class OperationsReadinessTest extends TestCase
         $checks = app(SystemHealthService::class)->checks();
 
         $this->assertSame('warning', $checks['restore_drill']['status']);
+    }
+
+    public function test_operational_maintenance_and_queue_worker_heartbeats_are_visible(): void
+    {
+        app(RecordQueueWorkerHeartbeat::class)->handle();
+        $this->assertSame(0, Artisan::call('privacy:prune-public-submission-pii'));
+        $this->assertSame(0, Artisan::call('moderation:escalate-overdue'));
+
+        $checks = app(SystemHealthService::class)->checks();
+        $this->assertSame('ok', $checks['queue_worker']['status']);
+        $this->assertSame('ok', $checks['privacy_retention']['status']);
+        $this->assertSame('ok', $checks['moderation_escalation']['status']);
+        $this->assertSame('ok', $checks['moderation_sla']['status']);
+        $this->assertSame('ok', $checks['mail']['status']);
     }
 
     public function test_restore_drill_refuses_to_run_without_an_isolated_target_configured(): void

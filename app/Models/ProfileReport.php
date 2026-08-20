@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class ProfileReport extends Model
@@ -60,11 +62,56 @@ class ProfileReport extends Model
         return self::CATEGORIES[$this->category] ?? str($this->category)->headline()->toString();
     }
 
+    public function scopeOpen(Builder $query): Builder
+    {
+        return $query->whereIn('status', ['new', 'in_review']);
+    }
+
+    public function scopeOverdue(Builder $query): Builder
+    {
+        return $query->open()->where(function (Builder $query): void {
+            $query->where(fn (Builder $query) => $query
+                ->where('priority', 'urgent')
+                ->where('created_at', '<=', now()->subMinutes(config('operations.moderation_urgent_sla_minutes'))))
+                ->orWhere(fn (Builder $query) => $query
+                    ->where('priority', 'normal')
+                    ->where('created_at', '<=', now()->subHours(config('operations.moderation_normal_sla_hours'))));
+        });
+    }
+
+    public function slaDeadline(): Carbon
+    {
+        return $this->created_at->copy()->addMinutes($this->priority === 'urgent'
+            ? config('operations.moderation_urgent_sla_minutes')
+            : config('operations.moderation_normal_sla_hours') * 60);
+    }
+
+    public function slaState(): string
+    {
+        if (! in_array($this->status, ['new', 'in_review'], true)) {
+            return 'closed';
+        }
+
+        $deadline = $this->slaDeadline();
+        if ($deadline->isPast()) {
+            return 'overdue';
+        }
+
+        $totalMinutes = $this->priority === 'urgent'
+            ? config('operations.moderation_urgent_sla_minutes')
+            : config('operations.moderation_normal_sla_hours') * 60;
+
+        return now()->gte($deadline->copy()->subMinutes((int) ceil($totalMinutes * 0.25)))
+            ? 'due_soon'
+            : 'on_track';
+    }
+
     protected function casts(): array
     {
         return [
             'reporter_email' => 'encrypted',
             'resolved_at' => 'datetime',
+            'sla_escalated_at' => 'datetime',
         ];
     }
 }

@@ -44,6 +44,7 @@ class ModerationController extends Controller
         $filters = $request->validate([
             'status' => ['nullable', Rule::in(['new', 'in_review', 'resolved', 'dismissed'])],
             'priority' => ['nullable', Rule::in(['urgent', 'normal'])],
+            'sla' => ['nullable', Rule::in(['overdue'])],
         ]);
 
         return view('staff.moderation.index', [
@@ -51,6 +52,7 @@ class ModerationController extends Controller
                 ->with(['profile:id,display_name,slug,status', 'assignee:id,name,email'])
                 ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
                 ->when($filters['priority'] ?? null, fn ($query, $priority) => $query->where('priority', $priority))
+                ->when(($filters['sla'] ?? null) === 'overdue', fn ($query) => $query->overdue())
                 ->orderByRaw("CASE priority WHEN 'urgent' THEN 0 ELSE 1 END")
                 ->orderByRaw("CASE status WHEN 'new' THEN 0 WHEN 'in_review' THEN 1 ELSE 2 END")
                 ->oldest()
@@ -58,10 +60,12 @@ class ModerationController extends Controller
                 ->withQueryString(),
             'appeals' => ModerationAppeal::query()
                 ->where('status', 'pending')
+                ->when(($filters['sla'] ?? null) === 'overdue', fn ($query) => $query->overdue())
                 ->with(['profile:id,display_name,slug,status', 'appellant:id,name,email', 'moderationAction'])
                 ->oldest()
                 ->get(),
             'filters' => $filters,
+            'sla' => $this->metrics->slaSummary(),
         ]);
     }
 

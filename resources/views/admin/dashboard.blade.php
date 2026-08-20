@@ -3,6 +3,12 @@
 
     <div class="py-12">
         <div class="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
+            @if($metrics['moderation_overdue'] > 0)
+                <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-red-200 bg-red-50 p-5" role="alert">
+                    <div><p class="font-bold text-red-950">{{ $metrics['moderation_overdue'] }} overdue moderation {{ Str::plural('case', $metrics['moderation_overdue']) }}</p><p class="mt-1 text-sm text-red-800">Response targets have been exceeded and staff action is required.</p></div>
+                    <a href="{{ route('staff.moderation.index', ['sla' => 'overdue']) }}" class="inline-flex min-h-11 items-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Review overdue cases</a>
+                </div>
+            @endif
             <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="bg-white p-6 shadow-sm sm:rounded-lg">
                     <p class="text-sm font-medium text-gray-500">Active listings</p>

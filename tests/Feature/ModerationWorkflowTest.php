@@ -5,12 +5,16 @@ namespace Tests\Feature;
 use App\Enums\ProfileStatus;
 use App\Jobs\PublishProfileImages;
 use App\Models\Location;
+use App\Models\ModerationAction;
+use App\Models\ModerationAppeal;
 use App\Models\Package;
 use App\Models\Profile;
 use App\Models\ProfileReport;
 use App\Models\Role;
+use App\Models\SystemHeartbeat;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Notifications\OverdueModerationDigestNotification;
 use App\Notifications\UrgentProfileReportNotification;
 use App\Services\ModerationMetricsService;
 use Database\Seeders\AccessControlSeeder;
@@ -275,6 +279,98 @@ class ModerationWorkflowTest extends TestCase
         $this->assertSame(1, $metrics['actions_last_30_days']['emergency_takedown']);
         $this->assertNotNull($metrics['average_resolution_hours']);
         $this->assertSame($resolvedReport->status, 'resolved');
+    }
+
+    public function test_sla_metrics_and_queue_filter_identify_only_overdue_open_cases(): void
+    {
+        config()->set('operations.moderation_urgent_sla_minutes', 60);
+        config()->set('operations.moderation_normal_sla_hours', 24);
+        $urgent = $this->report();
+        $urgent->update(['priority' => 'urgent', 'created_at' => now()->subMinutes(61)]);
+        $normal = $this->report();
+        $normal->update(['created_at' => now()->subHours(25)]);
+        $recent = $this->report();
+
+        $metrics = app(ModerationMetricsService::class)->slaSummary();
+        $this->assertSame(1, $metrics['overdue_urgent_reports']);
+        $this->assertSame(1, $metrics['overdue_normal_reports']);
+        $this->assertSame(3, $metrics['unassigned_open_reports']);
+        $this->assertGreaterThanOrEqual(25, $metrics['oldest_open_hours']);
+
+        $csr = $this->staff('csr');
+        $this->actingAs($csr)->get(route('staff.moderation.index', ['sla' => 'overdue']))
+            ->assertOk()
+            ->assertSee('Moderation response targets have been exceeded')
+            ->assertSee($urgent->public_id)
+            ->assertSee($normal->public_id)
+            ->assertDontSee($recent->public_id)
+            ->assertSee('Overdue by');
+        $this->actingAs($csr)->get(route('admin.dashboard.index'))
+            ->assertOk()
+            ->assertSee('2 overdue moderation cases')
+            ->assertSee(route('staff.moderation.index', ['sla' => 'overdue']), false);
+    }
+
+    public function test_overdue_cases_are_escalated_once_to_active_admin_and_csr_staff(): void
+    {
+        Notification::fake();
+        config()->set('operations.moderation_urgent_sla_minutes', 60);
+        config()->set('operations.moderation_appeal_sla_hours', 72);
+        $admin = $this->staff('admin');
+        $csr = $this->staff('csr');
+        $inactive = $this->staff('csr');
+        $inactive->update(['status' => 'suspended']);
+        $report = $this->report();
+        $report->update(['priority' => 'urgent', 'created_at' => now()->subMinutes(61)]);
+        $appeal = $this->overdueAppeal();
+
+        $this->artisan('moderation:escalate-overdue')->assertSuccessful();
+
+        Notification::assertSentTo([$admin, $csr], OverdueModerationDigestNotification::class, function ($notification): bool {
+            return $notification->urgentReports === 1 && $notification->appeals === 1;
+        });
+        Notification::assertNotSentTo($inactive, OverdueModerationDigestNotification::class);
+        $this->assertNotNull($report->refresh()->sla_escalated_at);
+        $this->assertNotNull($appeal->refresh()->sla_escalated_at);
+
+        $this->artisan('moderation:escalate-overdue')->assertSuccessful();
+        Notification::assertSentToTimes($admin, OverdueModerationDigestNotification::class, 1);
+        Notification::assertSentToTimes($csr, OverdueModerationDigestNotification::class, 1);
+    }
+
+    public function test_escalation_fails_safely_and_retries_when_no_staff_recipient_exists(): void
+    {
+        config()->set('operations.moderation_urgent_sla_minutes', 60);
+        $report = $this->report();
+        $report->update(['priority' => 'urgent', 'created_at' => now()->subMinutes(61)]);
+
+        $this->artisan('moderation:escalate-overdue')->assertFailed();
+
+        $this->assertNull($report->refresh()->sla_escalated_at);
+        $this->assertDatabaseHas('system_heartbeats', ['name' => 'moderation_escalation']);
+        $this->assertSame(0, SystemHeartbeat::query()->findOrFail('moderation_escalation')->metadata['recipients']);
+    }
+
+    private function overdueAppeal(): ModerationAppeal
+    {
+        $action = ModerationAction::query()->create([
+            'profile_id' => $this->profile->id,
+            'action' => 'make_private',
+            'previous_profile_status' => ProfileStatus::Active->value,
+            'new_profile_status' => ProfileStatus::Deactivated->value,
+            'reason' => 'Test restriction used to create an overdue moderation appeal.',
+        ]);
+
+        $appeal = ModerationAppeal::query()->create([
+            'profile_id' => $this->profile->id,
+            'moderation_action_id' => $action->id,
+            'appellant_user_id' => $this->owner->id,
+            'reason' => 'An overdue appeal used to exercise staff escalation and reporting.',
+            'status' => 'pending',
+        ]);
+        $appeal->update(['created_at' => now()->subHours(73)]);
+
+        return $appeal;
     }
 
     private function report(): ProfileReport
