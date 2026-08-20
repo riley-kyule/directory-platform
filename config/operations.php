@@ -13,4 +13,7 @@ return [
     'search_term_log_retention_days' => (int) env('OPS_SEARCH_TERM_LOG_RETENTION_DAYS', 180),
     'profile_conversion_retention_days' => (int) env('OPS_PROFILE_CONVERSION_RETENTION_DAYS', 400),
     'account_deletion_retention_days' => (int) env('OPS_ACCOUNT_DELETION_RETENTION_DAYS', 30),
+    'review_duplicate_window_days' => (int) env('OPS_REVIEW_DUPLICATE_WINDOW_DAYS', 90),
+    'review_pii_retention_days' => (int) env('OPS_REVIEW_PII_RETENTION_DAYS', 90),
+    'report_pii_retention_days' => (int) env('OPS_REPORT_PII_RETENTION_DAYS', 365),
 ];

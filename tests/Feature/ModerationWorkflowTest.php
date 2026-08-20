@@ -16,6 +16,7 @@ use App\Services\ModerationMetricsService;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -155,6 +156,31 @@ class ModerationWorkflowTest extends TestCase
         ])->assertSessionHasErrors(['details', 'website']);
 
         $this->assertDatabaseCount('reports', 0);
+    }
+
+    public function test_closed_report_contact_data_is_redacted_after_retention_window(): void
+    {
+        config()->set('operations.report_pii_retention_days', 30);
+        $report = $this->report();
+        $report->update([
+            'reporter_user_id' => $this->owner->id,
+            'status' => 'resolved',
+            'resolved_at' => now()->subDays(31),
+            'source_fingerprint' => hash('sha256', 'report-source'),
+        ]);
+
+        $this->assertSame(0, Artisan::call('privacy:prune-public-submission-pii'));
+
+        $report->refresh();
+        $this->assertNull($report->reporter_email);
+        $this->assertNull($report->reporter_email_hash);
+        $this->assertNull($report->source_fingerprint);
+        $this->assertNull($report->reporter_user_id);
+        $this->assertSame('resolved', $report->status);
+
+        $this->actingAs($this->staff('csr'))->get(route('staff.moderation.show', $report))
+            ->assertOk()
+            ->assertSee('Redacted after retention period');
     }
 
     public function test_csr_can_perform_an_emergency_takedown_without_an_existing_report(): void

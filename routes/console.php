@@ -15,6 +15,7 @@ Schedule::command('verification:refresh-statuses')->daily()->withoutOverlapping(
 Schedule::command('search:prune-term-logs')->daily()->withoutOverlapping();
 Schedule::command('conversion:prune')->daily()->withoutOverlapping();
 Schedule::command('accounts:purge-deleted')->daily()->withoutOverlapping();
+Schedule::command('privacy:prune-public-submission-pii')->daily()->withoutOverlapping();
 Schedule::command('system:backup --prune')->dailyAt('02:30')->withoutOverlapping()->onOneServer();
 Schedule::command('system:backup-media --prune')->dailyAt('03:00')->withoutOverlapping()->onOneServer();
 // No-ops safely until OPS_RESTORE_DRILL_DB_* is configured with an isolated target.

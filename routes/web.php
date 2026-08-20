@@ -43,11 +43,11 @@ Route::get('/locations', [PublicDirectoryController::class, 'allLocations'])->mi
 Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->middleware(['age.gate', 'cache.public'])->name('directory.profiles.show');
 Route::get('/escort/{profile:slug}/report', [ProfileReportController::class, 'create'])->name('directory.profiles.report.create');
 Route::post('/escort/{profile:slug}/report', [ProfileReportController::class, 'store'])
-    ->middleware('throttle:5,10')
+    ->middleware('throttle:public-reports')
     ->name('directory.profiles.report.store');
 Route::get('/escort/{profile:slug}/reviews/new', [ReviewController::class, 'create'])->name('directory.profiles.reviews.create');
 Route::post('/escort/{profile:slug}/reviews', [ReviewController::class, 'store'])
-    ->middleware('throttle:5,10')
+    ->middleware('throttle:public-reviews')
     ->name('directory.profiles.reviews.store');
 Route::get('/agencies', [PublicAgencyController::class, 'index'])->middleware(['age.gate', 'cache.public'])->name('directory.agencies.index');
 Route::get('/agencies/page/{page}', [PublicAgencyController::class, 'index'])->whereNumber('page')->middleware(['age.gate', 'cache.public'])->name('directory.agencies.page');

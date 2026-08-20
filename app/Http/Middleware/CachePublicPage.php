@@ -21,7 +21,12 @@ class CachePublicPage
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->isMethod('GET') || $request->user()) {
+        // Public directory routes do not use query parameters. Caching every
+        // arbitrary variation (for example ?anything=random) would let one
+        // visitor create an unbounded number of otherwise identical entries.
+        // Real campaign parameters may still render normally; they simply do
+        // not consume shared cache storage.
+        if (! $request->isMethod('GET') || $request->user() || $request->query->count() > 0) {
             return $next($request);
         }
 

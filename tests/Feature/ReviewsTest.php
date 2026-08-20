@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ProfileStatus;
+use App\Models\Agency;
 use App\Models\Location;
 use App\Models\Package;
 use App\Models\Profile;
@@ -14,6 +15,7 @@ use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -23,6 +25,8 @@ class ReviewsTest extends TestCase
     use RefreshDatabase;
 
     private Profile $profile;
+
+    private User $owner;
 
     protected function setUp(): void
     {
@@ -42,9 +46,9 @@ class ReviewsTest extends TestCase
         $ethnicity = TaxonomyOption::query()->create([
             'type' => 'ethnicity', 'slug' => 'african', 'label' => 'African', 'is_active' => true,
         ]);
-        $owner = User::factory()->create();
+        $this->owner = User::factory()->create();
         $this->profile = Profile::query()->create([
-            'owner_user_id' => $owner->id,
+            'owner_user_id' => $this->owner->id,
             'display_name' => 'Reviewed Jane', 'slug' => 'reviewed-jane',
             'description' => 'A complete active profile used for the reviews workflow.',
             'primary_location_id' => $city->id, 'sublocation_id' => $neighbourhood->id,
@@ -58,7 +62,7 @@ class ReviewsTest extends TestCase
         $this->profile->packageAssignments()->create([
             'package_id' => Package::query()->where('code', 'vip')->value('id'),
             'starts_at' => now(), 'expires_at' => now()->addMonth(), 'status' => 'active',
-            'assigned_by' => $owner->id, 'assignment_source' => 'manual', 'reason' => 'Initial activation.',
+            'assigned_by' => $this->owner->id, 'assignment_source' => 'manual', 'reason' => 'Initial activation.',
         ]);
     }
 
@@ -105,6 +109,93 @@ class ReviewsTest extends TestCase
         ])->assertSessionHasErrors(['body', 'website']);
 
         $this->assertDatabaseCount('reviews', 0);
+    }
+
+    public function test_profile_owner_cannot_review_their_own_listing(): void
+    {
+        $this->actingAs($this->owner)->post(route('directory.profiles.reviews.store', $this->profile), [
+            'rating' => 5,
+            'body' => 'Attempting to submit a review against a listing owned by this same account.',
+            'email' => 'ignored@example.com',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertDatabaseCount('reviews', 0);
+    }
+
+    public function test_current_agency_owner_cannot_review_their_profile(): void
+    {
+        $agencyOwner = User::factory()->create();
+        $agency = Agency::query()->create([
+            'owner_user_id' => $agencyOwner->id,
+            'name' => 'Review Test Agency',
+            'slug' => 'review-test-agency',
+            'status' => 'active',
+        ]);
+        $agency->profiles()->attach($this->profile->id, [
+            'assigned_by' => $agencyOwner->id,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($agencyOwner)->post(route('directory.profiles.reviews.store', $this->profile), [
+            'rating' => 5,
+            'body' => 'Attempting to submit a review for a profile managed by this agency account.',
+            'email' => 'ignored@example.com',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertDatabaseCount('reviews', 0);
+    }
+
+    public function test_recent_duplicate_review_from_same_email_is_rejected(): void
+    {
+        $payload = [
+            'rating' => 5,
+            'body' => 'A detailed review that should only be accepted once during the duplicate window.',
+            'email' => 'repeat@example.com',
+        ];
+
+        $this->post(route('directory.profiles.reviews.store', $this->profile), $payload)->assertSessionHasNoErrors();
+        $this->post(route('directory.profiles.reviews.store', $this->profile), $payload)
+            ->assertSessionHasErrors('email');
+
+        $this->assertDatabaseCount('reviews', 1);
+    }
+
+    public function test_review_endpoint_enforces_layered_ip_rate_limit(): void
+    {
+        foreach (range(1, 5) as $attempt) {
+            $this->post(route('directory.profiles.reviews.store', $this->profile), [
+                'rating' => 4,
+                'body' => 'A unique valid review submission used to exercise public rate limiting '.$attempt.'.',
+                'email' => "reviewer{$attempt}@example.com",
+            ])->assertRedirect();
+        }
+
+        $this->post(route('directory.profiles.reviews.store', $this->profile), [
+            'rating' => 4,
+            'body' => 'This sixth submission should be rejected before reaching review validation or storage.',
+            'email' => 'reviewer6@example.com',
+        ])->assertTooManyRequests();
+        $this->assertDatabaseCount('reviews', 5);
+    }
+
+    public function test_old_moderated_review_contact_data_is_redacted(): void
+    {
+        config()->set('operations.review_pii_retention_days', 30);
+        $review = $this->pendingReview();
+        $review->update([
+            'status' => 'published',
+            'moderated_at' => now()->subDays(31),
+            'source_fingerprint' => hash('sha256', 'review-source'),
+        ]);
+
+        $this->assertSame(0, Artisan::call('privacy:prune-public-submission-pii'));
+
+        $review->refresh();
+        $this->assertNull($review->reviewer_email);
+        $this->assertNull($review->reviewer_email_hash);
+        $this->assertNull($review->source_fingerprint);
+        $this->assertSame('Happy Client', $review->reviewer_name);
+        $this->assertSame('published', $review->status);
     }
 
     public function test_reviews_queue_requires_permission(): void

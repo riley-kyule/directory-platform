@@ -12,6 +12,7 @@ use App\Models\PolicyVersion;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
+use App\Services\PolicyAcceptanceService;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -239,7 +240,7 @@ class ProviderOnboardingTest extends TestCase
     /** @return array<int, int> */
     private function outstandingPolicyIds(string $action, User $user, ?Profile $profile = null): array
     {
-        return app(\App\Services\PolicyAcceptanceService::class)
+        return app(PolicyAcceptanceService::class)
             ->outstanding($action, $user, $profile)
             ->pluck('id')
             ->all();

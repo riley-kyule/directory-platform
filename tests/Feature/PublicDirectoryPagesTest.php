@@ -401,6 +401,19 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertHeaderMissing('X-Page-Cache');
     }
 
+    public function test_arbitrary_query_strings_cannot_create_public_page_cache_entries(): void
+    {
+        $this->get('/nairobi/westlands-escorts?campaign=one')
+            ->assertOk()
+            ->assertHeaderMissing('X-Page-Cache');
+        $this->get('/nairobi/westlands-escorts?campaign=two')
+            ->assertOk()
+            ->assertHeaderMissing('X-Page-Cache');
+
+        $this->get('/nairobi/westlands-escorts')->assertHeader('X-Page-Cache', 'miss');
+        $this->get('/nairobi/westlands-escorts')->assertHeader('X-Page-Cache', 'hit');
+    }
+
     public function test_banning_a_profile_immediately_purges_its_cached_pages(): void
     {
         $this->get(route('directory.profiles.show', $this->profile->slug))->assertOk()->assertSee('Jane Public');

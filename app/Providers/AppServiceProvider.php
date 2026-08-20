@@ -6,10 +6,13 @@ use App\Models\User;
 use App\Services\DirectorySettings;
 use App\Services\LocationSidebarTree;
 use App\Services\PolicyAcceptanceService;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -30,6 +33,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('public-reviews', fn (Request $request) => [
+            Limit::perMinutes(10, 5)->by('reviews:ip:'.$this->rateLimitDigest($request->ip() ?? 'unknown')),
+            Limit::perDay(2)->by('reviews:identity:'.$this->submissionIdentity($request)),
+        ]);
+        RateLimiter::for('public-reports', fn (Request $request) => [
+            Limit::perMinutes(10, 5)->by('reports:ip:'.$this->rateLimitDigest($request->ip() ?? 'unknown')),
+            Limit::perHour(3)->by('reports:identity:'.$this->submissionIdentity($request)),
+        ]);
+
         Gate::before(function (User $user, string $ability): ?bool {
             return $user->hasPermission($ability) ? true : null;
         });
@@ -75,5 +87,20 @@ class AppServiceProvider extends ServiceProvider
                 'query_hash' => hash('sha256', $query->sql),
             ]);
         });
+    }
+
+    private function submissionIdentity(Request $request): string
+    {
+        $profile = $request->route('profile');
+        $profileKey = is_object($profile) && isset($profile->id) ? $profile->id : (string) $profile;
+        $email = strtolower(trim((string) $request->input('email')));
+        $identity = $email !== '' ? $email : 'ip:'.($request->ip() ?? 'unknown');
+
+        return $this->rateLimitDigest($profileKey.'|'.$identity);
+    }
+
+    private function rateLimitDigest(string $value): string
+    {
+        return hash_hmac('sha256', $value, (string) config('app.key'));
     }
 }

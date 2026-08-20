@@ -31,6 +31,16 @@ class Review extends Model
         return $query->where('status', 'published');
     }
 
+    public static function duplicateExists(int $profileId, string $emailHash): bool
+    {
+        return static::query()
+            ->where('profile_id', $profileId)
+            ->where('reviewer_email_hash', $emailHash)
+            ->whereIn('status', ['pending', 'published'])
+            ->where('created_at', '>=', now()->subDays(config('operations.review_duplicate_window_days')))
+            ->exists();
+    }
+
     protected function casts(): array
     {
         return [

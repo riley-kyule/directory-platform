@@ -21,9 +21,7 @@ class RunSelfDeploy implements ShouldQueue
     // takes several minutes.
     public int $timeout = 900;
 
-    public function __construct(public readonly int $deploymentId)
-    {
-    }
+    public function __construct(public readonly int $deploymentId) {}
 
     public function handle(SelfDeployService $service): void
     {

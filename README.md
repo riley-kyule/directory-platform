@@ -32,6 +32,7 @@ The project is in active development. Its current foundation provides account re
 - Explicit profile slug changes with permanent old-URL history and redirect-chain flattening
 - Admin/CSR listing workspace with private profiles and audited lifecycle actions
 - Confidential public reporting, urgent safety triage, audited moderation actions, and owner appeals
+- Layered public-submission throttling, self-review/duplicate-review prevention, and scheduled review/report PII redaction
 - Internal age, identity, publishing-rights, and agency-authorization verification history with encrypted evidence references
 - Owner profile editing, private-profile viewing, and staff-reviewed renewal requests
 - Admin-managed packages, durations, listing rules, agency limits, and media constraints
