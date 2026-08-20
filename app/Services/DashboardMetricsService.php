@@ -23,7 +23,7 @@ class DashboardMetricsService
                 ->mapWithKeys(fn ($total, $status) => [$status instanceof \BackedEnum ? $status->value : $status => $total]),
             'profiles_active' => Profile::query()->publiclyVisible()->count(),
             'pages_count' => PageContent::query()->count() + Location::query()->count(),
-            'locations_published' => Location::query()->where('status', 'active')->where('is_indexable', true)->count(),
+            'locations_published' => Location::query()->where('status', 'published')->where('is_indexable', true)->count(),
             'users_total' => User::query()->count(),
             'users_by_role' => Role::query()->withCount('users')->get(['id', 'name', 'slug'])->pluck('users_count', 'name'),
             'recent_activity' => AuditLog::query()->with('actor')->latest()->limit(10)->get(),

@@ -28,6 +28,7 @@ The project is in active development. Its current foundation provides account re
 - Privacy-safe related profiles prioritized by sub-location
 - Dynamic, visibility-aware XML sitemaps and robots discovery
 - SEO-managed redirects, 410 removals, loop protection, and audited activation controls
+- Actionable SEO audit for orphan pages, indexability conflicts, metadata length and duplication, thin copy, and stale editorial reviews
 - Explicit profile slug changes with permanent old-URL history and redirect-chain flattening
 - Admin/CSR listing workspace with private profiles and audited lifecycle actions
 - Confidential public reporting, urgent safety triage, audited moderation actions, and owner appeals

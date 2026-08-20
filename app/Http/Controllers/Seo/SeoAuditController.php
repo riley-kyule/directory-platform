@@ -15,10 +15,23 @@ class SeoAuditController extends Controller
     {
         Gate::authorize('seo.metadata');
 
+        $orphanLocations = $this->audit->orphanLocations();
+        $locationQualityIssues = $this->audit->locationQualityIssues();
+        $pageQualityIssues = $this->audit->pageQualityIssues();
+        $duplicateSeoTitles = $this->audit->duplicateSeoTitles();
+        $duplicateMetaDescriptions = $this->audit->duplicateMetaDescriptions();
+
         return view('seo.audit.index', [
-            'orphanLocations' => $this->audit->orphanLocations(),
-            'duplicateSeoTitles' => $this->audit->duplicateSeoTitles(),
-            'duplicateMetaDescriptions' => $this->audit->duplicateMetaDescriptions(),
+            'orphanLocations' => $orphanLocations,
+            'locationQualityIssues' => $locationQualityIssues,
+            'pageQualityIssues' => $pageQualityIssues,
+            'duplicateSeoTitles' => $duplicateSeoTitles,
+            'duplicateMetaDescriptions' => $duplicateMetaDescriptions,
+            'auditIssueCount' => $orphanLocations->count()
+                + $locationQualityIssues->count()
+                + $pageQualityIssues->count()
+                + $duplicateSeoTitles->count()
+                + $duplicateMetaDescriptions->count(),
         ]);
     }
 }

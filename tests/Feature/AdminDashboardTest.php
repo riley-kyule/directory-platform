@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Location;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\DashboardMetricsService;
@@ -57,6 +58,20 @@ class AdminDashboardTest extends TestCase
         $this->assertArrayHasKey('search_top_terms', $metrics);
         $this->assertSame(2, $metrics['pages_count']); // homepage + agencies, no locations seeded here
         $this->assertSame(0, $metrics['profiles_active']);
+    }
+
+    public function test_summary_counts_published_indexable_locations(): void
+    {
+        Location::query()->create([
+            'country_code' => 'KE', 'type' => 'city', 'name' => 'Nairobi', 'slug' => 'nairobi',
+            'full_slug' => 'nairobi', 'status' => 'published', 'is_indexable' => true,
+        ]);
+        Location::query()->create([
+            'country_code' => 'KE', 'type' => 'city', 'name' => 'Draft City', 'slug' => 'draft-city',
+            'full_slug' => 'draft-city', 'status' => 'draft', 'is_indexable' => true,
+        ]);
+
+        $this->assertSame(1, app(DashboardMetricsService::class)->summary()['locations_published']);
     }
 
     public function test_nav_dashboard_link_points_privileged_users_at_the_admin_dashboard(): void
