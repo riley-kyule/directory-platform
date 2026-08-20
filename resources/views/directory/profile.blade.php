@@ -28,7 +28,7 @@
         ),
     ];
 @endphp
-<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :social-image="$socialImage" social-type="profile" :preload-image="$primaryImage?->publicUrl('profile')" :preload-image-srcset="$primaryImage?->responsiveSrcset()" :preload-image-sizes="$primaryImage ? $profileImageSizes : null">
+<x-public-layout :meta-title="$metaTitle" :meta-description="$metaDescription" :canonical-url="$canonicalUrl" :robots="$robots" :structured-data="\App\Support\JsonLd::script($schemas)" :social-image="$socialImage" social-type="profile" :preload-image="$primaryImage?->publicUrl('profile')" :preload-image-srcset="$primaryImage?->responsiveSrcset()" :preload-image-sizes="$primaryImage ? $profileImageSizes : null" :profile-view-id="$profile->public_id">
     @if (session('report_status'))
         <div class="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{{ session('report_status') }}</div></div>
     @endif

@@ -7,6 +7,13 @@
         <meta name="description" content="{{ $metaDescription ?? 'Browse active provider profiles.' }}">
         <meta name="robots" content="{{ $robots ?? 'index,follow' }}">
         <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}">
+        @php
+            $directorySettings = app(\App\Services\DirectorySettings::class);
+            $googleVerification = $directorySettings->string('seo.google_site_verification');
+            $bingVerification = $directorySettings->string('seo.bing_site_verification');
+        @endphp
+        @if ($googleVerification !== '')<meta name="google-site-verification" content="{{ $googleVerification }}">@endif
+        @if ($bingVerification !== '')<meta name="msvalidate.01" content="{{ $bingVerification }}">@endif
         @if ($previousUrl)<link rel="prev" href="{{ $previousUrl }}">@endif
         @if ($nextUrl)<link rel="next" href="{{ $nextUrl }}">@endif
         @if ($preloadImage)<link rel="preload" as="image" href="{{ $preloadImage }}" @if($preloadImageSrcset) imagesrcset="{{ $preloadImageSrcset }}" @endif @if($preloadImageSizes) imagesizes="{{ $preloadImageSizes }}" @endif fetchpriority="high">@endif
@@ -26,6 +33,10 @@
         <meta name="twitter:description" content="{{ $metaDescription }}">
         <meta name="theme-color" content="#171717">
         <meta name="conversion-endpoint" content="{{ route('conversion.contact') }}">
+        @if ($profileViewId)
+            <meta name="profile-view-endpoint" content="{{ route('conversion.profile-view') }}">
+            <meta name="profile-view-id" content="{{ $profileViewId }}">
+        @endif
         <x-favicon-link />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         {!! \App\Support\JsonLd::script([\App\Support\JsonLd::organization(), \App\Support\JsonLd::website()]) !!}

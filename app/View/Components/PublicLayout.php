@@ -20,6 +20,7 @@ class PublicLayout extends Component
         public readonly ?string $preloadImage = null,
         public readonly ?string $preloadImageSrcset = null,
         public readonly ?string $preloadImageSizes = null,
+        public readonly ?string $profileViewId = null,
     ) {}
 
     public function render(): View

@@ -22,12 +22,16 @@ class DirectorySchemaTest extends TestCase
             'profile_package_assignments', 'profile_contact_methods', 'profile_rates',
             'profile_services', 'profile_images', 'policy_acceptances', 'audit_logs',
             'profile_conversion_daily',
+            'profile_view_daily',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Expected {$table} to exist.");
         }
 
         $conversionColumns = Schema::getColumnListing('profile_conversion_daily');
         $this->assertEmpty(array_intersect($conversionColumns, ['user_id', 'session_id', 'ip_address', 'user_agent', 'fingerprint']));
+        $viewColumns = Schema::getColumnListing('profile_view_daily');
+        $this->assertContains('view_count', $viewColumns);
+        $this->assertEmpty(array_intersect($viewColumns, ['user_id', 'session_id', 'ip_address', 'user_agent', 'fingerprint', 'referrer']));
         $this->assertTrue(Schema::hasColumn('reports', 'sla_escalated_at'));
         $this->assertTrue(Schema::hasColumn('moderation_appeals', 'sla_escalated_at'));
     }

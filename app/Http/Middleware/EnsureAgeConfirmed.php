@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\DirectorySettings;
+use App\Services\KnownCrawler;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,18 +28,16 @@ class EnsureAgeConfirmed
      * carve-out virtually every real age-gated site relies on to stay
      * crawlable at all.
      */
-    private const CRAWLER_USER_AGENTS = [
-        'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider', 'yandexbot',
-        'facebookexternalhit', 'twitterbot', 'linkedinbot', 'applebot', 'ia_archiver',
-    ];
-
-    public function __construct(private readonly DirectorySettings $settings) {}
+    public function __construct(
+        private readonly DirectorySettings $settings,
+        private readonly KnownCrawler $crawler,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         if (! $this->settings->boolean('site.age_gate_enabled')
             || $request->cookie(self::COOKIE) === '1'
-            || $this->isKnownCrawler($request)
+            || $this->crawler->matches($request->userAgent())
         ) {
             return $next($request);
         }
@@ -46,21 +45,5 @@ class EnsureAgeConfirmed
         return response()->view('age-gate.show', [
             'intendedUrl' => $request->fullUrl(),
         ]);
-    }
-
-    private function isKnownCrawler(Request $request): bool
-    {
-        $userAgent = strtolower((string) $request->userAgent());
-        if ($userAgent === '') {
-            return false;
-        }
-
-        foreach (self::CRAWLER_USER_AGENTS as $needle) {
-            if (str_contains($userAgent, $needle)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

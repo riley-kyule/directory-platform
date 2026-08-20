@@ -70,6 +70,40 @@ class AdminDirectorySettingsTest extends TestCase
         $this->assertTrue(app(DirectorySettings::class)->boolean('security.privileged_mfa_enforced'));
     }
 
+    public function test_admin_can_publish_search_engine_verification_tags(): void
+    {
+        $admin = $this->admin();
+
+        $this->get(route('directory.home'))
+            ->assertOk()
+            ->assertDontSee('google-site-verification');
+
+        $this->actingAs($admin)->patch(route('admin.settings.update'), $this->validSettings([
+            'google_site_verification' => 'google_token-123',
+            'bing_site_verification' => 'ABCDEF_456',
+        ]))->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->app['auth']->logout();
+        $this->get(route('directory.home'))
+            ->assertOk()
+            ->assertSee('<meta name="google-site-verification" content="google_token-123">', false)
+            ->assertSee('<meta name="msvalidate.01" content="ABCDEF_456">', false);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $admin->id,
+            'action' => 'settings.update',
+        ]);
+    }
+
+    public function test_search_engine_verification_tokens_reject_markup(): void
+    {
+        $this->actingAs($this->admin())->patch(route('admin.settings.update'), $this->validSettings([
+            'google_site_verification' => '"><script>alert(1)</script>',
+        ]))->assertRedirect()->assertSessionHasErrors('google_site_verification');
+
+        $this->assertDatabaseMissing('directory_settings', ['key' => 'seo.google_site_verification']);
+    }
+
     public function test_packages_page_shows_packages_and_durations(): void
     {
         $this->actingAs(User::factory()->create())

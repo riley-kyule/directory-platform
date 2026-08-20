@@ -28,6 +28,7 @@ class SystemHealthService
             'moderation_sla' => $this->moderationSla(),
             'privacy_retention' => $this->privacyRetention(),
             'mail' => $this->mail(),
+            'search_console' => $this->searchConsole(),
             'disk' => $this->disk(),
             'backup' => $this->backup(),
             'restore_drill' => $this->restoreDrill(),
@@ -174,6 +175,20 @@ class SystemHealthService
             $warning ? 'Production notifications are using a non-delivery mailer.' : "Notification mailer is configured as {$mailer}.",
             $mailer,
         );
+    }
+
+    private function searchConsole(): array
+    {
+        try {
+            $configured = app(DirectorySettings::class)->string('seo.google_site_verification') !== '';
+
+            return $this->result(
+                $configured ? 'ok' : 'warning',
+                $configured ? 'Google Search Console ownership tag is configured.' : 'Google Search Console ownership tag is not configured.',
+            );
+        } catch (Throwable) {
+            return $this->result('warning', 'Search Console configuration cannot be read.');
+        }
     }
 
     private function disk(): array

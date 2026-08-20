@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ProfileConversionDaily;
+use App\Models\ProfileViewDaily;
 use Illuminate\Console\Command;
 
 class PruneProfileConversions extends Command
@@ -14,8 +15,9 @@ class PruneProfileConversions extends Command
     public function handle(): int
     {
         $cutoff = now()->subDays(config('operations.profile_conversion_retention_days'))->toDateString();
-        $deleted = ProfileConversionDaily::query()->where('event_date', '<', $cutoff)->delete();
-        $this->info("Pruned {$deleted} profile conversion row(s) older than {$cutoff}.");
+        $conversions = ProfileConversionDaily::query()->where('event_date', '<', $cutoff)->delete();
+        $views = ProfileViewDaily::query()->where('event_date', '<', $cutoff)->delete();
+        $this->info("Pruned {$conversions} profile conversion and {$views} profile view row(s) older than {$cutoff}.");
 
         return self::SUCCESS;
     }

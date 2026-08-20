@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileConversionController;
 use App\Http\Controllers\ProfileMediaController;
 use App\Http\Controllers\ProfileReportController;
+use App\Http\Controllers\ProfileViewController;
 use App\Http\Controllers\ProviderOnboardingController;
 use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
@@ -37,6 +38,9 @@ Route::post('/age-gate/confirm', [AgeGateController::class, 'confirm'])->name('a
 Route::post('/conversion/contact', ProfileConversionController::class)
     ->middleware('throttle:30,1')
     ->name('conversion.contact');
+Route::post('/conversion/profile-view', ProfileViewController::class)
+    ->middleware('throttle:60,1')
+    ->name('conversion.profile-view');
 
 Route::get('/', [PublicDirectoryController::class, 'home'])->middleware(['age.gate', 'cache.public'])->name('directory.home');
 Route::get('/locations', [PublicDirectoryController::class, 'allLocations'])->middleware(['age.gate', 'cache.public'])->name('directory.locations.index');

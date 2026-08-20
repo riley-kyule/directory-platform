@@ -25,8 +25,10 @@ The project is in active development. Its current foundation provides account re
 - Public Call, SMS, WhatsApp, and Telegram profile actions
 - Public agency directory and active-profile agency pages
 - Privacy-safe public search with location, profile attribute, availability, and service filters
+- Privacy-safe daily profile-view and contact-intent analytics with profile click-through reporting
 - Privacy-safe related profiles prioritized by sub-location
 - Dynamic, visibility-aware XML sitemaps and robots discovery
+- Admin-managed Google Search Console and Bing Webmaster Tools ownership verification tags
 - SEO-managed redirects, 410 removals, loop protection, and audited activation controls
 - Actionable SEO audit for orphan pages, indexability conflicts, metadata length and duplication, thin copy, and stale editorial reviews
 - Explicit profile slug changes with permanent old-URL history and redirect-chain flattening
@@ -109,7 +111,7 @@ Trigger the scheduler every minute, and run the queue worker via cron rather tha
 
 `deploy/install-cron.sh` installs both lines for you idempotently (safe to re-run; it replaces its own previous entries rather than duplicating them) and is called automatically by `deploy/bootstrap.sh` — on a fresh cPanel install, this means the scheduler and queue worker are live with no manual cron configuration. If your host has no `crontab` command, the script prints the two lines to paste into cPanel's "Cron Jobs" UI instead. Set `PHP_BIN` if `php` on the account's `$PATH` isn't the version selected in MultiPHP Manager.
 
-The scheduler records its heartbeat every minute, dispatches a queue-worker heartbeat, scans overdue moderation cases every 15 minutes, refreshes expired verification states daily, applies privacy-retention cleanup daily, expires package listings immediately, rotates listing order, and creates verified database and media backups nightly (`system:backup` at 02:30, `system:backup-media` at 03:00). `composer backup` creates an on-demand database backup; `php artisan system:backup-media` does the same for public profile media. MySQL/MariaDB requires `mysqldump`, PostgreSQL requires `pg_dump`, and SQLite requires `sqlite3`; the media backup shells out to `tar`.
+The scheduler records its heartbeat every minute, dispatches a queue-worker heartbeat, scans overdue moderation cases every 15 minutes, refreshes expired verification states daily, applies privacy-retention cleanup daily, expires package listings immediately, rotates listing order, prunes anonymous search/conversion/view aggregates, and creates verified database and media backups nightly (`system:backup` at 02:30, `system:backup-media` at 03:00). `composer backup` creates an on-demand database backup; `php artisan system:backup-media` does the same for public profile media. MySQL/MariaDB requires `mysqldump`, PostgreSQL requires `pg_dump`, and SQLite requires `sqlite3`; the media backup shells out to `tar`.
 
 Configure `OPS_BACKUP_DISK` as private, encrypted, off-host storage in production. Restrict temporary storage to the application user and use encrypted host volumes. Test restoration into an isolated environment on a schedule; verify the checksum, import the archive, run migrations in dry-run review, execute the automated test suite, and record the drill outside the production database.
 

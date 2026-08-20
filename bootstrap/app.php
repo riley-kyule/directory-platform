@@ -30,11 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'cache.public' => CachePublicPage::class,
             'age.gate' => EnsureAgeConfirmed::class,
         ]);
-        // This endpoint accepts only aggregate, non-identifying contact-event
-        // counters and has its own strict validation/throttle. Exempting it
-        // allows cached public pages to use sendBeacon without embedding a
-        // guest-specific CSRF token in the shared page cache.
-        $middleware->validateCsrfTokens(except: ['conversion/contact']);
+        // These endpoints accept only aggregate, non-identifying counters and
+        // have strict validation/throttles. Exempting them allows cached public
+        // pages to use sendBeacon without embedding a guest-specific CSRF token
+        // in the shared page cache.
+        $middleware->validateCsrfTokens(except: ['conversion/contact', 'conversion/profile-view']);
         // Behind Cloudflare (or any TLS-terminating proxy) the app only ever
         // sees the proxy's own IP, so it must trust forwarded headers to know
         // the visitor's real IP/scheme. '*' trusts whichever host actually

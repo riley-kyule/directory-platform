@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\RecordQueueWorkerHeartbeat;
 use App\Models\BackupRecord;
+use App\Models\DirectorySetting;
 use App\Models\Role;
 use App\Models\SystemHeartbeat;
 use App\Models\User;
@@ -55,7 +56,8 @@ class OperationsReadinessTest extends TestCase
             ->assertSee('Scheduler')
             ->assertSee('Queue worker heartbeat')
             ->assertSee('Moderation escalation scan')
-            ->assertSee('Privacy-retention cleanup');
+            ->assertSee('Privacy-retention cleanup')
+            ->assertSee('Search Console ownership tag');
     }
 
     public function test_health_reports_queue_delay_failed_jobs_and_backup_freshness_without_making_warnings_unready(): void
@@ -109,6 +111,20 @@ class OperationsReadinessTest extends TestCase
         $checks = app(SystemHealthService::class)->checks();
 
         $this->assertSame('warning', $checks['restore_drill']['status']);
+    }
+
+    public function test_search_console_health_clears_after_ownership_tag_is_configured(): void
+    {
+        $this->assertSame('warning', app(SystemHealthService::class)->checks()['search_console']['status']);
+
+        DirectorySetting::query()->create([
+            'key' => 'seo.google_site_verification',
+            'value' => 'google_token-123',
+            'value_type' => 'string',
+            'group' => 'seo',
+        ]);
+
+        $this->assertSame('ok', app(SystemHealthService::class)->checks()['search_console']['status']);
     }
 
     public function test_operational_maintenance_and_queue_worker_heartbeats_are_visible(): void

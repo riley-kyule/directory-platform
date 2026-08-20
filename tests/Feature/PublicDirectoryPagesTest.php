@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\Package;
 use App\Models\Profile;
 use App\Models\ProfileConversionDaily;
+use App\Models\ProfileViewDaily;
 use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class PublicDirectoryPagesTest extends TestCase
@@ -141,6 +143,8 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertSee('https://t.me/janepublic', false)
             ->assertSee('data-placement="profile_page"', false)
             ->assertSee('data-placement="mobile_bar"', false)
+            ->assertSee('name="profile-view-endpoint"', false)
+            ->assertSee('name="profile-view-id" content="'.$this->profile->public_id.'"', false)
             ->assertSee('Verification reviewed.')
             ->assertSee('Independent listing')
             ->assertDontSee($this->profile->date_of_birth->toDateString());
@@ -167,8 +171,48 @@ class PublicDirectoryPagesTest extends TestCase
         $this->assertDatabaseCount('profile_conversion_daily', 1);
     }
 
+    public function test_profile_views_are_stored_as_anonymous_daily_aggregates(): void
+    {
+        $payload = ['profile' => $this->profile->public_id];
+
+        $this->post(route('conversion.profile-view'), $payload)->assertNoContent();
+        $this->post(route('conversion.profile-view'), $payload)->assertNoContent();
+
+        $this->assertDatabaseHas('profile_view_daily', [
+            'event_date' => now()->toDateString(),
+            'profile_id' => $this->profile->id,
+            'view_count' => 2,
+        ]);
+        $this->assertDatabaseCount('profile_view_daily', 1);
+        $this->assertEmpty(array_intersect(
+            Schema::getColumnListing('profile_view_daily'),
+            ['user_id', 'session_id', 'ip_address', 'user_agent', 'fingerprint', 'referrer'],
+        ));
+    }
+
+    public function test_profile_view_tracking_ignores_crawlers_and_private_profiles(): void
+    {
+        $payload = ['profile' => $this->profile->public_id];
+
+        $this->withHeader('User-Agent', 'Googlebot/2.1')
+            ->post(route('conversion.profile-view'), $payload)
+            ->assertNoContent();
+        $this->assertDatabaseCount('profile_view_daily', 0);
+
+        $this->profile->update(['status' => ProfileStatus::Deactivated]);
+        $this->withHeader('User-Agent', 'Mozilla/5.0')
+            ->post(route('conversion.profile-view'), $payload)
+            ->assertNotFound();
+        $this->assertDatabaseCount('profile_view_daily', 0);
+    }
+
     public function test_authorized_staff_can_see_aggregated_profile_conversion_counts(): void
     {
+        ProfileViewDaily::query()->create([
+            'event_date' => now()->toDateString(),
+            'profile_id' => $this->profile->id,
+            'view_count' => 10,
+        ]);
         foreach (range(1, 2) as $_) {
             $this->post(route('conversion.contact'), [
                 'profile' => $this->profile->public_id,
@@ -186,7 +230,9 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Jane Public')
             ->assertSee('WhatsApp')
-            ->assertSee('Mobile Bar');
+            ->assertSee('Mobile Bar')
+            ->assertSee('20.0% CTR')
+            ->assertSee('Search-engine setup');
     }
 
     public function test_contact_tracking_rejects_invalid_events_and_private_profiles(): void
@@ -216,6 +262,11 @@ class PublicDirectoryPagesTest extends TestCase
             'placement' => 'profile_page',
             'contact_count' => 5,
         ]);
+        ProfileViewDaily::query()->create([
+            'event_date' => now()->subDays(401)->toDateString(),
+            'profile_id' => $this->profile->id,
+            'view_count' => 20,
+        ]);
         ProfileConversionDaily::query()->create([
             'event_date' => now()->toDateString(),
             'profile_id' => $this->profile->id,
@@ -228,6 +279,7 @@ class PublicDirectoryPagesTest extends TestCase
 
         $this->assertDatabaseMissing('profile_conversion_daily', ['channel' => 'call']);
         $this->assertDatabaseHas('profile_conversion_daily', ['channel' => 'whatsapp']);
+        $this->assertDatabaseCount('profile_view_daily', 0);
     }
 
     public function test_public_profile_exposes_social_metadata_and_safe_entity_schema(): void

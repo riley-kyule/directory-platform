@@ -15,6 +15,8 @@ class DirectorySettings
         'site.age_gate_enabled' => false,
         'site.logo_path' => '',
         'site.favicon_path' => '',
+        'seo.google_site_verification' => '',
+        'seo.bing_site_verification' => '',
         'security.privileged_mfa_enforced' => false,
         'profiles.agency_limit' => 15,
         'listings.new_profile_days' => 14,

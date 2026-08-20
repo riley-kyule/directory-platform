@@ -16,6 +16,7 @@ use App\Models\PackageDurationOption;
 use App\Services\BrandingImageProcessor;
 use App\Services\DirectorySettings;
 use App\Services\LocationInventoryService;
+use App\Services\PublicPageCache;
 use App\Services\SelfDeployService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -32,6 +33,7 @@ class DirectorySettingsController extends Controller
         private readonly LocationInventoryService $locationInventory,
         private readonly SelfDeployService $selfDeploy,
         private readonly BrandingImageProcessor $brandingImageProcessor,
+        private readonly PublicPageCache $pageCache,
     ) {}
 
     public function index(): View
@@ -45,6 +47,8 @@ class DirectorySettingsController extends Controller
                 'platform_name' => $this->settings->string('site.platform_name'),
                 'support_email' => $this->settings->string('site.support_email'),
                 'age_gate_enabled' => $this->settings->boolean('site.age_gate_enabled'),
+                'google_site_verification' => $this->settings->string('seo.google_site_verification'),
+                'bing_site_verification' => $this->settings->string('seo.bing_site_verification'),
                 'privileged_mfa_enforced' => $this->settings->boolean('security.privileged_mfa_enforced'),
                 'agency_profile_limit' => $this->settings->integer('profiles.agency_limit'),
                 'new_profile_days' => $this->settings->integer('listings.new_profile_days'),
@@ -92,6 +96,8 @@ class DirectorySettingsController extends Controller
             'site.platform_name' => [$validated['platform_name'] ?? '', 'string', 'site'],
             'site.support_email' => [$validated['support_email'] ?? '', 'string', 'site'],
             'site.age_gate_enabled' => [$validated['age_gate_enabled'] ? 1 : 0, 'boolean', 'site'],
+            'seo.google_site_verification' => [$validated['google_site_verification'] ?? '', 'string', 'seo'],
+            'seo.bing_site_verification' => [$validated['bing_site_verification'] ?? '', 'string', 'seo'],
             'security.privileged_mfa_enforced' => [$validated['privileged_mfa_enforced'] ? 1 : 0, 'boolean', 'security'],
             'profiles.agency_limit' => [$validated['agency_profile_limit'], 'integer', 'profiles'],
             'listings.new_profile_days' => [$validated['new_profile_days'], 'integer', 'listings'],
@@ -123,6 +129,7 @@ class DirectorySettingsController extends Controller
             ->whereIn('type', ['area', 'landmark'])
             ->select('id')
             ->eachById(fn (Location $location) => $this->locationInventory->sync($location->id));
+        $this->pageCache->forgetAll();
 
         return back()->with('status', 'Directory settings updated.');
     }
@@ -161,6 +168,7 @@ class DirectorySettingsController extends Controller
             }
             $this->audit($request->user()->id, 'settings.branding-update', null, $previous, $updates);
         });
+        $this->pageCache->forgetAll();
 
         return back()->with('status', 'Branding updated.');
     }

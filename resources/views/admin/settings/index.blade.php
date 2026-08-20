@@ -75,6 +75,22 @@
                         <p class="mt-1 text-xs text-gray-500">Feeds the @{{support_email}} token in legal policies. Set a real, monitored address before launch.</p>
                         <x-input-error :messages="$errors->get('support_email')" class="mt-2" />
                     </div>
+                    <div class="sm:col-span-2 lg:col-span-3 border-t border-gray-200 pt-5">
+                        <h4 class="text-sm font-semibold text-gray-900">Search-engine ownership</h4>
+                        <p class="mt-1 text-sm text-gray-600">Paste only the verification token from each provider's HTML meta-tag method. The tags appear on every public page immediately after saving.</p>
+                    </div>
+                    <div>
+                        <x-input-label for="google_site_verification" value="Google Search Console token" />
+                        <x-text-input id="google_site_verification" name="google_site_verification" maxlength="255" class="mt-1 block w-full" :value="old('google_site_verification', $settings['google_site_verification'])" autocomplete="off" />
+                        <p class="mt-1 text-xs text-gray-500">From <code>content="…"</code> in the Google verification meta tag.</p>
+                        <x-input-error :messages="$errors->get('google_site_verification')" class="mt-2" />
+                    </div>
+                    <div>
+                        <x-input-label for="bing_site_verification" value="Bing Webmaster Tools token" />
+                        <x-text-input id="bing_site_verification" name="bing_site_verification" maxlength="255" class="mt-1 block w-full" :value="old('bing_site_verification', $settings['bing_site_verification'])" autocomplete="off" />
+                        <p class="mt-1 text-xs text-gray-500">From <code>content="…"</code> in the msvalidate.01 meta tag.</p>
+                        <x-input-error :messages="$errors->get('bing_site_verification')" class="mt-2" />
+                    </div>
                     <label class="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-4">
                         <input type="checkbox" name="age_gate_enabled" value="1" @checked(old('age_gate_enabled', $settings['age_gate_enabled'])) class="mt-1 rounded border-gray-300 text-indigo-600">
                         <span>

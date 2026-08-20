@@ -39,6 +39,15 @@ class PublicPageCache
         Cache::forget('illuminate:cache:flexible:created:'.$this->key($url));
     }
 
+    /**
+     * Move every public URL into a fresh cache namespace. Old entries expire
+     * naturally, while site-wide settings become visible immediately.
+     */
+    public function forgetAll(): void
+    {
+        Cache::forever('page-cache:generation', (string) str()->uuid());
+    }
+
     public function forgetForProfile(Profile $profile): void
     {
         $this->forget(route('directory.profiles.show', $profile->slug));
@@ -82,6 +91,8 @@ class PublicPageCache
 
     private function key(string $url): string
     {
-        return 'page-cache:'.$url;
+        $generation = Cache::get('page-cache:generation', 'initial');
+
+        return 'page-cache:'.$generation.':'.$url;
     }
 }

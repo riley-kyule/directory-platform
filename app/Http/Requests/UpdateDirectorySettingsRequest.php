@@ -25,6 +25,8 @@ class UpdateDirectorySettingsRequest extends FormRequest
         return [
             'platform_name' => ['nullable', 'string', 'max:80'],
             'support_email' => ['nullable', 'email', 'max:255'],
+            'google_site_verification' => ['nullable', 'string', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/'],
+            'bing_site_verification' => ['nullable', 'string', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/'],
             'age_gate_enabled' => ['required', 'boolean'],
             'privileged_mfa_enforced' => ['required', 'boolean'],
             'agency_profile_limit' => ['required', 'integer', 'between:1,100'],
