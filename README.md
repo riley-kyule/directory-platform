@@ -24,6 +24,7 @@ The project is in active development. Its current foundation provides account re
 - Safe Markdown content blocks below public listings
 - Public Call, SMS, WhatsApp, and Telegram profile actions
 - Public agency directory and active-profile agency pages
+- Installable privacy-safe PWA shell with dynamic branding icons and a neutral offline fallback
 - Privacy-safe public search with location, profile attribute, availability, and service filters
 - Privacy-safe daily profile-view and contact-intent analytics with profile click-through reporting
 - Privacy-safe related profiles prioritized by sub-location

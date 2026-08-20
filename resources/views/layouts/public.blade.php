@@ -32,6 +32,13 @@
         <meta name="twitter:title" content="{{ $metaTitle }}">
         <meta name="twitter:description" content="{{ $metaDescription }}">
         <meta name="theme-color" content="#171717">
+        <meta name="application-name" content="{{ config('app.name') }}">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
+        <link rel="manifest" href="{{ route('pwa.manifest') }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ route('pwa.icon', 180) }}">
         <meta name="conversion-endpoint" content="{{ route('conversion.contact') }}">
         @if ($profileViewId)
             <meta name="profile-view-endpoint" content="{{ route('conversion.profile-view') }}">

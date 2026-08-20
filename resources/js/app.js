@@ -4,6 +4,15 @@ window.Alpine = Alpine;
 
 Alpine.start();
 
+if ('serviceWorker' in navigator && window.isSecureContext && document.querySelector('link[rel="manifest"]')) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+            updateViaCache: 'none',
+        }).catch(() => {});
+    });
+}
+
 const profileViewEndpoint = document.querySelector('meta[name="profile-view-endpoint"]')?.content;
 const profileViewId = document.querySelector('meta[name="profile-view-id"]')?.content;
 

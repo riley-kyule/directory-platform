@@ -19,6 +19,7 @@ use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\PublicAgencyController;
 use App\Http\Controllers\PublicDirectoryController;
 use App\Http\Controllers\PublicSearchController;
+use App\Http\Controllers\PwaController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Seo\RedirectManagementController;
@@ -32,9 +33,18 @@ use App\Http\Controllers\Staff\ProfileReviewController;
 use App\Http\Controllers\Staff\ReviewModerationController;
 use App\Http\Controllers\Staff\VerificationController;
 use App\Http\Controllers\SystemHealthController;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::post('/age-gate/confirm', [AgeGateController::class, 'confirm'])->name('age-gate.confirm');
+Route::withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->group(function (): void {
+    Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.worker');
+    Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
+    Route::get('/pwa/icon-{size}.png', [PwaController::class, 'icon'])->whereIn('size', [180, 192, 512])->name('pwa.icon');
+    Route::get('/pwa/icon-maskable-{size}.png', [PwaController::class, 'maskableIcon'])->whereIn('size', [192, 512])->name('pwa.icon.maskable');
+});
 Route::post('/conversion/contact', ProfileConversionController::class)
     ->middleware('throttle:30,1')
     ->name('conversion.contact');

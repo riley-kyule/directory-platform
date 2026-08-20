@@ -29,6 +29,7 @@ class LaunchReadinessCheck extends Command
             ['Application key configured', filled(config('app.key'))],
             ['Database responds', $this->databaseResponds()],
             ['Storage directory is writable', is_writable(storage_path())],
+            ['GD image processing is available for media and PWA icons', function_exists('imagepng') && function_exists('imagecreatefromstring')],
             ['Privileged MFA enrollment complete when enabled', ! $mfaEnforced || ! User::query()->whereHas('roles', fn ($query) => $query->whereIn('slug', ['admin', 'csr', 'seo']))->whereNull('two_factor_confirmed_at')->exists()],
             ['All policy types published', PolicyVersion::query()->published()->distinct()->count('policy_type') === count(PolicyVersion::TYPES)],
         ]);

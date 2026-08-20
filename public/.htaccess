@@ -38,6 +38,10 @@
     <FilesMatch "\.(?:css|js|png|jpe?g|webp|woff2)$">
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
+    <Files "offline.html">
+        Header set Cache-Control "no-cache, must-revalidate"
+        Header set Expires "0"
+    </Files>
 </IfModule>
 
 <IfModule mod_deflate.c>
