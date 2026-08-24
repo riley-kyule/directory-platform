@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DirectorySetting;
 use App\Models\Location;
 use App\Models\Profile;
 use App\Models\ProfileDetail;
@@ -39,6 +40,46 @@ class SeoDirectoryConfigurationTest extends TestCase
             ->assertOk()
             ->assertSee('Homepage content')
             ->assertSee('Bottom SEO content');
+    }
+
+    public function test_seo_user_can_edit_profile_meta_template_and_ordered_public_menu(): void
+    {
+        $seo = $this->staff('seo');
+
+        $this->actingAs($seo)->patch(route('seo.site-presentation.update'), [
+            'profile_meta_template' => '{profile_title} is a {gender} in {locality}, {city}. {pronoun} welcomes enquiries.',
+            'navigation_items' => [
+                ['label' => 'Agencies first', 'url' => '/agencies'],
+                ['label' => 'Find a profile', 'url' => '/search'],
+            ],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            [['label' => 'Agencies first', 'url' => '/agencies'], ['label' => 'Find a profile', 'url' => '/search']],
+            json_decode(DirectorySetting::query()->findOrFail('navigation.primary_items')->value, true),
+        );
+        $this->assertDatabaseHas('audit_logs', ['action' => 'seo.site-presentation-update']);
+        $this->get(route('directory.home'))->assertSeeInOrder(['Agencies first', 'Find a profile']);
+    }
+
+    public function test_subscriber_cannot_edit_profile_meta_or_menu(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('seo.site-presentation.edit'))
+            ->assertForbidden();
+    }
+
+    public function test_locations_can_be_searched_by_name_or_path(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData());
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData([
+            'name' => 'Mombasa', 'seo_title' => 'Mombasa Escorts and Independent Profiles',
+        ]));
+        session()->forget('status');
+
+        $this->actingAs($seo)->get(route('seo.locations.index', ['q' => 'Nairobi']))
+            ->assertOk()->assertSee('Nairobi')->assertDontSee('Mombasa');
     }
 
     public function test_seo_user_can_open_locations_and_taxonomies_pages(): void

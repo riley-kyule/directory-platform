@@ -25,6 +25,7 @@ use App\Http\Controllers\Seo\DirectoryConfigurationController;
 use App\Http\Controllers\Seo\RedirectManagementController;
 use App\Http\Controllers\Seo\SearchInsightsController;
 use App\Http\Controllers\Seo\SeoAuditController;
+use App\Http\Controllers\Seo\SitePresentationController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Staff\ModerationController;
 use App\Http\Controllers\Staff\ProfileCreationController;
@@ -173,6 +174,8 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('seo')->name('seo.')->group(function () {
+        Route::get('/site-presentation', [SitePresentationController::class, 'edit'])->name('site-presentation.edit');
+        Route::patch('/site-presentation', [SitePresentationController::class, 'update'])->name('site-presentation.update');
         Route::get('/pages/homepage', [DirectoryConfigurationController::class, 'homepageEdit'])->name('pages.homepage.edit');
         Route::patch('/pages/homepage', [DirectoryConfigurationController::class, 'updateHomepage'])->name('pages.homepage.update');
         Route::get('/pages/agencies', [DirectoryConfigurationController::class, 'agenciesEdit'])->name('pages.agencies.edit');

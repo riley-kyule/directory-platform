@@ -11,6 +11,7 @@
             $directorySettings = app(\App\Services\DirectorySettings::class);
             $googleVerification = $directorySettings->string('seo.google_site_verification');
             $bingVerification = $directorySettings->string('seo.bing_site_verification');
+            $primaryNavigation = $directorySettings->navigationItems();
         @endphp
         @if ($googleVerification !== '')<meta name="google-site-verification" content="{{ $googleVerification }}">@endif
         @if ($bingVerification !== '')<meta name="msvalidate.01" content="{{ $bingVerification }}">@endif
@@ -72,9 +73,9 @@
                     @endif
                 </a>
                 <nav class="hidden items-center gap-2 text-sm font-medium md:flex" aria-label="Primary navigation">
-                    <a href="{{ route('directory.search') }}" class="rounded-full px-4 py-2 hover:bg-white/10">Search</a>
-                    <a href="{{ route('directory.locations.index') }}" class="rounded-full px-4 py-2 hover:bg-white/10">Locations</a>
-                    <a href="{{ route('directory.agencies.index') }}" class="rounded-full px-4 py-2 hover:bg-white/10">Agencies</a>
+                    @foreach ($primaryNavigation as $item)
+                        <a href="{{ url($item['url']) }}" class="rounded-full px-4 py-2 hover:bg-white/10">{{ $item['label'] }}</a>
+                    @endforeach
                     @auth
                         <a href="{{ route('dashboard') }}" class="rounded-full px-4 py-2 hover:bg-white/10">Dashboard</a>
                     @else
@@ -90,9 +91,9 @@
             </div>
             <nav id="mobile-public-navigation" x-show="mobileOpen" x-transition x-cloak @click.outside="if (mobileOpen) closeMenu()" class="absolute inset-x-0 top-full border-t border-white/10 bg-stone-950 px-4 py-4 shadow-2xl md:hidden" aria-label="Mobile navigation">
                 <div class="mx-auto grid max-w-7xl gap-1 text-sm font-semibold">
-                    <a x-ref="mobileMenuFirst" href="{{ route('directory.search') }}" class="rounded-xl px-4 py-3 hover:bg-white/10">Search profiles</a>
-                    <a href="{{ route('directory.locations.index') }}" class="rounded-xl px-4 py-3 hover:bg-white/10">Browse locations</a>
-                    <a href="{{ route('directory.agencies.index') }}" class="rounded-xl px-4 py-3 hover:bg-white/10">Browse agencies</a>
+                    @foreach ($primaryNavigation as $item)
+                        <a @if($loop->first) x-ref="mobileMenuFirst" @endif href="{{ url($item['url']) }}" class="rounded-xl px-4 py-3 hover:bg-white/10">{{ $item['label'] }}</a>
+                    @endforeach
                     @auth
                         <a href="{{ route('dashboard') }}" class="mt-2 rounded-xl bg-white px-4 py-3 text-center text-stone-950">Open dashboard</a>
                     @else

@@ -7,6 +7,7 @@ use App\Models\PageContent;
 use App\Models\Profile;
 use App\Services\DirectorySettings;
 use App\Services\LocationSidebarTree;
+use App\Services\ProfileMetaDescription;
 use App\Services\PublicContactLinks;
 use App\Services\PublicProfileListings;
 use App\Services\PublicSearchOptions;
@@ -23,6 +24,7 @@ class PublicDirectoryController extends Controller
         private readonly PublicContactLinks $contactLinks,
         private readonly DirectorySettings $settings,
         private readonly PublicSearchOptions $searchOptions,
+        private readonly ProfileMetaDescription $profileMetaDescription,
     ) {}
 
     public function home(): View
@@ -148,7 +150,7 @@ class PublicDirectoryController extends Controller
         $reviewCount = (int) ($reviewAggregate?->review_count ?? 0);
         $reviews = $profile->reviews()->published()->latest()->limit(20)->get();
         $canonicalUrl = route('directory.profiles.show', $profile->slug);
-        $metaDescription = str($profile->description)->squish()->limit(155)->toString();
+        $metaDescription = $this->profileMetaDescription->for($profile);
         $socialImage = $profile->images->first()?->publicUrl('profile');
         if ($socialImage && ! Str::startsWith($socialImage, ['http://', 'https://'])) {
             $socialImage = url($socialImage);

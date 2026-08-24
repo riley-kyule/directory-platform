@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ProfileStatus;
+use App\Models\DirectorySetting;
 use App\Models\Location;
 use App\Models\Package;
 use App\Models\Profile;
@@ -148,6 +149,19 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertSee('Verification reviewed.')
             ->assertSee('Independent listing')
             ->assertDontSee($this->profile->date_of_birth->toDateString());
+    }
+
+    public function test_profile_meta_description_uses_editable_dynamic_profile_values(): void
+    {
+        DirectorySetting::query()->create([
+            'key' => 'seo.profile_meta_template',
+            'value' => '{profile_title} is a {nationality} {gender} escort from {locality} in {city}, {country}. {pronoun} offers {availability}.',
+            'value_type' => 'string', 'group' => 'seo',
+        ]);
+
+        $this->get(route('directory.profiles.show', $this->profile->slug))
+            ->assertOk()
+            ->assertSee('<meta name="description" content="Jane Public is a Kenyan Woman escort from Westlands in Nairobi, Kenya. She offers in-calls and outcalls.">', false);
     }
 
     public function test_contact_events_are_stored_only_as_daily_aggregates(): void

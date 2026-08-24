@@ -17,6 +17,8 @@ class DirectorySettings
         'site.favicon_path' => '',
         'seo.google_site_verification' => '',
         'seo.bing_site_verification' => '',
+        'seo.profile_meta_template' => '{profile_title} is a hot {nationality} {gender} escort from {locality} in {city}, {country}. {pronoun} is available for {availability}. Hook up with {profile_title} today.',
+        'navigation.primary_items' => '[{"label":"Search","url":"/search"},{"label":"Browse locations","url":"/locations"},{"label":"Browse agencies","url":"/agencies"}]',
         'security.privileged_mfa_enforced' => false,
         'profiles.agency_limit' => 15,
         'listings.new_profile_days' => 14,
@@ -50,6 +52,15 @@ class DirectorySettings
     public function string(string $key): string
     {
         return (string) $this->value($key);
+    }
+
+    /** @return list<array{label: string, url: string}> */
+    public function navigationItems(): array
+    {
+        $items = json_decode($this->string('navigation.primary_items'), true);
+
+        return is_array($items) ? array_values(array_filter($items, fn ($item) => is_array($item) && isset($item['label'], $item['url'])
+        )) : [];
     }
 
     public function value(string $key): bool|int|float|string

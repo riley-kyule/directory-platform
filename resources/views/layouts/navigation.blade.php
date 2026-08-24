@@ -56,6 +56,9 @@
                     <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('SEO') }}</p>
                     <div class="mt-2 space-y-1">
                         @can('seo.content')
+                            <x-responsive-nav-link :href="route('seo.site-presentation.edit')" :active="request()->routeIs('seo.site-presentation.*')">
+                                {{ __('Profile Meta & Menu') }}
+                            </x-responsive-nav-link>
                             <x-responsive-nav-link :href="route('seo.pages.homepage.edit')" :active="request()->routeIs('seo.pages.homepage.*')">
                                 {{ __('Homepage Content') }}
                             </x-responsive-nav-link>

@@ -17,6 +17,7 @@ use App\Models\ProfileDetail;
 use App\Models\TaxonomyOption;
 use App\Services\LocationInventoryService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -50,13 +51,19 @@ class DirectoryConfigurationController extends Controller
         ]);
     }
 
-    public function locationsIndex(): View
+    public function locationsIndex(Request $request): View
     {
         Gate::authorize('seo.locations');
 
-        return view('seo.locations.index', [
-            'locations' => Location::query()->with(['parent', 'content'])->orderBy('country_code')->orderBy('full_slug')->get(),
-        ]);
+        $search = trim((string) $request->query('q'));
+        $locations = Location::query()->with(['parent', 'content'])
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('name', 'like', '%'.$search.'%')
+                ->orWhere('full_slug', 'like', '%'.$search.'%')
+                ->orWhere('country_code', 'like', '%'.$search.'%')))
+            ->orderBy('country_code')->orderBy('full_slug')->paginate(50)->withQueryString();
+
+        return view('seo.locations.index', compact('locations', 'search'));
     }
 
     public function taxonomiesIndex(): View
