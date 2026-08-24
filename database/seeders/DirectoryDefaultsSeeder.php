@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\DirectorySetting;
+use App\Models\MailSetting;
 use App\Models\Package;
 use App\Models\PageContent;
 use App\Models\PolicyVersion;
@@ -15,6 +16,14 @@ class DirectoryDefaultsSeeder extends Seeder
 {
     public function run(): void
     {
+        $host = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        MailSetting::query()->firstOrCreate(['id' => 1], [
+            'mailer' => 'sendmail',
+            'from_address' => 'no-reply@'.$host,
+            'from_name' => config('app.name'),
+            'sendmail_path' => '/usr/sbin/sendmail -bs -i',
+        ]);
+
         foreach ([
             ['key' => 'security.privileged_mfa_enforced', 'value' => '0', 'value_type' => 'boolean', 'group' => 'security'],
             ['key' => 'profiles.agency_limit', 'value' => '15', 'value_type' => 'integer', 'group' => 'profiles'],

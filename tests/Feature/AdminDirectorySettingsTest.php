@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\DirectorySetting;
+use App\Models\MailSetting;
 use App\Models\Package;
 use App\Models\PackageDurationOption;
 use App\Models\Role;
@@ -11,6 +13,8 @@ use App\Services\DirectorySettings;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AdminDirectorySettingsTest extends TestCase
@@ -68,6 +72,52 @@ class AdminDirectorySettingsTest extends TestCase
 
         $this->assertSame('1', DirectorySetting::query()->findOrFail('security.privileged_mfa_enforced')->value);
         $this->assertTrue(app(DirectorySettings::class)->boolean('security.privileged_mfa_enforced'));
+    }
+
+    public function test_admin_can_configure_encrypted_smtp_delivery_without_environment_changes(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get(route('admin.settings.mail.edit'))
+            ->assertOk()->assertSee('Mail delivery')->assertSee('Server mail');
+
+        $this->actingAs($admin)->patch(route('admin.settings.mail.update'), [
+            'mailer' => 'smtp',
+            'from_address' => 'no-reply@directory.test',
+            'from_name' => 'Directory Mail',
+            'sendmail_path' => '/usr/sbin/sendmail -bs -i',
+            'smtp_scheme' => 'smtps',
+            'smtp_host' => 'mail.directory.test',
+            'smtp_port' => 465,
+            'smtp_username' => 'no-reply@directory.test',
+            'smtp_password' => 'secret-mail-password',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $settings = MailSetting::query()->firstOrFail();
+        $this->assertSame('secret-mail-password', $settings->smtp_password);
+        $this->assertNotSame('secret-mail-password', DB::table('mail_settings')->value('smtp_password'));
+        $this->assertSame('smtp', config('mail.default'));
+        $this->assertSame('mail.directory.test', config('mail.mailers.smtp.host'));
+        $audit = AuditLog::query()->where('action', 'settings.mail-update')->firstOrFail();
+        $this->assertStringNotContainsString('secret-mail-password', json_encode([$audit->previous_state, $audit->new_state]));
+    }
+
+    public function test_non_admin_cannot_manage_mail_delivery(): void
+    {
+        $subscriber = User::factory()->create();
+
+        $this->actingAs($subscriber)->get(route('admin.settings.mail.edit'))->assertForbidden();
+        $this->actingAs($subscriber)->patch(route('admin.settings.mail.update'), [])->assertForbidden();
+        $this->actingAs($subscriber)->post(route('admin.settings.mail.test'), ['recipient' => 'test@example.com'])->assertForbidden();
+    }
+
+    public function test_admin_can_send_a_test_email_from_saved_configuration(): void
+    {
+        Mail::shouldReceive('raw')->once();
+
+        $this->actingAs($this->admin())->post(route('admin.settings.mail.test'), [
+            'recipient' => 'admin@example.com',
+        ])->assertRedirect()->assertSessionHas('status', 'Test email sent to admin@example.com.');
     }
 
     public function test_admin_can_publish_search_engine_verification_tags(): void

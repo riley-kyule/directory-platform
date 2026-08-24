@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\User;
 use App\Services\DirectorySettings;
 use App\Services\LocationSidebarTree;
+use App\Services\MailConfiguration;
 use App\Services\PolicyAcceptanceService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Events\QueryExecuted;
@@ -33,6 +34,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Mail transport is Admin-managed and database-backed. Applying it at
+        // runtime keeps credentials out of .env and still works with cached
+        // Laravel config. Safe before first-run migrations.
+        app(MailConfiguration::class)->apply();
+
         RateLimiter::for('public-reviews', fn (Request $request) => [
             Limit::perMinutes(10, 5)->by('reviews:ip:'.$this->rateLimitDigest($request->ip() ?? 'unknown')),
             Limit::perDay(2)->by('reviews:identity:'.$this->submissionIdentity($request)),

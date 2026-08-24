@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DirectorySettingsController;
+use App\Http\Controllers\Admin\MailSettingsController;
 use App\Http\Controllers\Admin\PolicyManagementController;
 use App\Http\Controllers\Admin\RoleManagementController;
 use App\Http\Controllers\Admin\SelfDeployController;
@@ -120,6 +121,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [DirectorySettingsController::class, 'index'])->name('index');
         Route::patch('/', [DirectorySettingsController::class, 'update'])->name('update');
         Route::post('/branding', [DirectorySettingsController::class, 'updateBranding'])->name('branding.update');
+        Route::get('/mail', [MailSettingsController::class, 'edit'])->name('mail.edit');
+        Route::patch('/mail', [MailSettingsController::class, 'update'])->name('mail.update');
+        Route::post('/mail/test', [MailSettingsController::class, 'test'])->name('mail.test');
         Route::patch('/packages/{package}', [DirectorySettingsController::class, 'updatePackage'])->name('packages.update');
         Route::post('/durations', [DirectorySettingsController::class, 'storeDuration'])->name('durations.store');
         Route::patch('/durations/{duration}', [DirectorySettingsController::class, 'updateDuration'])->name('durations.update');

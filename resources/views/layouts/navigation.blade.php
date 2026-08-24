@@ -168,6 +168,9 @@
                             <x-responsive-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.index')">
                                 {{ __('Directory operation') }}
                             </x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('admin.settings.mail.edit')" :active="request()->routeIs('admin.settings.mail.*')">
+                                {{ __('Mail delivery') }}
+                            </x-responsive-nav-link>
                             <x-responsive-nav-link :href="route('admin.settings.updates.index')" :active="request()->routeIs('admin.settings.updates.*')">
                                 {{ __('Updates') }}
                             </x-responsive-nav-link>

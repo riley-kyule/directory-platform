@@ -30,6 +30,7 @@ The project is in active development. Its current foundation provides account re
 - Privacy-safe related profiles prioritized by sub-location
 - Dynamic, visibility-aware XML sitemaps and robots discovery
 - Admin-managed Google Search Console and Bing Webmaster Tools ownership verification tags
+- Admin-managed Sendmail/SMTP delivery with encrypted SMTP passwords and test-email verification
 - SEO-managed redirects, 410 removals, loop protection, and audited activation controls
 - Actionable SEO audit for orphan pages, indexability conflicts, metadata length and duplication, thin copy, and stale editorial reviews
 - Explicit profile slug changes with permanent old-URL history and redirect-chain flattening
@@ -132,6 +133,8 @@ php artisan migrate --force
 php artisan optimize
 composer launch-check
 ```
+
+Production mail delivery is configured from **Admin → Settings → Mail delivery**. Fresh deployments default to cPanel's local Sendmail command, while SMTP credentials entered in Admin are encrypted with `APP_KEY` and excluded from audit logs. Use the built-in test-email action after saving. The `MAIL_*` environment variables are only a pre-migration fallback.
 
 After activation, run the bounded public smoke test (`--production` is required when `APP_ENV=production`):
 
