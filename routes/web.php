@@ -54,9 +54,9 @@ Route::post('/conversion/profile-view', ProfileViewController::class)
     ->middleware('throttle:60,1')
     ->name('conversion.profile-view');
 
-Route::get('/', [PublicDirectoryController::class, 'home'])->middleware(['age.gate', 'cache.public'])->name('directory.home');
-Route::get('/locations', [PublicDirectoryController::class, 'allLocations'])->middleware(['age.gate', 'cache.public'])->name('directory.locations.index');
-Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->middleware(['age.gate', 'cache.public'])->name('directory.profiles.show');
+Route::get('/', [PublicDirectoryController::class, 'home'])->middleware(['listing.rotation', 'age.gate', 'cache.public'])->name('directory.home');
+Route::get('/locations', [PublicDirectoryController::class, 'allLocations'])->middleware(['listing.rotation', 'age.gate', 'cache.public'])->name('directory.locations.index');
+Route::get('/escort/{profile}', [PublicDirectoryController::class, 'profile'])->middleware(['listing.rotation', 'age.gate', 'cache.public'])->name('directory.profiles.show');
 Route::get('/escort/{profile:slug}/report', [ProfileReportController::class, 'create'])->name('directory.profiles.report.create');
 Route::post('/escort/{profile:slug}/report', [ProfileReportController::class, 'store'])
     ->middleware('throttle:public-reports')
@@ -65,11 +65,11 @@ Route::get('/escort/{profile:slug}/reviews/new', [ReviewController::class, 'crea
 Route::post('/escort/{profile:slug}/reviews', [ReviewController::class, 'store'])
     ->middleware('throttle:public-reviews')
     ->name('directory.profiles.reviews.store');
-Route::get('/agencies', [PublicAgencyController::class, 'index'])->middleware(['age.gate', 'cache.public'])->name('directory.agencies.index');
-Route::get('/agencies/page/{page}', [PublicAgencyController::class, 'index'])->whereNumber('page')->middleware(['age.gate', 'cache.public'])->name('directory.agencies.page');
-Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->middleware(['age.gate', 'cache.public'])->name('directory.agencies.show');
-Route::get('/agency/{agency}/page/{page}', [PublicAgencyController::class, 'show'])->whereNumber('page')->middleware(['age.gate', 'cache.public'])->name('directory.agencies.show.page');
-Route::get('/search', [PublicSearchController::class, 'index'])->middleware(['age.gate', 'throttle:30,1'])->name('directory.search');
+Route::get('/agencies', [PublicAgencyController::class, 'index'])->middleware(['listing.rotation', 'age.gate', 'cache.public'])->name('directory.agencies.index');
+Route::get('/agencies/page/{page}', [PublicAgencyController::class, 'index'])->whereNumber('page')->middleware(['listing.rotation', 'age.gate', 'cache.public'])->name('directory.agencies.page');
+Route::get('/agency/{agency}', [PublicAgencyController::class, 'show'])->middleware(['listing.rotation', 'age.gate', 'cache.public'])->name('directory.agencies.show');
+Route::get('/agency/{agency}/page/{page}', [PublicAgencyController::class, 'show'])->whereNumber('page')->middleware(['listing.rotation', 'age.gate', 'cache.public'])->name('directory.agencies.show.page');
+Route::get('/search', [PublicSearchController::class, 'index'])->middleware(['listing.rotation', 'age.gate', 'throttle:30,1'])->name('directory.search');
 Route::get('/terms', [PolicyPageController::class, 'show'])->defaults('policyType', 'terms')->name('policies.terms');
 Route::get('/privacy', [PolicyPageController::class, 'show'])->defaults('policyType', 'privacy')->name('policies.privacy');
 Route::get('/provider-policy', [PolicyPageController::class, 'show'])->defaults('policyType', 'provider')->name('policies.provider');
@@ -204,7 +204,7 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::middleware(['age.gate', 'cache.public'])->group(function (): void {
+Route::middleware(['listing.rotation', 'age.gate', 'cache.public'])->group(function (): void {
     Route::get('/{city}-escorts/page/{page}', [PublicDirectoryController::class, 'city'])
         ->where('city', '[a-z0-9]+(?:-[a-z0-9]+)*')->whereNumber('page')->name('directory.cities.page');
     Route::get('/{city}/{neighbourhood}/{micro}-escorts/page/{page}', [PublicDirectoryController::class, 'microLocation'])

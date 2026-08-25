@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsurePrivilegedMfa;
 use App\Http\Middleware\ResolveDirectoryRedirects;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TrackUserActivity;
+use App\Http\Middleware\TriggerListingRotation;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'cache.public' => CachePublicPage::class,
             'age.gate' => EnsureAgeConfirmed::class,
+            'listing.rotation' => TriggerListingRotation::class,
         ]);
         // These endpoints accept only aggregate, non-identifying counters and
         // have strict validation/throttles. Exempting them allows cached public
