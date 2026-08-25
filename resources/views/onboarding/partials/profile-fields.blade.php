@@ -2,7 +2,27 @@
     $editing = ($profile ?? null) !== null;
     $value = fn (string $field, mixed $default = null) => old($field, ($form ?? [])[$field] ?? $default);
 @endphp
-<div x-data="{ additionalOpen: {{ $errors->hasAny(['hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg', 'smoker', 'language_ids', 'website_url', 'instagram_handle', 'snapchat_handle', 'tiktok_handle']) ? 'true' : 'false' }}, telegramPhoneEnabled: {{ $value('telegram_phone_enabled') ? 'true' : 'false' }} }" class="space-y-6">
+<div x-data="{
+        additionalOpen: {{ $errors->hasAny(['hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg', 'smoker', 'language_ids', 'website_url', 'instagram_handle', 'snapchat_handle', 'tiktok_handle']) ? 'true' : 'false' }},
+        telegramPhoneEnabled: {{ $value('telegram_phone_enabled') ? 'true' : 'false' }},
+        primaryLocationId: '{{ (string) ($value('primary_location_id') ?? '') }}',
+        sublocationId: '{{ (string) ($value('sublocation_id') ?? '') }}',
+        microLocationId: '{{ (string) ($value('micro_location_id') ?? '') }}',
+        onPrimaryChange(value) {
+            const selected = this.$refs.sublocation.selectedOptions[0];
+            if (! selected || selected.value === '' || selected.dataset.parent !== value) {
+                this.sublocationId = '';
+                this.microLocationId = '';
+            }
+        },
+        onSublocationChange(event) {
+            const option = event.target.selectedOptions[0];
+            if (option && option.value !== '' && option.dataset.parent) {
+                this.primaryLocationId = option.dataset.parent;
+            }
+            this.microLocationId = '';
+        },
+    }" class="space-y-6">
     @if ($locations->isEmpty() || ($taxonomies['ethnicity'] ?? collect())->isEmpty())
         <div class="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             Staff must publish locations and configure ethnicity options before a profile can be submitted.
@@ -18,9 +38,9 @@
         <div x-show="! telegramPhoneEnabled" x-transition x-cloak class="md:col-span-2"><x-input-label for="telegram_username" value="Telegram username (if phone is not used)" /><x-text-input id="telegram_username" name="telegram_username" class="mt-1 block w-full md:max-w-md" x-bind:disabled="telegramPhoneEnabled" :value="$value('telegram_username')" /><x-input-error :messages="$errors->get('telegram_username')" class="mt-2" /></div>
         <div class="md:col-span-2"><x-input-label for="description" value="About / Bio" /><textarea id="description" name="description" rows="6" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ $value('description') }}</textarea><x-input-error :messages="$errors->get('description')" class="mt-2" /></div>
 
-        <div><x-input-label for="primary_location_id" value="Location" /><select id="primary_location_id" name="primary_location_id" required class="mt-1 block w-full rounded-md border-gray-300"><option value="">Choose location</option>@foreach ($locations as $location)<option value="{{ $location->id }}" @selected($value('primary_location_id') == $location->id)>{{ $location->name }}</option>@endforeach</select><x-input-error :messages="$errors->get('primary_location_id')" class="mt-2" /></div>
-        <div><x-input-label for="sublocation_id" value="Sub-location" /><select id="sublocation_id" name="sublocation_id" required class="mt-1 block w-full rounded-md border-gray-300"><option value="">Choose sub-location</option>@foreach ($sublocations as $location)<option value="{{ $location->id }}" data-parent="{{ $location->parent_id }}" @selected($value('sublocation_id') == $location->id)>{{ $location->name }}</option>@endforeach</select><x-input-error :messages="$errors->get('sublocation_id')" class="mt-2" /></div>
-        <div><x-input-label for="micro_location_id" value="Area or landmark (optional)" /><select id="micro_location_id" name="micro_location_id" class="mt-1 block w-full rounded-md border-gray-300"><option value="">Not specified</option>@foreach ($microLocations as $location)<option value="{{ $location->id }}" data-parent="{{ $location->parent_id }}" @selected($value('micro_location_id') == $location->id)>{{ $location->name }}</option>@endforeach</select><p class="mt-1 text-xs text-gray-500">Choose a micro-location within the selected sub-location.</p><x-input-error :messages="$errors->get('micro_location_id')" class="mt-2" /></div>
+        <div><x-input-label for="primary_location_id" value="Location" /><select id="primary_location_id" name="primary_location_id" required class="mt-1 block w-full rounded-md border-gray-300" x-model="primaryLocationId" @change="onPrimaryChange($event.target.value)"><option value="">Choose location</option>@foreach ($locations as $location)<option value="{{ $location->id }}" @selected($value('primary_location_id') == $location->id)>{{ $location->name }}</option>@endforeach</select><x-input-error :messages="$errors->get('primary_location_id')" class="mt-2" /></div>
+        <div><x-input-label for="sublocation_id" value="Sub-location" /><select id="sublocation_id" name="sublocation_id" required class="mt-1 block w-full rounded-md border-gray-300" x-model="sublocationId" x-ref="sublocation" @change="onSublocationChange($event)"><option value="">Choose sub-location</option>@foreach ($sublocations as $location)<option value="{{ $location->id }}" data-parent="{{ $location->parent_id }}" x-show="! primaryLocationId || primaryLocationId === '{{ $location->parent_id }}'" @selected($value('sublocation_id') == $location->id)>{{ $location->name }}</option>@endforeach</select><p class="mt-1 text-xs text-gray-500">Choosing a sub-location fills in its location automatically.</p><x-input-error :messages="$errors->get('sublocation_id')" class="mt-2" /></div>
+        <div><x-input-label for="micro_location_id" value="Area or landmark (optional)" /><select id="micro_location_id" name="micro_location_id" class="mt-1 block w-full rounded-md border-gray-300" x-model="microLocationId"><option value="">Not specified</option>@foreach ($microLocations as $location)<option value="{{ $location->id }}" data-parent="{{ $location->parent_id }}" x-show="! sublocationId || sublocationId === '{{ $location->parent_id }}'" @selected($value('micro_location_id') == $location->id)>{{ $location->name }}</option>@endforeach</select><p class="mt-1 text-xs text-gray-500">Choose a micro-location within the selected sub-location.</p><x-input-error :messages="$errors->get('micro_location_id')" class="mt-2" /></div>
 
         @foreach ([['gender_option_id', 'gender', 'Gender'], ['ethnicity_option_id', 'ethnicity', 'Ethnicity'], ['build_option_id', 'build', 'Build'], ['bust_size_option_id', 'bust_size', 'Bust size']] as [$field, $type, $label])
             <div><x-input-label :for="$field" :value="$label" /><select id="{{ $field }}" name="{{ $field }}" @required($field !== 'bust_size_option_id') class="mt-1 block w-full rounded-md border-gray-300"><option value="">Choose {{ strtolower($label) }}</option>@foreach ($taxonomies[$type] ?? [] as $option)<option value="{{ $option->id }}" @selected($value($field) == $option->id)>{{ $option->label }}</option>@endforeach</select><x-input-error :messages="$errors->get($field)" class="mt-2" /></div>
