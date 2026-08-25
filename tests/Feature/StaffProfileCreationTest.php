@@ -113,6 +113,27 @@ class StaffProfileCreationTest extends TestCase
         $this->assertTrue($agency->profiles()->whereKey($profile->id)->wherePivotNull('unassigned_at')->exists());
     }
 
+    public function test_choosing_an_existing_provider_who_already_has_a_listing_is_refused(): void
+    {
+        $csr = $this->staff('csr');
+        $provider = User::factory()->create(['account_type' => AccountType::Provider, 'provider_type' => ProviderType::Independent]);
+        Profile::query()->create([
+            'owner_user_id' => $provider->id,
+            'display_name' => 'Already Listed', 'slug' => 'already-listed',
+            'description' => 'A profile this provider already owns before staff tries to add a second one.',
+            'primary_location_id' => $this->location->id, 'sublocation_id' => $this->sublocation->id,
+            'gender_option_id' => $this->options['gender']->id, 'date_of_birth' => now()->subYears(25),
+            'ethnicity_option_id' => $this->options['ethnicity']->id, 'build_option_id' => $this->options['build']->id,
+        ]);
+
+        $this->actingAs($csr)->post(route('staff.directory.store'), $this->listingData([
+            'owner_mode' => 'existing_user',
+            'existing_user_id' => $provider->id,
+        ]))->assertSessionHasErrors('existing_user_id');
+
+        $this->assertSame(1, Profile::query()->count());
+    }
+
     public function test_attaching_to_an_agency_at_its_profile_limit_is_refused(): void
     {
         $csr = $this->staff('csr');

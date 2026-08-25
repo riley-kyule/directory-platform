@@ -36,6 +36,7 @@ class ProfileCreationController extends Controller
             'ownerSearch' => $ownerSearch,
             'existingProviders' => $ownerSearch === '' ? collect() : User::query()
                 ->where('account_type', AccountType::Provider)
+                ->whereDoesntHave('profile')
                 ->where(fn ($query) => $query->where('name', 'like', "%{$ownerSearch}%")->orWhere('email', 'like', "%{$ownerSearch}%"))
                 ->orderBy('name')
                 ->limit(20)
