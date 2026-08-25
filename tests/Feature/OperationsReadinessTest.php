@@ -13,6 +13,7 @@ use Database\Seeders\AccessControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -139,6 +140,14 @@ class OperationsReadinessTest extends TestCase
         $this->assertSame('ok', $checks['moderation_escalation']['status']);
         $this->assertSame('ok', $checks['moderation_sla']['status']);
         $this->assertSame('ok', $checks['mail']['status']);
+    }
+
+    public function test_deployment_probe_dispatches_heartbeat_on_priority_monitoring_queue(): void
+    {
+        Queue::fake();
+
+        $this->assertSame(0, Artisan::call('system:dispatch-queue-heartbeat'));
+        Queue::assertPushedOn('monitoring', RecordQueueWorkerHeartbeat::class);
     }
 
     public function test_restore_drill_refuses_to_run_without_an_isolated_target_configured(): void

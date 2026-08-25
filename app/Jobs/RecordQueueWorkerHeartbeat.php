@@ -10,6 +10,13 @@ class RecordQueueWorkerHeartbeat implements ShouldQueue
 {
     use Queueable;
 
+    public function __construct()
+    {
+        // Health probes must never sit behind a large media-processing
+        // backlog, otherwise a working worker can look falsely stale.
+        $this->onQueue('monitoring');
+    }
+
     public function handle(): void
     {
         SystemHeartbeat::query()->updateOrCreate(

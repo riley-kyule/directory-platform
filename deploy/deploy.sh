@@ -117,6 +117,13 @@ echo "==> Seeding baseline data (roles/permissions, settings, packages, taxonomy
 echo "==> Caching config/routes/views"
 "$PHP_BIN" artisan optimize
 
+echo "==> Refreshing scheduler and queue cron definitions"
+PHP_BIN="$PHP_BIN" DEPLOY_APP_ROOT="$APP_ROOT" "$RELEASE_DIR/deploy/install-cron.sh"
+
+echo "==> Actively verifying asynchronous queue processing"
+"$PHP_BIN" artisan system:dispatch-queue-heartbeat
+"$PHP_BIN" artisan queue:work --queue=monitoring --stop-when-empty --max-time=30 --tries=1 --timeout=20
+
 echo "==> Running the production launch check"
 LAUNCH_CHECK_ARGS=(--production)
 if [ ! -L "$APP_ROOT/current" ]; then
