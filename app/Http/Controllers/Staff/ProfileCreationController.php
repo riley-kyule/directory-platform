@@ -50,29 +50,32 @@ class ProfileCreationController extends Controller
         $validated = $request->validated();
 
         $agency = null;
-        $ownerUserId = null;
 
-        if ($validated['owner_mode'] === 'existing_user') {
-            $ownerUserId = (int) $validated['existing_user_id'];
-        } elseif ($validated['owner_mode'] === 'new_user') {
-            $owner = User::query()->create([
-                'name' => $validated['new_user_name'],
-                'email' => $validated['new_user_email'],
-                'password' => Hash::make($validated['new_user_password']),
-                'status' => 'active',
-                'account_type' => AccountType::Provider,
-                'provider_type' => ProviderType::Independent,
-            ]);
-            $owner->forceFill(['email_verified_at' => now()])->save();
-            $ownerUserId = $owner->id;
-        } else {
+        if ($validated['owner_mode'] === 'agency') {
             $agency = Agency::query()->findOrFail($validated['agency_id']);
             if ($agency->profiles()->wherePivotNull('unassigned_at')->count() >= $this->settings->integer('profiles.agency_limit')) {
                 return back()->withInput()->withErrors(['agency_id' => 'This agency has reached its profile limit.']);
             }
         }
 
-        $profile = DB::transaction(function () use ($validated, $ownerUserId, $agency, $request): Profile {
+        $profile = DB::transaction(function () use ($validated, $agency, $request): Profile {
+            $ownerUserId = null;
+
+            if ($validated['owner_mode'] === 'existing_user') {
+                $ownerUserId = (int) $validated['existing_user_id'];
+            } elseif ($validated['owner_mode'] === 'new_user') {
+                $owner = User::query()->create([
+                    'name' => $validated['new_user_name'],
+                    'email' => $validated['new_user_email'],
+                    'password' => Hash::make($validated['new_user_password']),
+                    'status' => 'active',
+                    'account_type' => AccountType::Provider,
+                    'provider_type' => ProviderType::Independent,
+                ]);
+                $owner->forceFill(['email_verified_at' => now()])->save();
+                $ownerUserId = $owner->id;
+            }
+
             $profile = $this->profileCreation->create($validated, $ownerUserId, $agency, requestedByUserId: $request->user()->id);
 
             AuditLog::query()->create([
