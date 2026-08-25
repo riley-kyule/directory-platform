@@ -4,7 +4,12 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import '@fortawesome/fontawesome-free/css/v4-shims.min.css';
 import '../css/admin.css';
 
-document.querySelectorAll('textarea[data-html-editor]').forEach((textarea) => {
+document.querySelectorAll('textarea[data-html-editor], textarea[name="bottom_content"]').forEach((textarea) => {
+    if (textarea.dataset.editorInitialized === 'true') {
+        return;
+    }
+    textarea.dataset.editorInitialized = 'true';
+
     const shell = document.createElement('div');
     shell.className = 'admin-wysiwyg';
 

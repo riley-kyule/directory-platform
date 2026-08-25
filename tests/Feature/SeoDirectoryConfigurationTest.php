@@ -35,11 +35,31 @@ class SeoDirectoryConfigurationTest extends TestCase
 
     public function test_seo_user_can_open_managed_homepage_editor(): void
     {
-        $this->actingAs($this->staff('seo'))
+        $response = $this->actingAs($this->staff('seo'))
             ->get(route('seo.pages.homepage.edit'))
             ->assertOk()
             ->assertSee('Homepage content')
             ->assertSee('Bottom SEO content');
+
+        $this->assertSame(2, substr_count($response->getContent(), 'data-html-editor'));
+    }
+
+    public function test_every_managed_bottom_seo_field_uses_the_html_editor(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData());
+        $location = Location::query()->firstOrFail();
+
+        foreach ([
+            route('seo.pages.homepage.edit'),
+            route('seo.pages.agencies.edit'),
+            route('seo.locations.create'),
+            route('seo.locations.content.edit', $location),
+        ] as $url) {
+            $response = $this->actingAs($seo)->get($url)->assertOk();
+            $this->assertSame(2, substr_count($response->getContent(), 'data-html-editor'), $url);
+            $response->assertSee('name="bottom_content" data-html-editor', false);
+        }
     }
 
     public function test_seo_user_can_edit_profile_meta_template_and_ordered_public_menu(): void
