@@ -56,6 +56,16 @@ class DirectorySchemaTest extends TestCase
         $this->assertTrue(TaxonomyOption::query()->ofType('build')->enabled()->exists());
     }
 
+    public function test_registration_uses_the_four_managed_bust_size_options(): void
+    {
+        $this->seed(DirectoryDefaultsSeeder::class);
+
+        $this->assertSame(
+            ['Small', 'Medium', 'Large', 'Enormous'],
+            TaxonomyOption::query()->ofType('bust_size')->enabled()->pluck('label')->all(),
+        );
+    }
+
     /**
      * 11-profile-fields.md marks ethnicity a *required* field on the provider
      * onboarding form. A default seeder that leaves it with zero options makes

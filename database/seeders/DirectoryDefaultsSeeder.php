@@ -120,7 +120,7 @@ class DirectoryDefaultsSeeder extends Seeder
             ],
             'hair_color' => $this->options(['Black', 'Brown', 'Blonde', 'Red', 'Grey', 'Other']),
             'hair_length' => $this->options(['Bald', 'Short', 'Medium', 'Long']),
-            'bust_size' => $this->options(['A', 'B', 'C', 'D', 'DD', 'E', 'F', 'G+']),
+            'bust_size' => $this->options(['Small', 'Medium', 'Large', 'Enormous']),
             // 11-profile-fields.md marks ethnicity a *required* controlled option but
             // explicitly deployment-specific — this is a functional starter set only
             // (onboarding is impossible with zero options, which is the actual bug

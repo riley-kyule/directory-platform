@@ -79,7 +79,10 @@ class SeoDirectoryConfigurationTest extends TestCase
         session()->forget('status');
 
         $this->actingAs($seo)->get(route('seo.locations.index', ['q' => 'Nairobi']))
-            ->assertOk()->assertSee('Nairobi')->assertDontSee('Mombasa');
+            ->assertOk()
+            ->assertSee('Search by location name, URL path or country code')
+            ->assertSee('Nairobi')
+            ->assertDontSee('Mombasa');
     }
 
     public function test_seo_user_can_open_locations_and_taxonomies_pages(): void

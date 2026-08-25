@@ -20,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ProfileManagementController extends Controller
@@ -32,18 +33,21 @@ class ProfileManagementController extends Controller
         private readonly ProfileVerificationService $verification,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         Gate::authorize('profiles.view-private');
 
+        $search = Str::of((string) $request->query('q', ''))->trim()->limit(100, '')->toString();
+
         return view('staff.directory.index', [
             'sections' => [
-                'vip' => $this->listings->forPackage('vip')->paginate(12, ['*'], 'vip_page'),
-                'premium' => $this->listings->forPackage('premium')->paginate(12, ['*'], 'premium_page'),
-                'basic' => $this->listings->forPackage('basic')->paginate(12, ['*'], 'basic_page'),
-                'new' => $this->listings->newProfiles()->paginate(12, ['*'], 'new_page'),
-                'private' => $this->privateProfiles()->paginate(20, ['*'], 'private_page'),
+                'vip' => $this->searchProfiles($this->listings->forPackage('vip'), $search)->paginate(12, ['*'], 'vip_page'),
+                'premium' => $this->searchProfiles($this->listings->forPackage('premium'), $search)->paginate(12, ['*'], 'premium_page'),
+                'basic' => $this->searchProfiles($this->listings->forPackage('basic'), $search)->paginate(12, ['*'], 'basic_page'),
+                'new' => $this->searchProfiles($this->listings->newProfiles(), $search)->paginate(12, ['*'], 'new_page'),
+                'private' => $this->searchProfiles($this->privateProfiles(), $search)->paginate(20, ['*'], 'private_page'),
             ],
+            'search' => $search,
         ]);
     }
 
@@ -134,6 +138,33 @@ class ProfileManagementController extends Controller
             })
             ->with(['primaryLocation', 'sublocation', 'microLocation', 'owner', 'currentAgency.owner', 'currentPackageAssignment.package', 'packageAssignments.package'])
             ->latest('updated_at');
+    }
+
+    private function searchProfiles(Builder $query, string $search): Builder
+    {
+        if ($search === '') {
+            return $query;
+        }
+
+        $term = '%'.addcslashes($search, '\\%_').'%';
+
+        return $query->where(function (Builder $query) use ($term): void {
+            $query->where('display_name', 'like', $term)
+                ->orWhere('slug', 'like', $term)
+                ->orWhere('public_id', 'like', $term)
+                ->orWhereHas('owner', fn (Builder $query) => $query
+                    ->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term))
+                ->orWhereHas('primaryLocation', fn (Builder $query) => $query
+                    ->where('name', 'like', $term)
+                    ->orWhere('full_slug', 'like', $term))
+                ->orWhereHas('sublocation', fn (Builder $query) => $query
+                    ->where('name', 'like', $term)
+                    ->orWhere('full_slug', 'like', $term))
+                ->orWhereHas('microLocation', fn (Builder $query) => $query
+                    ->where('name', 'like', $term)
+                    ->orWhere('full_slug', 'like', $term));
+        });
     }
 
     private function makePrivate(Profile $profile, ProfileStatus $status, string $assignmentStatus): void

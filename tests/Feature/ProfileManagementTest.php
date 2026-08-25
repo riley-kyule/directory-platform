@@ -89,6 +89,29 @@ class ProfileManagementTest extends TestCase
             ->assertSee('Package history');
     }
 
+    public function test_staff_can_search_all_listing_sections_by_profile_owner_or_location(): void
+    {
+        $csr = $this->staff('csr');
+
+        $this->actingAs($csr)->get(route('staff.directory.index', ['q' => 'Managed Jane']))
+            ->assertOk()
+            ->assertSee('Search by profile, owner, email, location or ID')
+            ->assertSee('Managed Jane');
+
+        $this->actingAs($csr)->get(route('staff.directory.index', ['q' => $this->profile->owner->email]))
+            ->assertOk()
+            ->assertSee('Managed Jane');
+
+        $this->actingAs($csr)->get(route('staff.directory.index', ['q' => 'Westlands']))
+            ->assertOk()
+            ->assertSee('Managed Jane');
+
+        $this->actingAs($csr)->get(route('staff.directory.index', ['q' => 'no-such-listing']))
+            ->assertOk()
+            ->assertDontSee('Managed Jane')
+            ->assertSee('No matching profiles in this section.');
+    }
+
     public function test_csr_can_deactivate_an_active_profile_with_audit_history(): void
     {
         $this->actingAs($this->staff('csr'))->patch(route('staff.directory.update', $this->profile), [
