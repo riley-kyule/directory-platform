@@ -61,8 +61,17 @@ class PublicPageCache
         // Queried independently (never via $profile->currentAgency) so this never
         // caches a premature miss onto the model instance the caller keeps using —
         // the same hazard documented on Location::publicPath().
+        //
+        // Use the qualified pivot column here, not wherePivotNull(): inside a
+        // whereHas() closure the $query is a plain Eloquent builder, not the
+        // BelongsToMany relation, so wherePivotNull() silently falls through to
+        // dynamicWhere() and queries a literal "pivot_null" column instead. SQLite
+        // tolerates the bogus column and just returns no rows; MySQL throws
+        // "Unknown column 'pivot_null'" — which took down every profile save in
+        // production (this runs on Profile's saved/deleted model events) since
+        // local dev and the test suite both run on SQLite.
         Agency::query()
-            ->whereHas('profiles', fn ($query) => $query->whereKey($profile->id)->wherePivotNull('unassigned_at'))
+            ->whereHas('profiles', fn ($query) => $query->whereKey($profile->id)->whereNull('agency_profiles.unassigned_at'))
             ->get()
             ->each(function (Agency $agency): void {
                 $this->forget(route('directory.agencies.show', $agency->slug));
