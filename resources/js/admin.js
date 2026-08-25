@@ -13,9 +13,19 @@ document.querySelectorAll('textarea[data-markdown-editor]').forEach((textarea) =
     header.innerHTML = `
         <div class="admin-wysiwyg-title">
             <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-            <span>Visual editor</span>
+            <span>Content editor</span>
         </div>
-        <span class="admin-wysiwyg-badge">Rich text</span>
+        <div class="admin-wysiwyg-tabs" role="tablist" aria-label="Editor mode">
+            <button type="button" class="admin-wysiwyg-tab is-active" data-editor-mode="wysiwyg" role="tab" aria-selected="true">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                <span>Visual</span>
+            </button>
+            <button type="button" class="admin-wysiwyg-tab" data-editor-mode="markdown" role="tab" aria-selected="false">
+                <i class="fa-solid fa-code" aria-hidden="true"></i>
+                <span>Code</span>
+            </button>
+        </div>
+        <span class="admin-wysiwyg-badge">Markdown</span>
     `;
 
     const host = document.createElement('div');
@@ -60,5 +70,19 @@ document.querySelectorAll('textarea[data-markdown-editor]').forEach((textarea) =
 
     editor.on('change', syncEditor);
     textarea.form?.addEventListener('submit', syncEditor);
+
+    header.querySelectorAll('[data-editor-mode]').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const mode = tab.dataset.editorMode;
+            editor.changeMode(mode);
+
+            header.querySelectorAll('[data-editor-mode]').forEach((candidate) => {
+                const active = candidate === tab;
+                candidate.classList.toggle('is-active', active);
+                candidate.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+        });
+    });
+
     syncEditor();
 });

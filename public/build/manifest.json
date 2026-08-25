@@ -25,12 +25,12 @@
     "isEntry": true
   },
   "resources/js/admin.js": {
-    "file": "assets/admin-HM7BleKe.js",
+    "file": "assets/admin-CDYLZ4rG.js",
     "name": "admin",
     "src": "resources/js/admin.js",
     "isEntry": true,
     "css": [
-      "assets/admin-CPrs21uh.css"
+      "assets/admin-Dt4TSR6i.css"
     ],
     "assets": [
       "assets/fa-brands-400-Bs6tcqqs.woff2",
