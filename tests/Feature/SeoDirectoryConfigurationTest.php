@@ -231,8 +231,8 @@ class SeoDirectoryConfigurationTest extends TestCase
 
         $this->actingAs($seo)->patch(route('seo.pages.homepage.update'), [
             'heading' => 'Find trusted independent providers',
-            'intro_content' => 'Browse **active** provider profiles across every available package.',
-            'bottom_content' => "## Helpful directory guide\n\nUse the filters to discover profiles.",
+            'intro_content' => '<p>Browse <strong>active</strong> provider profiles across every available package.</p>',
+            'bottom_content' => '<h2>Helpful directory guide</h2><p>Use the filters to discover profiles.</p>',
             'seo_title' => 'Independent Provider Directory',
             'meta_description' => 'Browse active independent provider profiles by location, package and recently activated status.',
             'sections' => $sections,
@@ -261,8 +261,8 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->actingAs($seo)->patch(route('seo.locations.content.update', $location), [
             'status' => 'published',
             'heading' => 'Independent Nairobi Profiles',
-            'intro_content' => str_repeat('Updated **original** introduction for Nairobi visitors. ', 3),
-            'bottom_content' => "## Choosing a Nairobi profile\n\nReview each listing before making contact.",
+            'intro_content' => str_repeat('<p>Updated <strong>original</strong> introduction for Nairobi visitors.</p>', 3),
+            'bottom_content' => '<h2>Choosing a Nairobi profile</h2><p>Review each listing before making contact.</p>',
             'seo_title' => 'Independent Nairobi Profiles and Escorts',
             'meta_description' => 'Browse independently managed Nairobi profiles with current package and location information.',
             'canonical_path' => '/nairobi-escorts',
@@ -343,7 +343,7 @@ class SeoDirectoryConfigurationTest extends TestCase
             'status' => 'published',
             'heading' => 'Mombasa Escorts',
             'intro_content' => str_repeat('Original Mombasa directory information for visitors. ', 3),
-            'bottom_content' => '## About Mombasa listings',
+            'bottom_content' => '<h2>About Mombasa listings</h2>',
             'seo_title' => 'Mombasa Escorts and Independent Profiles',
             'meta_description' => 'Browse active independent profiles in Mombasa with useful location and directory information.',
             'canonical_path' => '/mombasa-escorts',
@@ -371,8 +371,8 @@ class SeoDirectoryConfigurationTest extends TestCase
 
         $this->actingAs($seo)->patch(route('seo.pages.agencies.update'), [
             'heading' => 'Independent Escort Agencies',
-            'intro_content' => 'Browse agencies with **active** and currently available provider profiles.',
-            'bottom_content' => "## Working with agencies\n\nReview each agency and its active profiles.",
+            'intro_content' => '<p>Browse agencies with <strong>active</strong> and currently available provider profiles.</p>',
+            'bottom_content' => '<h2>Working with agencies</h2><p>Review each agency and its active profiles.</p>',
             'seo_title' => 'Independent Escort Agencies',
             'meta_description' => 'Browse independent escort agencies with active provider profiles and current public listings.',
         ])->assertRedirect(route('seo.pages.agencies.edit'))->assertSessionHasNoErrors();

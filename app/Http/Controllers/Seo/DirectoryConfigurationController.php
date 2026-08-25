@@ -15,6 +15,7 @@ use App\Models\PageContent;
 use App\Models\Profile;
 use App\Models\ProfileDetail;
 use App\Models\TaxonomyOption;
+use App\Services\ContentHtml;
 use App\Services\LocationInventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,10 @@ class DirectoryConfigurationController extends Controller
         'robots-txt', 'robotstxt', 'sitemap-xml', 'sitemapxml', 'sitemaps',
     ];
 
-    public function __construct(private readonly LocationInventoryService $locationInventory) {}
+    public function __construct(
+        private readonly LocationInventoryService $locationInventory,
+        private readonly ContentHtml $contentHtml,
+    ) {}
 
     public function homepageEdit(): View
     {
@@ -115,8 +119,8 @@ class DirectoryConfigurationController extends Controller
             DB::table('location_contents')->insert([
                 'location_id' => $location->id,
                 'heading' => $validated['page_heading'] ?? $location->name.' Escorts',
-                'intro_content' => $validated['intro_content'] ?? '',
-                'bottom_content' => $validated['bottom_content'] ?? null,
+                'intro_content' => $this->contentHtml->sanitize($validated['intro_content'] ?? ''),
+                'bottom_content' => $this->contentHtml->sanitize($validated['bottom_content'] ?? null),
                 'faq_content' => ! empty($validated['faq_content']) ? json_encode(['content' => $validated['faq_content']]) : null,
                 'seo_title' => $validated['seo_title'] ?? '',
                 'meta_description' => $validated['meta_description'] ?? '',
@@ -157,8 +161,8 @@ class DirectoryConfigurationController extends Controller
 
         $location->content->update([
             'heading' => $validated['heading'] ?? $location->name.' Escorts',
-            'intro_content' => $validated['intro_content'] ?? '',
-            'bottom_content' => $validated['bottom_content'] ?? null,
+            'intro_content' => $this->contentHtml->sanitize($validated['intro_content'] ?? ''),
+            'bottom_content' => $this->contentHtml->sanitize($validated['bottom_content'] ?? null),
             'faq_content' => ! empty($validated['faq_content']) ? ['content' => $validated['faq_content']] : null,
             'seo_title' => $validated['seo_title'] ?? '',
             'meta_description' => $validated['meta_description'] ?? '',
@@ -209,8 +213,8 @@ class DirectoryConfigurationController extends Controller
 
         $homepage->update([
             'heading' => $validated['heading'],
-            'intro_content' => $validated['intro_content'],
-            'bottom_content' => $validated['bottom_content'] ?? null,
+            'intro_content' => $this->contentHtml->sanitize($validated['intro_content']),
+            'bottom_content' => $this->contentHtml->sanitize($validated['bottom_content'] ?? null),
             'seo_title' => $validated['seo_title'],
             'meta_description' => $validated['meta_description'],
             'listing_sections' => $sections,
@@ -226,7 +230,10 @@ class DirectoryConfigurationController extends Controller
     {
         $content = PageContent::query()->where('page_key', 'agencies')->firstOrFail();
         $previous = $content->only(['heading', 'intro_content', 'bottom_content', 'seo_title', 'meta_description']);
-        $content->update($request->validated() + ['updated_by' => $request->user()->id]);
+        $validated = $request->validated();
+        $validated['intro_content'] = $this->contentHtml->sanitize($validated['intro_content']);
+        $validated['bottom_content'] = $this->contentHtml->sanitize($validated['bottom_content'] ?? null);
+        $content->update($validated + ['updated_by' => $request->user()->id]);
 
         $this->auditUpdate($request->user()->id, 'pages.content-update', $content->id, $previous, $content->fresh()->toArray());
 

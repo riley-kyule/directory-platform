@@ -7,7 +7,7 @@
             <p class="mt-4 text-sm text-stone-500">Version {{ $policy->version }} · Effective {{ $policy->published_at->format('j F Y') }}</p>
         </header>
         <div class="prose prose-stone mt-10 max-w-none">
-            {!! str($policy->renderedContent())->markdown(['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+            {!! app(\App\Services\ContentHtml::class)->sanitize($policy->renderedContent()) !!}
         </div>
     </article>
 </x-public-layout>

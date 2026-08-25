@@ -76,11 +76,24 @@
     @apply bg-white;
 }
 
-.admin-wysiwyg-editor .toastui-editor-md-container .toastui-editor,
-.admin-wysiwyg-editor .toastui-editor-md-container .ProseMirror {
+.admin-wysiwyg-code {
+    display: block;
+    min-height: 360px;
+    width: 100%;
+    resize: vertical;
+    border: 0;
+    border-radius: 0;
+    padding: 24px 28px;
+    color: rgb(30 41 59);
+    outline: none;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 14px;
     line-height: 1.7;
+    tab-size: 2;
+}
+
+.admin-wysiwyg-code[hidden] {
+    display: none;
 }
 
 .admin-wysiwyg-editor .toastui-editor-contents {

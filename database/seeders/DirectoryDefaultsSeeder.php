@@ -8,6 +8,7 @@ use App\Models\Package;
 use App\Models\PageContent;
 use App\Models\PolicyVersion;
 use App\Models\TaxonomyOption;
+use App\Services\ContentHtml;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ class DirectoryDefaultsSeeder extends Seeder
 {
     public function run(): void
     {
+        $contentHtml = app(ContentHtml::class);
         $host = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost';
         MailSetting::query()->firstOrCreate(['id' => 1], [
             'mailer' => 'sendmail',
@@ -47,7 +49,7 @@ class DirectoryDefaultsSeeder extends Seeder
 
         PageContent::query()->firstOrCreate(['page_key' => 'homepage'], [
             'heading' => 'Discover independent providers near you',
-            'intro_content' => 'Browse active profiles by package and find the right connection for you.',
+            'intro_content' => '<p>Browse active profiles by package and find the right connection for you.</p>',
             'seo_title' => config('app.name').' — Find providers near you',
             'meta_description' => 'Browse active VIP, Premium, Basic and newly activated provider profiles.',
             'listing_sections' => [
@@ -59,7 +61,7 @@ class DirectoryDefaultsSeeder extends Seeder
         ]);
         PageContent::query()->firstOrCreate(['page_key' => 'agencies'], [
             'heading' => 'Escort Agencies',
-            'intro_content' => 'Browse agencies with currently active provider profiles.',
+            'intro_content' => '<p>Browse agencies with currently active provider profiles.</p>',
             'seo_title' => 'Escort Agencies — '.config('app.name'),
             'meta_description' => 'Browse public agencies and their currently active provider profiles.',
         ]);
@@ -68,13 +70,14 @@ class DirectoryDefaultsSeeder extends Seeder
         // install has working policy pages immediately — review with
         // qualified legal counsel before relying on these for launch.
         foreach (PolicyTemplates::all() as $type => $template) {
+            $policyHtml = $contentHtml->fromMarkdown($template['content']);
             PolicyVersion::query()->firstOrCreate(
                 ['policy_type' => $type, 'version' => $template['version']],
                 [
                     'title' => $template['title'],
                     'summary' => $template['summary'],
-                    'content' => $template['content'],
-                    'content_hash' => hash('sha256', $template['content']),
+                    'content' => $policyHtml,
+                    'content_hash' => hash('sha256', $policyHtml),
                     'requires_reacceptance' => $template['requires_reacceptance'],
                     'published_at' => now(),
                 ],

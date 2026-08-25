@@ -103,6 +103,27 @@ class PolicyManagementTest extends TestCase
             ->assertDontSee('<script>', false);
     }
 
+    public function test_policy_html_is_sanitized_before_it_is_stored(): void
+    {
+        $seo = $this->userWithRole('seo');
+        $content = '<h2 onclick="alert(1)">Safe heading</h2>'
+            .'<p>'.str_repeat('This is legitimate policy content for publication. ', 4).'</p>'
+            .'<script>alert("unsafe")</script><a href="javascript:alert(1)">Unsafe link</a>';
+
+        $this->actingAs($seo)->put(route('admin.policies.save', 'terms'), [
+            'version' => '2026-html',
+            'title' => 'HTML policy',
+            'content' => $content,
+            'action' => 'save_draft',
+        ])->assertSessionHasNoErrors();
+
+        $stored = PolicyVersion::query()->firstOrFail()->content;
+        $this->assertStringContainsString('<h2>Safe heading</h2>', $stored);
+        $this->assertStringNotContainsString('onclick', $stored);
+        $this->assertStringNotContainsString('<script', $stored);
+        $this->assertStringNotContainsString('javascript:', $stored);
+    }
+
     public function test_registration_requires_and_records_current_terms_and_privacy(): void
     {
         $terms = $this->publish('terms');

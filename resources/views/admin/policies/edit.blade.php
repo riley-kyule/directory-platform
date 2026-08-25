@@ -40,7 +40,7 @@
 
                 <div>
                     <x-input-label for="content" value="Policy content" />
-                    <textarea id="content" name="content" data-markdown-editor rows="22" class="mt-1 block w-full rounded-md border-gray-300 font-mono text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>{{ old('content', $draft?->content) }}</textarea>
+                    <textarea id="content" name="content" data-html-editor rows="22" class="mt-1 block w-full rounded-md border-gray-300 font-mono text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>{{ old('content', $draft?->content) }}</textarea>
                     <x-input-error :messages="$errors->get('content')" class="mt-2" />
                 </div>
 

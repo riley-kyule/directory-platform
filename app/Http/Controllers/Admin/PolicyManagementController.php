@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SavePolicyVersionRequest;
 use App\Models\AuditLog;
 use App\Models\PolicyVersion;
+use App\Services\ContentHtml;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -13,6 +14,8 @@ use Illuminate\View\View;
 
 class PolicyManagementController extends Controller
 {
+    public function __construct(private readonly ContentHtml $contentHtml) {}
+
     public function index(): View
     {
         Gate::authorize('policies.manage');
@@ -54,6 +57,7 @@ class PolicyManagementController extends Controller
     {
         $this->validateType($policyType);
         $validated = $request->validated();
+        $validated['content'] = $this->contentHtml->sanitize($validated['content']);
 
         $policy = DB::transaction(function () use ($request, $policyType, $validated): PolicyVersion {
             PolicyVersion::query()->where('policy_type', $policyType)->lockForUpdate()->get();

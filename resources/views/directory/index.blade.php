@@ -38,7 +38,7 @@
                         </nav>
                     @endif
                     <h1 class="text-3xl font-black tracking-tight sm:text-4xl">{{ $heading }}</h1>
-                    <div class="directory-content mt-3 max-w-3xl text-base leading-7 text-stone-600">{!! Str::markdown($intro, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
+                    <div class="directory-content mt-3 max-w-3xl text-base leading-7 text-stone-600">{!! app(\App\Services\ContentHtml::class)->sanitize($intro) !!}</div>
                     @if ($lastReviewedAt ?? null)
                         <p class="mt-2 text-xs font-medium uppercase tracking-wide text-stone-400">Updated {{ $lastReviewedAt->diffForHumans() }}</p>
                     @endif
@@ -104,7 +104,7 @@
 
                 @if (filled($bottomContent))
                     <section class="directory-content border-t border-stone-200 pt-10" aria-label="Additional directory information">
-                        {!! Str::markdown($bottomContent, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+                        {!! app(\App\Services\ContentHtml::class)->sanitize($bottomContent) !!}
                     </section>
                 @endif
 
