@@ -14,19 +14,74 @@
     @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30;
 }
 
-.toastui-editor-defaultUI {
-    @apply mt-2 overflow-hidden rounded-xl border-gray-300 shadow-sm;
+.admin-wysiwyg {
+    @apply mt-2 overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm transition focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500;
 }
 
-.toastui-editor-toolbar {
-    @apply border-gray-200 bg-gray-50;
+.admin-wysiwyg-header {
+    @apply flex items-center justify-between border-b border-gray-200 bg-slate-800 px-4 py-2.5 text-sm text-white;
 }
 
-.toastui-editor-mode-switch {
-    @apply border-gray-200 bg-gray-50;
+.admin-wysiwyg-title {
+    @apply flex items-center gap-2 font-semibold;
 }
 
-.toastui-editor-contents {
+.admin-wysiwyg-title i {
+    @apply text-indigo-300;
+}
+
+.admin-wysiwyg-badge {
+    @apply rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-xs font-medium text-slate-200;
+}
+
+.admin-wysiwyg-editor .toastui-editor-defaultUI {
+    border: 0;
+    border-radius: 0;
+}
+
+.admin-wysiwyg-editor .toastui-editor-toolbar {
+    @apply border-b border-gray-200 bg-gray-50 px-2 py-1.5;
+}
+
+.admin-wysiwyg-editor .toastui-editor-toolbar-divider {
+    @apply bg-gray-300;
+}
+
+.admin-wysiwyg-editor .toastui-editor-toolbar-icons {
+    border-radius: 6px;
+}
+
+.admin-wysiwyg-editor .toastui-editor-toolbar-icons:hover,
+.admin-wysiwyg-editor .toastui-editor-toolbar-icons.active {
+    @apply bg-indigo-100;
+}
+
+.admin-wysiwyg-editor .toastui-editor-main {
+    @apply bg-white;
+}
+
+.admin-wysiwyg-editor .toastui-editor-contents {
     font-family: inherit;
-    font-size: 15px;
+    font-size: 16px;
+    line-height: 1.75;
+    padding: 28px 32px;
+}
+
+.admin-wysiwyg-editor .toastui-editor-contents h1,
+.admin-wysiwyg-editor .toastui-editor-contents h2,
+.admin-wysiwyg-editor .toastui-editor-contents h3,
+.admin-wysiwyg-editor .toastui-editor-contents h4 {
+    @apply font-bold text-gray-900;
+}
+
+.admin-wysiwyg-editor .toastui-editor-contents a {
+    @apply text-indigo-700 underline;
+}
+
+.admin-wysiwyg-footer {
+    @apply flex flex-col gap-1 border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between;
+}
+
+.admin-wysiwyg-count {
+    @apply whitespace-nowrap font-medium text-gray-600;
 }
