@@ -224,13 +224,13 @@ class ModerationWorkflowTest extends TestCase
         $this->assertSame(ProfileStatus::Active, $this->profile->refresh()->status);
     }
 
-    public function test_emergency_takedown_requires_a_reason(): void
+    public function test_emergency_takedown_no_longer_requires_a_reason(): void
     {
-        $this->actingAs($this->staff('csr'))->patch(route('staff.directory.emergency-takedown', $this->profile), [
-            'reason' => 'shrt',
-        ])->assertSessionHasErrors('reason');
+        $this->actingAs($this->staff('csr'))->patch(route('staff.directory.emergency-takedown', $this->profile), [])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
-        $this->assertSame(ProfileStatus::Active, $this->profile->refresh()->status);
+        $this->assertSame(ProfileStatus::Banned, $this->profile->refresh()->status);
     }
 
     public function test_emergency_takedown_rejects_an_already_banned_profile(): void

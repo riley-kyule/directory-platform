@@ -18,7 +18,7 @@
                     <h3 class="font-bold">Record case action</h3>
                     <form method="POST" action="{{ route('staff.moderation.update', $report) }}" class="mt-5 space-y-4">@csrf @method('PATCH')
                         <label class="block text-sm"><span class="font-medium">Action</span><select name="action" required class="mt-1 block w-full rounded-md border-gray-300"><option value="assign_to_me">Assign to me</option><option value="start_review">Start review</option><option value="note">Add case note</option><option value="resolve">Resolve without enforcement</option><option value="dismiss">Dismiss report</option><option value="make_private">Emergency takedown / make private</option><option value="ban">Ban profile</option></select></label>
-                        <label class="block text-sm"><span class="font-medium">Required rationale</span><textarea name="reason" rows="7" required class="mt-1 block w-full rounded-md border-gray-300"></textarea></label>
+                        <label class="block text-sm"><span class="font-medium">Rationale <span class="text-gray-400">(optional)</span></span><textarea name="reason" rows="7" class="mt-1 block w-full rounded-md border-gray-300"></textarea></label>
                         <x-primary-button>Record action</x-primary-button>
                     </form>
                 </aside>

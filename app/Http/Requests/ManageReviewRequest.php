@@ -16,7 +16,7 @@ class ManageReviewRequest extends FormRequest
     {
         return [
             'action' => ['required', Rule::in(['approve', 'reject'])],
-            'reason' => ['required_if:action,reject', 'nullable', 'string', 'min:5', 'max:2000'],
+            'reason' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

@@ -27,7 +27,7 @@ class ReviewProfileRequest extends FormRequest
                 'nullable',
                 Rule::exists('package_duration_options', 'id')->where('is_active', true),
             ],
-            'reason' => ['required', 'string', 'min:5', 'max:2000'],
+            'reason' => ['nullable', 'string', 'max:2000'],
             'override_requirements' => ['sometimes', 'boolean'],
         ];
     }

@@ -18,7 +18,7 @@ class ManageModerationReportRequest extends FormRequest
             'action' => ['required', Rule::in([
                 'assign_to_me', 'start_review', 'note', 'dismiss', 'resolve', 'make_private', 'ban',
             ])],
-            'reason' => ['required', 'string', 'min:5', 'max:5000'],
+            'reason' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

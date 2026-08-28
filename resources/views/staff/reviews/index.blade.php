@@ -37,7 +37,7 @@
                                         @csrf
                                         @method('PATCH')
                                         <input type="hidden" name="action" value="reject">
-                                        <input type="text" name="reason" placeholder="Reason" required minlength="5" class="rounded-md border-gray-300 text-sm">
+                                        <input type="text" name="reason" placeholder="Reason (optional)" class="rounded-md border-gray-300 text-sm">
                                         <button type="submit" class="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white">Reject</button>
                                     </form>
                                 </div>

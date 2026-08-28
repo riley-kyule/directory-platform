@@ -14,7 +14,7 @@ class EmergencyTakedownRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => ['required', 'string', 'min:5', 'max:5000'],
+            'reason' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

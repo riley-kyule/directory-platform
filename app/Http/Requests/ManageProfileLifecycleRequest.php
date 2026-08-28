@@ -32,7 +32,7 @@ class ManageProfileLifecycleRequest extends FormRequest
             'action' => ['required', Rule::in(['deactivate', 'ban', 'renew', 'remove_package', 'assign_package'])],
             'package_id' => [Rule::requiredIf($assigning), 'nullable', Rule::exists('packages', 'id')->where('is_active', true)],
             'duration_option_id' => [Rule::requiredIf($assigning), 'nullable', Rule::exists('package_duration_options', 'id')->where('is_active', true)],
-            'reason' => ['required', 'string', 'min:5', 'max:2000'],
+            'reason' => ['nullable', 'string', 'max:2000'],
             'override_requirements' => ['sometimes', 'boolean'],
         ];
     }

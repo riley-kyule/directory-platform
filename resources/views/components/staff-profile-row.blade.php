@@ -20,7 +20,7 @@
         @if ($profile->status->value !== 'banned')
             <form method="POST" action="{{ route('staff.directory.emergency-takedown', $profile) }}" class="flex items-center gap-2" onsubmit="return confirm('Take this profile down immediately? This bans it right away, bypassing the normal report queue.');">
                 @csrf @method('PATCH')
-                <input type="text" name="reason" required minlength="5" class="w-40 rounded-md border-gray-300 text-xs" placeholder="Urgent takedown reason">
+                <input type="text" name="reason" class="w-40 rounded-md border-gray-300 text-xs" placeholder="Reason (optional)">
                 <button class="whitespace-nowrap rounded-md bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700">Emergency takedown</button>
             </form>
         @endif

@@ -39,6 +39,7 @@ class RedirectManagementController extends Controller
     public function store(StoreDirectoryRedirectRequest $request): RedirectResponse
     {
         $redirect = DirectoryRedirect::query()->create($request->validated() + [
+            'reason' => '',
             'is_active' => true,
             'created_by' => $request->user()->id,
         ]);
@@ -51,11 +52,11 @@ class RedirectManagementController extends Controller
     {
         Gate::authorize('seo.redirects');
         $validated = $request->validate([
-            'reason' => ['required', 'string', 'min:5', 'max:2000'],
+            'reason' => ['nullable', 'string', 'max:2000'],
         ]);
         $previous = $redirect->only(['is_active']);
         $redirect->update(['is_active' => ! $redirect->is_active]);
-        $this->audit($request, 'redirects.toggle', $redirect, $previous, $redirect->only(['is_active']), $validated['reason']);
+        $this->audit($request, 'redirects.toggle', $redirect, $previous, $redirect->only(['is_active']), $validated['reason'] ?? null);
 
         return back()->with('status', $redirect->is_active ? 'Redirect activated.' : 'Redirect deactivated.');
     }
@@ -63,8 +64,10 @@ class RedirectManagementController extends Controller
     public function updateProfileSlug(UpdateProfileSlugRequest $request, Profile $profile): RedirectResponse
     {
         $validated = $request->validated();
+        $validated['reason'] = $validated['reason'] ?? null;
+        $redirectReason = $validated['reason'] ?? '';
 
-        DB::transaction(function () use ($request, $profile, $validated): void {
+        DB::transaction(function () use ($request, $profile, $validated, $redirectReason): void {
             $profile = Profile::query()->lockForUpdate()->findOrFail($profile->id);
             $oldSlug = $profile->slug;
             $newSlug = $validated['slug'];
@@ -86,7 +89,7 @@ class RedirectManagementController extends Controller
                 [
                     'target_path' => $newPath,
                     'status_code' => 301,
-                    'reason' => $validated['reason'],
+                    'reason' => $redirectReason,
                     'is_active' => true,
                     'created_by' => $request->user()->id,
                 ],

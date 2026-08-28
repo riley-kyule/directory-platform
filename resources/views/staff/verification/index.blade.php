@@ -22,7 +22,7 @@
                                 <input type="hidden" name="profile_id" value="{{ $selectedProfile->id }}">
                                 <p class="text-sm font-bold text-red-900">Admin/CSR verification override</p>
                                 <p class="text-xs text-red-800">This creates immutable verified checks for every unmet requirement without external evidence. Use only when you accept responsibility for the exception.</p>
-                                <label class="block text-sm"><span class="font-medium text-red-900">Override reason</span><textarea name="reason" rows="4" minlength="20" required class="mt-1 block w-full rounded-md border-red-300"></textarea></label>
+                                <label class="block text-sm"><span class="font-medium text-red-900">Note <span class="text-red-400">(optional)</span></span><textarea name="reason" rows="4" class="mt-1 block w-full rounded-md border-red-300"></textarea></label>
                                 <label class="flex items-start gap-2 text-xs text-red-900"><input type="checkbox" name="confirm_override" value="1" required class="mt-0.5 rounded border-red-300 text-red-700"><span>I confirm that I am intentionally overriding all unmet verification requirements.</span></label>
                                 <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-800">Mark profile verified by override</button>
                             </form>

@@ -15,8 +15,8 @@ class OverrideProfileVerificationRequest extends FormRequest
     {
         return [
             'profile_id' => ['required', 'integer', 'exists:profiles,id'],
-            'reason' => ['required', 'string', 'min:20', 'max:5000'],
-            'confirm_override' => ['accepted'],
+            'reason' => ['nullable', 'string', 'max:5000'],
+            'confirm_override' => ['sometimes', 'accepted'],
         ];
     }
 }

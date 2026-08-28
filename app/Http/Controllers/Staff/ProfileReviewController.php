@@ -125,7 +125,7 @@ class ProfileReviewController extends Controller
                 'status' => 'active',
                 'assigned_by' => $request->user()->id,
                 'assignment_source' => 'manual',
-                'reason' => $request->validated('reason'),
+                'reason' => $request->validated('reason') ?? '',
             ]);
 
             $requestStatus = $packageId === $packageRequest->requested_package_id
@@ -190,7 +190,7 @@ class ProfileReviewController extends Controller
     /** @param  array<string, mixed>  $previousState
      * @param  array<string, mixed>  $newState
      */
-    private function audit(int $actorId, string $action, int $profileId, array $previousState, array $newState, string $reason): void
+    private function audit(int $actorId, string $action, int $profileId, array $previousState, array $newState, ?string $reason = null): void
     {
         $requestId = request()->header('X-Request-ID');
 

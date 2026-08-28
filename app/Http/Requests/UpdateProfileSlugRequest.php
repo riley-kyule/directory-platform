@@ -28,7 +28,7 @@ class UpdateProfileSlugRequest extends FormRequest
                 Rule::unique('profiles', 'slug')->ignore($this->route('profile')),
                 Rule::unique('profile_slug_histories', 'old_slug'),
             ],
-            'reason' => ['required', 'string', 'min:5', 'max:2000'],
+            'reason' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

@@ -30,7 +30,6 @@
                             <p class="text-xs text-red-800">Assign or replace a package and activate this profile regardless of its current workflow, verification, media, or submission state. Missing verification requirements will be recorded as staff overrides.</p>
                             <label class="block text-sm"><span class="text-red-900">Package</span><select name="package_id" class="mt-1 block w-full rounded-md border-red-300" required>@foreach ($packages as $package)<option value="{{ $package->id }}">{{ $package->name }}</option>@endforeach</select></label>
                             <label class="block text-sm"><span class="text-red-900">Duration</span><select name="duration_option_id" class="mt-1 block w-full rounded-md border-red-300" required>@foreach ($durations as $duration)<option value="{{ $duration->id }}">{{ $duration->label }}</option>@endforeach</select></label>
-                            <label class="block text-sm"><span class="text-red-900">Required override reason</span><textarea name="reason" rows="4" minlength="5" class="mt-1 block w-full rounded-md border-red-300" required></textarea></label>
                             <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-800">Assign package and activate</button>
                         </form>
                     @endif
@@ -38,7 +37,7 @@
                         <form method="POST" action="{{ route('staff.directory.update', $profile) }}" class="space-y-4 bg-white p-5 shadow-sm sm:rounded-lg">@csrf @method('PATCH')
                             <h3 class="font-bold text-gray-900">Make profile private</h3>
                             <label class="block text-sm"><span class="text-gray-700">Action</span><select name="action" class="mt-1 block w-full rounded-md border-gray-300" required><option value="deactivate">Deactivate profile</option><option value="remove_package">Remove active package</option><option value="ban">Ban profile</option></select></label>
-                            <label class="block text-sm"><span class="text-gray-700">Required reason</span><textarea name="reason" rows="4" class="mt-1 block w-full rounded-md border-gray-300" required></textarea></label>
+                            <label class="block text-sm"><span class="text-gray-700">Note <span class="text-gray-400">(optional)</span></span><textarea name="reason" rows="4" class="mt-1 block w-full rounded-md border-gray-300"></textarea></label>
                             <x-danger-button>Confirm action</x-danger-button>
                         </form>
                     @elseif (in_array($profile->status, [\App\Enums\ProfileStatus::Expired, \App\Enums\ProfileStatus::Deactivated], true))
@@ -47,13 +46,13 @@
                             <h3 class="font-bold text-gray-900">Renew and reactivate</h3>
                             <label class="block text-sm"><span class="text-gray-700">Package</span><select name="package_id" class="mt-1 block w-full rounded-md border-gray-300" required>@foreach ($packages as $package)<option value="{{ $package->id }}">{{ $package->name }}</option>@endforeach</select></label>
                             <label class="block text-sm"><span class="text-gray-700">Duration</span><select name="duration_option_id" class="mt-1 block w-full rounded-md border-gray-300" required>@foreach ($durations as $duration)<option value="{{ $duration->id }}">{{ $duration->label }}</option>@endforeach</select></label>
-                            <label class="block text-sm"><span class="text-gray-700">Required reason</span><textarea name="reason" rows="4" class="mt-1 block w-full rounded-md border-gray-300" required></textarea></label>
+                            <label class="block text-sm"><span class="text-gray-700">Note <span class="text-gray-400">(optional)</span></span><textarea name="reason" rows="4" class="mt-1 block w-full rounded-md border-gray-300"></textarea></label>
                             @if (auth()->user()->canOverrideListingRequirements())
                                 <label class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-900"><input type="checkbox" name="override_requirements" value="1" class="mt-0.5 rounded border-red-300 text-red-700"><span><strong>Admin/CSR override:</strong> reactivate despite missing reviewed media or verification. Missing verification checks will be permanently recorded as staff overrides.</span></label>
                             @endif
                             <x-primary-button>Renew profile</x-primary-button>
                         </form>
-                        <form method="POST" action="{{ route('staff.directory.update', $profile) }}" class="space-y-3 bg-white p-5 shadow-sm sm:rounded-lg">@csrf @method('PATCH')<input type="hidden" name="action" value="ban"><h3 class="font-bold">Ban instead</h3><textarea name="reason" rows="3" class="block w-full rounded-md border-gray-300" placeholder="Required reason" required></textarea><x-danger-button>Ban profile</x-danger-button></form>
+                        <form method="POST" action="{{ route('staff.directory.update', $profile) }}" class="space-y-3 bg-white p-5 shadow-sm sm:rounded-lg">@csrf @method('PATCH')<input type="hidden" name="action" value="ban"><h3 class="font-bold">Ban instead</h3><textarea name="reason" rows="3" class="block w-full rounded-md border-gray-300" placeholder="Note (optional)"></textarea><x-danger-button>Ban profile</x-danger-button></form>
                     @elseif ($profile->status === \App\Enums\ProfileStatus::Banned)
                         <div class="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-800">This profile is banned. Reactivation requires a future explicit unban workflow and cannot be performed as a renewal.</div>
                     @elseif ($profile->status === \App\Enums\ProfileStatus::Draft)
@@ -61,7 +60,7 @@
                             <h3 class="font-bold text-gray-900">Complete onboarding</h3>
                             <p class="text-sm text-gray-600">Requested package: {{ $profile->packageRequests->first()?->requestedPackage?->name ?? 'None' }}</p>
                             <p class="text-sm text-gray-600">{{ $profile->images->count() }} image(s) uploaded ({{ $profile->images->whereIn('status', ['pending_review', 'approved'])->count() }} reviewed or approved).</p>
-                            <a href="{{ route('profiles.media.index', $profile) }}" class="inline-block rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white">Manage media</a>
+                            <a href="#media" class="inline-block rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white">Manage media</a>
 
                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="space-y-4 border-t pt-4">
                                 @csrf

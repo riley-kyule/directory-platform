@@ -251,15 +251,15 @@ class ReviewsTest extends TestCase
             ->assertDontSee('Great service.');
     }
 
-    public function test_rejecting_a_review_requires_a_reason(): void
+    public function test_rejecting_a_review_no_longer_requires_a_reason(): void
     {
         $review = $this->pendingReview();
 
         $this->actingAs($this->staff('csr'))->patch(route('staff.reviews.update', $review), [
             'action' => 'reject',
-        ])->assertSessionHasErrors('reason');
+        ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame('pending', $review->refresh()->status);
+        $this->assertSame('rejected', $review->refresh()->status);
     }
 
     public function test_public_profile_shows_aggregate_stats_but_bounds_rendered_reviews(): void

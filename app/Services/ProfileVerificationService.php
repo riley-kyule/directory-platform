@@ -60,7 +60,7 @@ class ProfileVerificationService
     }
 
     /** @return list<int> */
-    public function override(Profile $profile, User $actor, string $reason): array
+    public function override(Profile $profile, User $actor, ?string $reason = null): array
     {
         abort_unless($actor->canOverrideListingRequirements(), 403, 'Only an Admin or CSR may override verification requirements.');
 
@@ -72,7 +72,7 @@ class ProfileVerificationService
                 'status' => 'verified',
                 'is_override' => true,
                 'evidence_reference' => $reference,
-                'notes' => $reason,
+                'notes' => $reason ?: 'Marked verified by staff override.',
                 'performed_by' => $actor->id,
                 'checked_at' => now(),
                 'expires_at' => null,

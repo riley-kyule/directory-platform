@@ -40,7 +40,7 @@ class StoreDirectoryRedirectRequest extends FormRequest
                 'different:source_path',
             ],
             'status_code' => ['required', 'integer', Rule::in([301, 302, 307, 308, 410])],
-            'reason' => ['required', 'string', 'min:5', 'max:2000'],
+            'reason' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

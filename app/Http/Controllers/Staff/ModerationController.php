@@ -109,7 +109,7 @@ class ModerationController extends Controller
                 'action' => $action,
                 'previous_profile_status' => $previousStatus,
                 'new_profile_status' => $profile->refresh()->status->value,
-                'reason' => $request->validated('reason'),
+                'reason' => $request->validated('reason') ?? '',
             ]);
             AuditLog::query()->create([
                 'actor_user_id' => $request->user()->id,
@@ -193,7 +193,7 @@ class ModerationController extends Controller
                 'action' => 'emergency_takedown',
                 'previous_profile_status' => $previousStatus,
                 'new_profile_status' => $profile->refresh()->status->value,
-                'reason' => $request->validated('reason'),
+                'reason' => $request->validated('reason') ?? '',
             ]);
             AuditLog::query()->create([
                 'actor_user_id' => $request->user()->id,

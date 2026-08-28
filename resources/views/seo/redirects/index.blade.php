@@ -14,7 +14,7 @@
                         <div><x-input-label for="source_path" value="Old source path" /><x-text-input id="source_path" name="source_path" class="mt-1 block w-full" :value="old('source_path')" placeholder="/old-page" required /></div>
                         <div><x-input-label for="target_path" value="Replacement path" /><x-text-input id="target_path" name="target_path" class="mt-1 block w-full" :value="old('target_path')" placeholder="/new-page" /></div>
                         <div><x-input-label for="status_code" value="Response" /><select id="status_code" name="status_code" class="mt-1 block w-full rounded-md border-gray-300" required><option value="301">301 · Permanent redirect</option><option value="302">302 · Temporary redirect</option><option value="307">307 · Temporary, preserve method</option><option value="308">308 · Permanent, preserve method</option><option value="410">410 · Permanently gone</option></select></div>
-                        <div><x-input-label for="redirect_reason" value="Required reason" /><x-text-input id="redirect_reason" name="reason" class="mt-1 block w-full" :value="old('reason')" required /></div>
+                        <div><x-input-label for="redirect_reason" value="Reason (optional)" /><x-text-input id="redirect_reason" name="reason" class="mt-1 block w-full" :value="old('reason')" /></div>
                         <div class="sm:col-span-2"><x-primary-button>Create rule</x-primary-button></div>
                     </form>
                 </section>
@@ -25,7 +25,7 @@
                     <form method="POST" class="mt-6 space-y-4" x-data="{ profileId: '{{ old('profile_id') }}' }" x-bind:action="'{{ url('/seo/profiles') }}/' + profileId + '/slug'">@csrf @method('PATCH')
                         <div><x-input-label for="profile_id" value="Profile" /><select id="profile_id" name="profile_id" x-model="profileId" class="mt-1 block w-full rounded-md border-gray-300" required><option value="">Choose profile</option>@foreach($profiles as $profile)<option value="{{ $profile->id }}">{{ $profile->display_name }} · /escort/{{ $profile->slug }}</option>@endforeach</select></div>
                         <div><x-input-label for="slug" value="New slug" /><x-text-input id="slug" name="slug" class="mt-1 block w-full" :value="old('slug')" placeholder="jane-new-slug" required /></div>
-                        <div><x-input-label for="slug_reason" value="Required reason" /><x-text-input id="slug_reason" name="reason" class="mt-1 block w-full" :value="old('reason')" required /></div>
+                        <div><x-input-label for="slug_reason" value="Reason (optional)" /><x-text-input id="slug_reason" name="reason" class="mt-1 block w-full" :value="old('reason')" /></div>
                         <x-primary-button>Change slug and redirect old URL</x-primary-button>
                     </form>
                 </section>
@@ -36,7 +36,7 @@
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200 text-sm">
                         <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500"><tr><th class="px-5 py-3">Source</th><th class="px-5 py-3">Response</th><th class="px-5 py-3">Target</th><th class="px-5 py-3">Reason</th><th class="px-5 py-3">State</th></tr></thead>
-                        <tbody class="divide-y divide-gray-200">@forelse($redirects as $redirect)<tr><td class="px-5 py-4 font-mono">{{ $redirect->source_path }}</td><td class="px-5 py-4">{{ $redirect->status_code }}</td><td class="px-5 py-4 font-mono">{{ $redirect->target_path ?? '—' }}</td><td class="max-w-xs px-5 py-4 text-gray-600">{{ $redirect->reason }}</td><td class="px-5 py-4"><form method="POST" action="{{ route('seo.redirects.toggle', $redirect) }}" class="space-y-2">@csrf @method('PATCH')<input name="reason" required minlength="5" class="w-44 rounded-md border-gray-300 text-xs" placeholder="Reason for state change"><button class="block font-semibold {{ $redirect->is_active ? 'text-red-600' : 'text-green-700' }}">{{ $redirect->is_active ? 'Deactivate' : 'Activate' }}</button></form></td></tr>@empty<tr><td colspan="5" class="px-5 py-8 text-center text-gray-500">No redirect rules.</td></tr>@endforelse</tbody>
+                        <tbody class="divide-y divide-gray-200">@forelse($redirects as $redirect)<tr><td class="px-5 py-4 font-mono">{{ $redirect->source_path }}</td><td class="px-5 py-4">{{ $redirect->status_code }}</td><td class="px-5 py-4 font-mono">{{ $redirect->target_path ?? '—' }}</td><td class="max-w-xs px-5 py-4 text-gray-600">{{ $redirect->reason }}</td><td class="px-5 py-4"><form method="POST" action="{{ route('seo.redirects.toggle', $redirect) }}" class="space-y-2">@csrf @method('PATCH')<input name="reason" class="w-44 rounded-md border-gray-300 text-xs" placeholder="Reason (optional)"><button class="block font-semibold {{ $redirect->is_active ? 'text-red-600' : 'text-green-700' }}">{{ $redirect->is_active ? 'Deactivate' : 'Activate' }}</button></form></td></tr>@empty<tr><td colspan="5" class="px-5 py-8 text-center text-gray-500">No redirect rules.</td></tr>@endforelse</tbody>
                     </table>
                 </div>
                 @if($redirects->hasPages())<div class="border-t p-5">{{ $redirects->links() }}</div>@endif

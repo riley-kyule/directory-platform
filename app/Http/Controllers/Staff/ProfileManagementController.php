@@ -228,7 +228,7 @@ class ProfileManagementController extends Controller
             'status' => 'active',
             'assigned_by' => $request->user()->id,
             'assignment_source' => 'manual_renewal',
-            'reason' => $request->validated('reason'),
+            'reason' => $request->validated('reason') ?? '',
         ]);
         $profile->update([
             'status' => ProfileStatus::Active,
@@ -263,7 +263,7 @@ class ProfileManagementController extends Controller
             'status' => 'active',
             'assigned_by' => $request->user()->id,
             'assignment_source' => 'staff_override',
-            'reason' => $request->validated('reason'),
+            'reason' => $request->validated('reason') ?? '',
         ]);
         $profile->packageRequests()->where('status', 'pending')->update([
             'status' => 'changed',
