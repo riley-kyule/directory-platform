@@ -46,6 +46,20 @@ class ProfileVideoProcessingTest extends TestCase
         Storage::disk('profile_media')->assertMissing($video->storage_directory.'/'.$video->sourceFilename());
     }
 
+    public function test_processing_publishes_immediately_on_a_live_profile(): void
+    {
+        $profile = $this->profile();
+        $profile->update(['status' => ProfileStatus::Active, 'expires_at' => now()->addDays(30)]);
+        $video = $this->quarantinedVideo($profile, $this->mp4Bytes());
+
+        (new ProcessProfileVideo($video->id))->handle();
+
+        $video->refresh();
+        $this->assertSame('approved', $video->status);
+        Storage::disk('profile_media')->assertExists($video->storage_directory.'/'.$video->sourceFilename());
+        Storage::disk('media_review')->assertMissing($video->storage_directory.'/'.$video->sourceFilename());
+    }
+
     public function test_junk_bytes_are_rejected_with_a_reason(): void
     {
         $profile = $this->profile();

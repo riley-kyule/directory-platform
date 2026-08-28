@@ -10,28 +10,46 @@ use RuntimeException;
 
 class ProfileImageVisibility
 {
+    public function __construct(private readonly PublicPageCache $pageCache) {}
+
     public function publish(Profile $profile): void
     {
-        if (! $profile->status->isPublic()) {
-            return;
-        }
-
-        $profile->images()->where('status', 'pending_review')->each(function ($image): void {
-            $this->move($image->storage_directory, 'media_review', 'profile_media', "image {$image->public_id}");
-            $image->update(['status' => 'approved']);
-        });
-
+        $this->publishImages($profile);
         $this->publishVideos($profile);
     }
 
     public function unpublish(Profile $profile): void
     {
-        $profile->images()->where('status', 'approved')->each(function ($image): void {
-            $this->move($image->storage_directory, 'profile_media', 'media_review', "image {$image->public_id}");
-            $image->update(['status' => 'pending_review']);
+        $this->unpublishImages($profile);
+        $this->unpublishVideos($profile);
+    }
+
+    public function publishImages(Profile $profile): void
+    {
+        if (! $profile->status->isPublic()) {
+            return;
+        }
+
+        $moved = 0;
+        $profile->images()->where('status', 'pending_review')->each(function ($image) use (&$moved): void {
+            $this->move($image->storage_directory, 'media_review', 'profile_media', "image {$image->public_id}");
+            $image->update(['status' => 'approved']);
+            $moved++;
         });
 
-        $this->unpublishVideos($profile);
+        $this->flushIfChanged($profile, $moved);
+    }
+
+    public function unpublishImages(Profile $profile): void
+    {
+        $moved = 0;
+        $profile->images()->where('status', 'approved')->each(function ($image) use (&$moved): void {
+            $this->move($image->storage_directory, 'profile_media', 'media_review', "image {$image->public_id}");
+            $image->update(['status' => 'pending_review']);
+            $moved++;
+        });
+
+        $this->flushIfChanged($profile, $moved);
     }
 
     public function publishVideos(Profile $profile): void
@@ -40,18 +58,33 @@ class ProfileImageVisibility
             return;
         }
 
-        $profile->videos()->where('status', 'pending_review')->each(function (ProfileVideo $video): void {
+        $moved = 0;
+        $profile->videos()->where('status', 'pending_review')->each(function (ProfileVideo $video) use (&$moved): void {
             $this->move($video->storage_directory, 'media_review', 'profile_media', "video {$video->public_id}");
             $video->update(['status' => 'approved']);
+            $moved++;
         });
+
+        $this->flushIfChanged($profile, $moved);
     }
 
     public function unpublishVideos(Profile $profile): void
     {
-        $profile->videos()->where('status', 'approved')->each(function (ProfileVideo $video): void {
+        $moved = 0;
+        $profile->videos()->where('status', 'approved')->each(function (ProfileVideo $video) use (&$moved): void {
             $this->move($video->storage_directory, 'profile_media', 'media_review', "video {$video->public_id}");
             $video->update(['status' => 'pending_review']);
+            $moved++;
         });
+
+        $this->flushIfChanged($profile, $moved);
+    }
+
+    private function flushIfChanged(Profile $profile, int $moved): void
+    {
+        if ($moved > 0) {
+            $this->pageCache->forgetForProfile($profile);
+        }
     }
 
     private function move(string $relativePath, string $sourceDiskName, string $destinationDiskName, string $label): void

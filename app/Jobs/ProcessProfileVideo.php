@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ProfileVideo;
 use App\Services\DirectorySettings;
+use App\Services\ProfileImageVisibility;
 use App\Support\MediaFilesystem;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -94,6 +95,12 @@ class ProcessProfileVideo implements ShouldQueue
             ]);
         } finally {
             $stagingDisk->deleteDirectory($stagingDirectory);
+        }
+
+        // No moderation hold: on a live profile the video goes public as soon as
+        // it is processed; on a draft it waits for the profile to be activated.
+        if ($video->profile && $video->profile->status->isPublic()) {
+            app(ProfileImageVisibility::class)->publishVideos($video->profile);
         }
     }
 

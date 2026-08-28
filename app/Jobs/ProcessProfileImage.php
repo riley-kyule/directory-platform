@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ProfileImage;
 use App\Services\DirectorySettings;
+use App\Services\ProfileImageVisibility;
 use App\Support\MediaFilesystem;
 use GdImage;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -103,6 +104,14 @@ class ProcessProfileImage implements ShouldQueue
         } finally {
             imagedestroy($source);
             $stagingDisk->deleteDirectory($stagingDirectory);
+        }
+
+        // No moderation hold: on a live profile the photo goes public as soon as
+        // it is processed. On a draft it waits in pending_review until the
+        // profile is activated (PublishProfileImages handles that batch).
+        $profile = $imageRecord->profile;
+        if ($profile && $profile->status->isPublic()) {
+            app(ProfileImageVisibility::class)->publishImages($profile);
         }
     }
 

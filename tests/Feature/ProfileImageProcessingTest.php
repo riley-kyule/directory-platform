@@ -82,6 +82,34 @@ class ProfileImageProcessingTest extends TestCase
         Storage::disk('media_review')->assertExists($image->storage_directory.'/card-640.webp');
     }
 
+    public function test_processing_publishes_immediately_on_a_live_profile(): void
+    {
+        Storage::fake('quarantine');
+        Storage::fake('media_staging');
+        Storage::fake('media_review');
+        Storage::fake('profile_media');
+        $this->seed(DirectoryDefaultsSeeder::class);
+
+        $profile = $this->profile();
+        $profile->update(['status' => ProfileStatus::Active, 'expires_at' => now()->addDays(30)]);
+
+        $bytes = $this->jpeg(800, 1000);
+        $publicId = '22345678-1234-4234-9234-123456789abc';
+        $quarantinePath = $profile->public_id.'/'.$publicId.'.upload';
+        Storage::disk('quarantine')->put($quarantinePath, $bytes);
+        $image = $profile->images()->create([
+            'public_id' => $publicId, 'storage_directory' => $quarantinePath, 'sort_order' => 10,
+            'status' => 'quarantined', 'width' => 800, 'height' => 1000, 'aspect_ratio' => 0.8,
+            'mime_type' => 'image/jpeg', 'file_size' => strlen($bytes), 'exact_hash' => hash('sha256', $bytes),
+        ]);
+
+        (new ProcessProfileImage($image->id))->handle();
+
+        $this->assertSame('approved', $image->refresh()->status);
+        Storage::disk('profile_media')->assertExists($image->storage_directory.'/card-640.webp');
+        Storage::disk('media_review')->assertMissing($image->storage_directory.'/card-640.webp');
+    }
+
     private function profile(): Profile
     {
         $location = Location::query()->create([

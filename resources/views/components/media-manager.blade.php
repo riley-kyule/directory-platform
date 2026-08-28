@@ -23,13 +23,20 @@
         'rejected' => 'bg-red-100 text-red-800',
         default => 'bg-gray-100 text-gray-700',
     };
+    $label = fn (string $status) => match ($status) {
+        'approved' => 'Live',
+        'pending_review' => 'Goes live with the profile',
+        'processing', 'quarantined' => 'Processing',
+        'rejected' => 'Rejected',
+        default => str($status)->replace('_', ' ')->title()->toString(),
+    };
 @endphp
 
 <section {{ $attributes->merge(['class' => 'space-y-8 bg-white p-6 shadow-sm sm:rounded-lg']) }} x-data="mediaManager()">
     <div>
         <h3 class="text-lg font-semibold text-gray-900">{{ $heading }}</h3>
         <p class="mt-1 text-sm text-gray-600">
-            Photos and videos are scanned and re-processed privately before a moderator can approve them.
+            Every file is scanned and re-encoded privately. On a live profile it goes public as soon as that finishes; on a draft it publishes when the profile is activated.
         </p>
     </div>
 
@@ -78,12 +85,12 @@
                              class="aspect-[4/5] w-full bg-gray-100 object-cover" loading="lazy" decoding="async">
                     @else
                         <div class="flex aspect-[4/5] items-center justify-center bg-gray-100 p-4 text-center text-sm text-gray-500">
-                            {{ str($image->status)->replace('_', ' ')->title() }}
+                            {{ $label($image->status) }}
                         </div>
                     @endif
                     <div class="space-y-2 p-3">
                         <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold {{ $badge($image->status) }}">
-                            {{ str($image->status)->replace('_', ' ')->title() }}
+                            {{ $label($image->status) }}
                         </span>
                         @if ($image->status === 'rejected' && $image->processing_error)
                             <p class="text-xs text-red-700">{{ $image->processing_error }}</p>
@@ -155,12 +162,12 @@
                         </video>
                     @else
                         <div class="flex aspect-video items-center justify-center bg-gray-100 p-4 text-center text-sm text-gray-500">
-                            {{ str($video->status)->replace('_', ' ')->title() }}
+                            {{ $label($video->status) }}
                         </div>
                     @endif
                     <div class="space-y-2 p-3">
                         <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold {{ $badge($video->status) }}">
-                            {{ str($video->status)->replace('_', ' ')->title() }}
+                            {{ $label($video->status) }}
                         </span>
                         @if ($video->duration_seconds)
                             <span class="text-xs text-gray-500">{{ gmdate('i:s', $video->duration_seconds) }}</span>
