@@ -192,11 +192,14 @@ class ProcessProfileImage implements ShouldQueue
         }
 
         [$width, $height] = $dimensions;
-        if ($width < $settings->integer('media.minimum_width') || $height < $settings->integer('media.minimum_height')) {
-            throw new RuntimeException('The image dimensions are below the minimum.');
+        $minWidth = $settings->integer('media.minimum_width');
+        $minHeight = $settings->integer('media.minimum_height');
+        if ($width < $minWidth || $height < $minHeight) {
+            throw new RuntimeException("This photo is {$width}×{$height}px, smaller than the {$minWidth}×{$minHeight}px minimum. Please upload a larger version.");
         }
-        if ($width > $settings->integer('media.maximum_dimension') || $height > $settings->integer('media.maximum_dimension')) {
-            throw new RuntimeException('The image dimensions exceed the maximum.');
+        $maxDimension = $settings->integer('media.maximum_dimension');
+        if ($width > $maxDimension || $height > $maxDimension) {
+            throw new RuntimeException("This photo is {$width}×{$height}px, larger than the {$maxDimension}px limit on a side. Please resize it and upload again.");
         }
         if ($width * $height > $settings->integer('media.maximum_pixels')) {
             throw new RuntimeException('The decoded image contains too many pixels.');

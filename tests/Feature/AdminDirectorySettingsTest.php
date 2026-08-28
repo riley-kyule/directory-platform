@@ -238,7 +238,7 @@ class AdminDirectorySettingsTest extends TestCase
             'maximum_dimension' => 1000,
         ]))->assertRedirect()->assertSessionHasErrors('maximum_dimension');
 
-        $this->assertSame('600', DirectorySetting::query()->findOrFail('media.minimum_width')->value);
+        $this->assertSame('400', DirectorySetting::query()->findOrFail('media.minimum_width')->value);
     }
 
     private function admin(): User

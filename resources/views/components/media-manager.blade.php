@@ -47,7 +47,7 @@
     <div class="space-y-4">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h4 class="font-semibold text-gray-900">Photos</h4>
-            <p class="text-sm text-gray-500">{{ $photoUsed }} of {{ $photoLimit }} slots used · JPEG, PNG or WebP</p>
+            <p class="text-sm text-gray-500">{{ $photoUsed }} of {{ $photoLimit }} slots used · JPEG, PNG or WebP · at least {{ $settings->integer('media.minimum_width') }}px on each side</p>
         </div>
 
         @if ($canManage && $photoUsed < $photoLimit)

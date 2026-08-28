@@ -7,7 +7,6 @@ use App\Services\DirectorySettings;
 use App\Services\PolicyAcceptanceService;
 use App\Services\ProfileMediaAccess;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Dimensions;
 use Illuminate\Validation\Validator;
 
 class StoreProfileImageRequest extends FormRequest
@@ -31,11 +30,8 @@ class StoreProfileImageRequest extends FormRequest
                 'mimes:jpg,jpeg,png,webp',
                 'mimetypes:image/jpeg,image/png,image/webp',
                 'max:'.$settings->integer('media.maximum_file_kilobytes'),
-                (new Dimensions)
-                    ->minWidth($settings->integer('media.minimum_width'))
-                    ->minHeight($settings->integer('media.minimum_height'))
-                    ->maxWidth($settings->integer('media.maximum_dimension'))
-                    ->maxHeight($settings->integer('media.maximum_dimension')),
+                // Dimension bounds are enforced in after() so the error can name
+                // the actual size and the limit instead of "invalid dimensions".
             ],
             'policy_acceptances' => ['nullable', 'array'],
             'policy_acceptances.*' => ['integer'],
@@ -84,13 +80,23 @@ class StoreProfileImageRequest extends FormRequest
 
             [$width, $height] = $dimensions;
             $settings = app(DirectorySettings::class);
-            if ($width * $height > $settings->integer('media.maximum_pixels')) {
-                $validator->errors()->add('image', 'The decoded image contains too many pixels.');
+
+            $minWidth = $settings->integer('media.minimum_width');
+            $minHeight = $settings->integer('media.minimum_height');
+            $maxDimension = $settings->integer('media.maximum_dimension');
+
+            if ($width < $minWidth || $height < $minHeight) {
+                $validator->errors()->add('image', "This photo is {$width}×{$height}px. Please upload one at least {$minWidth}×{$minHeight}px — closer to portrait orientation works best.");
+            } elseif ($width > $maxDimension || $height > $maxDimension) {
+                $validator->errors()->add('image', "This photo is {$width}×{$height}px, larger than the {$maxDimension}px limit on a side. Resize it and upload again.");
+            } elseif ($width * $height > $settings->integer('media.maximum_pixels')) {
+                $megapixels = round($settings->integer('media.maximum_pixels') / 1_000_000);
+                $validator->errors()->add('image', "This photo has too many pixels (limit is {$megapixels} megapixels). Resize it and upload again.");
             }
 
             $ratio = $width / $height;
             if ($ratio < $settings->float('media.minimum_aspect_ratio') || $ratio > $settings->float('media.maximum_aspect_ratio')) {
-                $validator->errors()->add('image', 'The image aspect ratio is outside the allowed range.');
+                $validator->errors()->add('image', 'This photo is too tall or too wide — crop it closer to a standard portrait or landscape shape.');
             }
         }];
     }
