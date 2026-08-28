@@ -80,6 +80,12 @@ else
 fi
 
 echo "==> Linking shared resources into the release"
+# Self-heal the media pipeline directories in case a shared dir was lost; the
+# disks are configured with throw=>true so a missing root is a hard failure.
+mkdir -p "$SHARED_DIR/storage/app/private/quarantine" \
+         "$SHARED_DIR/storage/app/private/media-review" \
+         "$SHARED_DIR/storage/app/media-staging" \
+         "$SHARED_DIR/public/media/profiles"
 rm -rf "$RELEASE_DIR/storage"
 ln -s "$SHARED_DIR/storage" "$RELEASE_DIR/storage"
 ln -sf "$SHARED_DIR/.env" "$RELEASE_DIR/.env"

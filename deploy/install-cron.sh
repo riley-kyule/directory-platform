@@ -30,6 +30,7 @@ PHP_BIN="${PHP_BIN:-php}"
 APP_SLUG="$(basename "$APP_ROOT" | tr -c 'A-Za-z0-9._-' '-')"
 MARKER="directory-platform-cron:${APP_SLUG}"
 LOCK_FILE="/tmp/directory-platform-cron-${APP_SLUG}-queue.lock"
+MEDIA_LOCK_FILE="/tmp/directory-platform-cron-${APP_SLUG}-media.lock"
 
 if ! command -v crontab >/dev/null 2>&1; then
     cat <<EOF
@@ -38,13 +39,19 @@ if ! command -v crontab >/dev/null 2>&1; then
     PHP binary cPanel's MultiPHP Manager selected, e.g. /usr/local/bin/php83):
 
 * * * * * cd $CURRENT && $PHP_BIN artisan schedule:run >> /dev/null 2>&1 # $MARKER:scheduler
-* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --queue=monitoring,media,default --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue
+* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --queue=monitoring,default --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue
+* * * * * cd $CURRENT && flock -n $MEDIA_LOCK_FILE $PHP_BIN artisan queue:work --queue=media --stop-when-empty --max-time=55 --tries=3 --timeout=280 --memory=512 >> $CURRENT/storage/logs/queue-media.log 2>&1 # $MARKER:media
 EOF
     exit 0
 fi
 
 SCHEDULER_LINE="* * * * * cd $CURRENT && $PHP_BIN artisan schedule:run >> /dev/null 2>&1 # $MARKER:scheduler"
-QUEUE_LINE="* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --queue=monitoring,media,default --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue"
+QUEUE_LINE="* * * * * cd $CURRENT && flock -n $LOCK_FILE $PHP_BIN artisan queue:work --queue=monitoring,default --stop-when-empty --max-time=50 --tries=3 --timeout=45 >> $CURRENT/storage/logs/queue-worker.log 2>&1 # $MARKER:queue"
+# Media (image/video) processing is heavier — CPU-bound resamples, large decodes —
+# so it gets its own per-minute worker with a longer wall-clock budget and a
+# raised memory ceiling, on a separate lock so a slow media job never blocks the
+# fast monitoring/default drain.
+MEDIA_QUEUE_LINE="* * * * * cd $CURRENT && flock -n $MEDIA_LOCK_FILE $PHP_BIN artisan queue:work --queue=media --stop-when-empty --max-time=55 --tries=3 --timeout=280 --memory=512 >> $CURRENT/storage/logs/queue-media.log 2>&1 # $MARKER:media"
 
 echo "==> Installing/refreshing cron entries for $APP_ROOT (marker: $MARKER)"
 {
@@ -55,9 +62,11 @@ echo "==> Installing/refreshing cron entries for $APP_ROOT (marker: $MARKER)"
     crontab -l 2>/dev/null | grep -v "$MARKER" || true
     echo "$SCHEDULER_LINE"
     echo "$QUEUE_LINE"
+    echo "$MEDIA_QUEUE_LINE"
 } | crontab -
 
 echo "==> Installed:"
 echo "    $SCHEDULER_LINE"
 echo "    $QUEUE_LINE"
+echo "    $MEDIA_QUEUE_LINE"
 echo "==> Verify any time with: crontab -l"

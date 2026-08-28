@@ -58,7 +58,7 @@ fi
 
 echo "==> Creating release/shared directory structure at $APP_ROOT"
 mkdir -p "$APP_ROOT/releases"
-mkdir -p "$SHARED_DIR/storage/app/public" "$SHARED_DIR/storage/app/private/quarantine" "$SHARED_DIR/storage/app/private/media-review" "$SHARED_DIR/storage/media-staging"
+mkdir -p "$SHARED_DIR/storage/app/public" "$SHARED_DIR/storage/app/private/quarantine" "$SHARED_DIR/storage/app/private/media-review" "$SHARED_DIR/storage/app/media-staging"
 mkdir -p "$SHARED_DIR/storage/framework/cache/data" "$SHARED_DIR/storage/framework/sessions" "$SHARED_DIR/storage/framework/views" "$SHARED_DIR/storage/logs"
 mkdir -p "$SHARED_DIR/public/media/profiles"
 mkdir -p "$SHARED_DIR/public/branding"

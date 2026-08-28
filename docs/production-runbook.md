@@ -132,7 +132,7 @@ Rollback moves symlinks only. Afterward, run the readiness checks and smoke path
 
 1. Confirm both cron lines exist and use the correct `PHP_BIN` and application root.
 2. Run `"$PHP_BIN" artisan schedule:list` and `"$PHP_BIN" artisan queue:failed`.
-3. Run one bounded drain: `"$PHP_BIN" artisan queue:work --queue=monitoring,media,default --stop-when-empty --max-time=50 --tries=3 --timeout=45`.
+3. Run one bounded drain of the fast queues: `"$PHP_BIN" artisan queue:work --queue=monitoring,default --stop-when-empty --max-time=50 --tries=3 --timeout=45`, then one of the media queue: `"$PHP_BIN" artisan queue:work --queue=media --stop-when-empty --max-time=55 --tries=3 --timeout=280 --memory=512`.
 4. Recheck queue-worker, scheduler, moderation, and privacy heartbeats.
 5. Retry failed jobs only after correcting the cause.
 
