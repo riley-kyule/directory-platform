@@ -145,10 +145,6 @@
                         <p class="mt-2 text-sm font-semibold text-stone-600">Independent listing</p>
                     @endif
 
-                    <div class="mt-5 rounded-xl bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
-                        <strong>Verification reviewed.</strong> Required listing checks were completed or explicitly overridden by authorized staff. Verification is not an endorsement or safety guarantee.
-                    </div>
-
                     <dl class="mt-7 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-stone-200 py-6 text-sm">
                         <div><dt class="text-stone-400">Age</dt><dd class="mt-1 font-bold">{{ $profile->date_of_birth->age }}</dd></div>
                         <div><dt class="text-stone-400">Gender</dt><dd class="mt-1 font-bold">{{ $profile->gender->label }}</dd></div>

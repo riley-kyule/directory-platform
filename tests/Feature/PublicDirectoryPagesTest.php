@@ -146,7 +146,6 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertSee('data-placement="mobile_bar"', false)
             ->assertSee('name="profile-view-endpoint"', false)
             ->assertSee('name="profile-view-id" content="'.$this->profile->public_id.'"', false)
-            ->assertSee('Verification reviewed.')
             ->assertSee('Independent listing')
             ->assertDontSee($this->profile->date_of_birth->toDateString());
     }
