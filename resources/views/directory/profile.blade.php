@@ -47,6 +47,16 @@
             <span>{{ $profile->display_name }}</span>
         </nav>
 
+        @if ($canManageMedia ?? false)
+            <div class="mb-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+                <span><strong>Staff / owner tools.</strong> This bar is only visible to you.</span>
+                <a href="{{ route('profiles.media.index', $profile) }}"
+                   class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
+                    Upload photos &amp; videos
+                </a>
+            </div>
+        @endif
+
         <div class="grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,.65fr)]">
             <div>
                 <div x-data="{

@@ -150,6 +150,31 @@ class PublicDirectoryPagesTest extends TestCase
             ->assertDontSee($this->profile->date_of_birth->toDateString());
     }
 
+    public function test_media_upload_entry_point_is_only_shown_to_staff_and_the_owner(): void
+    {
+        $url = route('directory.profiles.show', $this->profile->slug);
+        $mediaLink = route('profiles.media.index', $this->profile);
+
+        // Guests and unrelated members never see it.
+        $this->get($url)->assertOk()->assertDontSee('Upload photos &amp; videos', false);
+        $this->actingAs(User::factory()->create())->get($url)
+            ->assertOk()->assertDontSee('Upload photos &amp; videos', false);
+
+        // The profile owner sees it.
+        $this->actingAs($this->profile->owner)->get($url)
+            ->assertOk()
+            ->assertSee('Upload photos &amp; videos', false)
+            ->assertSee($mediaLink, false);
+
+        // Any staff account sees it.
+        $this->seed(AccessControlSeeder::class);
+        $csr = User::factory()->create();
+        $csr->roles()->attach(Role::query()->where('slug', 'csr')->firstOrFail());
+        $this->actingAs($csr)->get($url)
+            ->assertOk()
+            ->assertSee('Upload photos &amp; videos', false);
+    }
+
     public function test_profile_meta_description_uses_editable_dynamic_profile_values(): void
     {
         DirectorySetting::query()->create([

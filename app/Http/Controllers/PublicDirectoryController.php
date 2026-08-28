@@ -7,6 +7,7 @@ use App\Models\PageContent;
 use App\Models\Profile;
 use App\Services\DirectorySettings;
 use App\Services\LocationSidebarTree;
+use App\Services\ProfileMediaAccess;
 use App\Services\ProfileMetaDescription;
 use App\Services\PublicContactLinks;
 use App\Services\PublicProfileListings;
@@ -157,8 +158,13 @@ class PublicDirectoryController extends Controller
             $socialImage = url($socialImage);
         }
 
+        $viewer = request()->user();
+        $canManageMedia = $viewer !== null
+            && app(ProfileMediaAccess::class)->canView($viewer, $profile);
+
         return view('directory.profile', [
             'profile' => $profile,
+            'canManageMedia' => $canManageMedia,
             'relatedProfiles' => $this->listings->relatedTo($profile),
             'contactLinks' => $this->contactLinks->for($profile),
             'metaTitle' => $profile->display_name.' — '.($profile->microLocation?->name ?? $profile->sublocation->name).', '.$profile->primaryLocation->name,
