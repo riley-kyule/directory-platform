@@ -10,6 +10,7 @@ use App\Models\PolicyVersion;
 use App\Models\TaxonomyOption;
 use App\Services\ContentHtml;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -50,6 +51,10 @@ class DirectoryDefaultsSeeder extends Seeder
                 ['key' => $setting['key']],
                 $setting,
             );
+            // DatabaseSeeder runs WithoutModelEvents, so DirectorySetting::saved
+            // never fires here — flush the read-through cache by hand or a deploy
+            // that changes a default keeps serving the stale value.
+            Cache::forget('directory-setting:'.$setting['key']);
         }
 
         PageContent::query()->firstOrCreate(['page_key' => 'homepage'], [
