@@ -11,5 +11,6 @@ return [
     'media' => [
         'accepted_mime_types' => ['image/jpeg', 'image/png', 'image/webp'],
         'derivative_widths' => [320, 640, 960, 1280],
+        'accepted_video_mime_types' => ['video/mp4', 'video/webm', 'video/quicktime'],
     ],
 ];

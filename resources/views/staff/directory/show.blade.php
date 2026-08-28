@@ -75,6 +75,15 @@
                 </aside>
             </div>
 
+            <div id="media">
+                <x-media-manager
+                    :profile="$profile"
+                    :can-manage="$canManageMedia"
+                    :photo-limit="$photoLimit"
+                    :video-limit="$videoLimit"
+                    :required-policies="$mediaPolicies" />
+            </div>
+
             <section class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                 <div class="border-b p-5"><h3 class="font-bold text-gray-900">Audit history</h3></div>
                 <div class="divide-y">@forelse ($audits as $audit)<div class="grid gap-2 p-4 text-sm sm:grid-cols-[1fr_1fr_1.5fr]"><div><p class="font-semibold">{{ $audit->action }}</p><p class="text-xs text-gray-500">{{ $audit->created_at->format('d M Y H:i') }}</p></div><p class="text-gray-600">{{ $audit->actor?->email ?? 'System' }}</p><p class="text-gray-700">{{ $audit->reason }}</p></div>@empty<p class="p-6 text-sm text-gray-500">No audit records for this profile.</p>@endforelse</div>

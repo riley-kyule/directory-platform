@@ -105,7 +105,12 @@ Route::middleware('auth')->group(function () {
     Route::prefix('profiles/{profile}/media')->name('profiles.media.')->middleware('verified')->group(function () {
         Route::get('/', [ProfileMediaController::class, 'index'])->name('index');
         Route::post('/', [ProfileMediaController::class, 'store'])->name('store');
+        Route::post('/videos', [ProfileMediaController::class, 'storeVideo'])->name('videos.store');
+        Route::get('/videos/{video}', [ProfileMediaController::class, 'previewVideo'])->name('videos.preview');
+        Route::post('/videos/{video}/retry', [ProfileMediaController::class, 'retryVideo'])->name('videos.retry');
+        Route::delete('/videos/{video}', [ProfileMediaController::class, 'destroyVideo'])->name('videos.destroy');
         Route::get('/{image}/{slot}', [ProfileMediaController::class, 'preview'])->name('preview');
+        Route::post('/{image}/retry', [ProfileMediaController::class, 'retry'])->name('retry');
         Route::delete('/{image}', [ProfileMediaController::class, 'destroy'])->name('destroy');
     });
 

@@ -40,6 +40,11 @@ class DirectoryDefaultsSeeder extends Seeder
             ['key' => 'media.minimum_aspect_ratio', 'value' => '0.4', 'value_type' => 'decimal', 'group' => 'media'],
             ['key' => 'media.maximum_aspect_ratio', 'value' => '2.5', 'value_type' => 'decimal', 'group' => 'media'],
             ['key' => 'media.webp_quality', 'value' => '82', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.processing_memory_limit_mb', 'value' => '512', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.video_max_kilobytes', 'value' => '51200', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.video_max_duration_seconds', 'value' => '120', 'value_type' => 'integer', 'group' => 'media'],
+            ['key' => 'media.ffmpeg_path', 'value' => '', 'value_type' => 'string', 'group' => 'media'],
+            ['key' => 'media.ffprobe_path', 'value' => '', 'value_type' => 'string', 'group' => 'media'],
         ] as $setting) {
             DirectorySetting::query()->updateOrCreate(
                 ['key' => $setting['key']],
@@ -85,9 +90,9 @@ class DirectoryDefaultsSeeder extends Seeder
         }
 
         foreach ([
-            ['code' => 'vip', 'name' => 'VIP', 'image_limit' => 15, 'display_order' => 10],
-            ['code' => 'premium', 'name' => 'Premium', 'image_limit' => 10, 'display_order' => 20],
-            ['code' => 'basic', 'name' => 'Basic', 'image_limit' => 5, 'display_order' => 30],
+            ['code' => 'vip', 'name' => 'VIP', 'image_limit' => 15, 'video_limit' => 5, 'display_order' => 10],
+            ['code' => 'premium', 'name' => 'Premium', 'image_limit' => 10, 'video_limit' => 3, 'display_order' => 20],
+            ['code' => 'basic', 'name' => 'Basic', 'image_limit' => 5, 'video_limit' => 1, 'display_order' => 30],
         ] as $package) {
             Package::query()->updateOrCreate(['code' => $package['code']], $package + ['is_active' => true]);
         }

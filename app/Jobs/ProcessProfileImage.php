@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ProfileImage;
 use App\Services\DirectorySettings;
+use App\Support\MediaFilesystem;
 use GdImage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -27,14 +28,25 @@ class ProcessProfileImage implements ShouldQueue
 
     public function handle(): void
     {
-        $imageRecord = ProfileImage::withTrashed()->find($this->profileImageId);
-        if (! $imageRecord || $imageRecord->trashed() || $imageRecord->status !== 'quarantined') {
+        $imageRecord = ProfileImage::withTrashed()->with('profile')->find($this->profileImageId);
+        // A retry re-dispatches this job for an image that previously failed; pick
+        // those up too, as long as the quarantine upload is still on disk.
+        if (! $imageRecord || $imageRecord->trashed() || ! in_array($imageRecord->status, ['quarantined', 'rejected'], true)) {
+            return;
+        }
+
+        $quarantineDisk = Storage::disk('quarantine');
+        $quarantinePath = $this->quarantinePath($imageRecord);
+        if (! $quarantineDisk->exists($quarantinePath)) {
+            $imageRecord->update([
+                'status' => 'rejected',
+                'processing_error' => 'The uploaded file is no longer available. Please upload it again.',
+            ]);
+
             return;
         }
 
         $imageRecord->update(['status' => 'processing', 'processing_error' => null]);
-        $quarantineDisk = Storage::disk('quarantine');
-        $quarantinePath = $imageRecord->storage_directory;
         $sourcePath = $quarantineDisk->path($quarantinePath);
         $bytes = file_get_contents($sourcePath);
         if ($bytes === false) {
@@ -42,9 +54,10 @@ class ProcessProfileImage implements ShouldQueue
         }
 
         $this->validateEncodedInput($bytes, $sourcePath);
+        $this->guardDecodeMemory($imageRecord);
         $source = @imagecreatefromstring($bytes);
         if (! $source instanceof GdImage) {
-            throw new RuntimeException('The image decoder rejected the uploaded file.');
+            throw new RuntimeException('The uploaded image could not be decoded. Try re-saving it as a standard JPEG or PNG.');
         }
 
         $stagingDirectory = $imageRecord->public_id.'-'.Str::lower(Str::random(10));
@@ -67,14 +80,11 @@ class ProcessProfileImage implements ShouldQueue
 
             $finalPath = $reviewDisk->path($finalDirectory);
             if (is_dir($finalPath)) {
-                throw new RuntimeException('A published derivative directory already exists.');
+                // Left over from an earlier run that failed before the DB update.
+                // A genuine pending/approved image never reaches this job again.
+                $reviewDisk->deleteDirectory($finalDirectory);
             }
-            if (! is_dir(dirname($finalPath)) && ! mkdir(dirname($finalPath), 0755, true) && ! is_dir(dirname($finalPath))) {
-                throw new RuntimeException('The public media parent directory could not be created.');
-            }
-            if (! rename($stagingDisk->path($stagingDirectory), $finalPath)) {
-                throw new RuntimeException('The derivative set could not be published atomically.');
-            }
+            MediaFilesystem::moveDirectory($stagingDisk->path($stagingDirectory), $finalPath);
 
             try {
                 $imageRecord->update([
@@ -98,19 +108,64 @@ class ProcessProfileImage implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        $image = ProfileImage::query()->find($this->profileImageId);
+        $image = ProfileImage::query()->with('profile')->find($this->profileImageId);
         if (! $image) {
             return;
         }
 
-        if ($image->status === 'quarantined' || $image->status === 'processing') {
-            Storage::disk('quarantine')->delete($image->storage_directory);
-        }
+        // The last successful run renames storage_directory to the published path,
+        // so never derive the quarantine location from it — recompute it.
+        Storage::disk('quarantine')->delete($this->quarantinePath($image));
 
         $image->update([
             'status' => 'rejected',
             'processing_error' => Str::limit($exception?->getMessage() ?? 'Image processing failed.', 1000),
         ]);
+    }
+
+    private function quarantinePath(ProfileImage $image): string
+    {
+        return ($image->profile?->public_id ?? 'orphan').'/'.$image->public_id.'.upload';
+    }
+
+    /**
+     * GD decodes the whole bitmap into RAM. Bump the memory ceiling to cover the
+     * decoded pixels plus resample headroom, and fail with a clear message rather
+     * than let the worker hit a fatal OOM (which surfaces as a silent rejection).
+     */
+    private function guardDecodeMemory(ProfileImage $image): void
+    {
+        $pixels = max(1, (int) $image->width * (int) $image->height);
+        // ~4 bytes/pixel for the source truecolor image plus a full-size resample copy.
+        $requiredBytes = (int) ($pixels * 4 * 2.4) + 16 * 1024 * 1024;
+        $ceilingBytes = app(DirectorySettings::class)->integer('media.processing_memory_limit_mb') * 1024 * 1024;
+        $target = min($ceilingBytes, $requiredBytes + memory_get_usage(true));
+
+        if ($this->memoryLimitBytes() < $target) {
+            @ini_set('memory_limit', (string) $target);
+        }
+
+        if ($requiredBytes + memory_get_usage(true) > $this->memoryLimitBytes()) {
+            throw new RuntimeException('This image is too large to process on the server. Please upload a smaller version (fewer megapixels).');
+        }
+    }
+
+    private function memoryLimitBytes(): int
+    {
+        $limit = trim((string) ini_get('memory_limit'));
+        if ($limit === '' || $limit === '-1') {
+            return PHP_INT_MAX;
+        }
+
+        $unit = strtolower($limit[strlen($limit) - 1]);
+        $value = (int) $limit;
+
+        return match ($unit) {
+            'g' => $value * 1024 * 1024 * 1024,
+            'm' => $value * 1024 * 1024,
+            'k' => $value * 1024,
+            default => $value,
+        };
     }
 
     private function validateEncodedInput(string $bytes, string $path): void

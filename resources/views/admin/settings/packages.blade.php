@@ -15,15 +15,16 @@
 
             <section class="bg-white p-6 shadow-sm sm:rounded-lg">
                 <h3 class="text-lg font-semibold text-gray-900">Packages</h3>
-                <p class="mt-1 text-sm text-gray-600">Package codes and listing sections remain fixed; display names, image limits, order, and availability are editable.</p>
+                <p class="mt-1 text-sm text-gray-600">Package codes and listing sections remain fixed; display names, image and video limits, order, and availability are editable.</p>
                 <div class="mt-6 space-y-4">
                     @foreach ($packages as $package)
-                        <form method="POST" action="{{ route('admin.settings.packages.update', $package) }}" class="grid gap-4 rounded-lg border border-gray-200 p-4 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+                        <form method="POST" action="{{ route('admin.settings.packages.update', $package) }}" class="grid gap-4 rounded-lg border border-gray-200 p-4 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
                             @csrf
                             @method('PATCH')
                             <div><x-input-label value="Code" /><p class="mt-2 font-mono text-sm uppercase text-gray-700">{{ $package->code }}</p></div>
                             <div><x-input-label :for="'package_name_'.$package->id" value="Display name" /><x-text-input :id="'package_name_'.$package->id" name="name" class="mt-1 block w-full" :value="$package->name" required /></div>
                             <div><x-input-label :for="'image_limit_'.$package->id" value="Image limit" /><x-text-input :id="'image_limit_'.$package->id" name="image_limit" type="number" min="1" max="50" class="mt-1 block w-full" :value="$package->image_limit" required /></div>
+                            <div><x-input-label :for="'video_limit_'.$package->id" value="Video limit" /><x-text-input :id="'video_limit_'.$package->id" name="video_limit" type="number" min="0" max="20" class="mt-1 block w-full" :value="$package->video_limit" required /></div>
                             <div><x-input-label :for="'package_order_'.$package->id" value="Display order" /><x-text-input :id="'package_order_'.$package->id" name="display_order" type="number" min="0" max="1000" class="mt-1 block w-full" :value="$package->display_order" required /></div>
                             <div class="flex items-center justify-between gap-4 lg:block"><label class="text-sm text-gray-700"><input type="checkbox" name="is_active" value="1" @checked($package->is_active)> Active</label><x-primary-button class="lg:mt-3">Save package</x-primary-button></div>
                         </form>

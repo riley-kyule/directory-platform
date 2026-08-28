@@ -118,6 +118,9 @@
                         ['minimum_aspect_ratio', 'Minimum aspect ratio', 0.1, 5, 0.1],
                         ['maximum_aspect_ratio', 'Maximum aspect ratio', 0.1, 5, 0.1],
                         ['webp_quality', 'WebP quality', 50, 100, 1],
+                        ['processing_memory_limit_mb', 'Image processing memory ceiling (MB)', 128, 4096, 1],
+                        ['video_max_megabytes', 'Maximum video size (MB)', 1, 2048, 1],
+                        ['video_max_duration_seconds', 'Maximum video duration (seconds)', 5, 1800, 1],
                     ] as [$field, $label, $min, $max, $step])
                         <div>
                             <x-input-label :for="$field" :value="$label" />

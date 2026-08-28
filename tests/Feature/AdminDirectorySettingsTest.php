@@ -175,6 +175,7 @@ class AdminDirectorySettingsTest extends TestCase
         $this->actingAs($admin)->patch(route('admin.settings.packages.update', $vip), [
             'name' => 'VIP Featured',
             'image_limit' => 18,
+            'video_limit' => 6,
             'display_order' => 5,
             'is_active' => '1',
         ])->assertRedirect()->assertSessionHasNoErrors();
@@ -182,6 +183,7 @@ class AdminDirectorySettingsTest extends TestCase
         $vip->refresh();
         $this->assertSame('VIP Featured', $vip->name);
         $this->assertSame(18, $vip->image_limit);
+        $this->assertSame(6, $vip->video_limit);
         $this->assertSame(5, $vip->display_order);
         $this->assertDatabaseHas('audit_logs', ['action' => 'packages.update', 'target_id' => $vip->id]);
     }
@@ -195,6 +197,7 @@ class AdminDirectorySettingsTest extends TestCase
         $this->actingAs($admin)->patch(route('admin.settings.packages.update', $basic), [
             'name' => $basic->name,
             'image_limit' => $basic->image_limit,
+            'video_limit' => $basic->video_limit,
             'display_order' => $basic->display_order,
             'is_active' => '0',
         ])->assertRedirect()->assertSessionHasErrors('package');
@@ -265,6 +268,9 @@ class AdminDirectorySettingsTest extends TestCase
             'minimum_aspect_ratio' => 0.4,
             'maximum_aspect_ratio' => 2.5,
             'webp_quality' => 82,
+            'processing_memory_limit_mb' => 512,
+            'video_max_megabytes' => 200,
+            'video_max_duration_seconds' => 120,
         ], $overrides);
     }
 }

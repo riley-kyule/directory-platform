@@ -140,6 +140,7 @@ class PublicDirectoryController extends Controller
                 'details.sexualOrientation', 'rates.period', 'currentPackageAssignment.package',
                 'contacts' => fn ($query) => $query->where('is_public', true)->orderBy('sort_order'),
                 'images' => fn ($query) => $query->where('status', 'approved')->orderBy('sort_order'),
+                'videos' => fn ($query) => $query->where('status', 'approved')->orderBy('sort_order'),
             ])
             ->firstOrFail();
 

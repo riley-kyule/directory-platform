@@ -103,6 +103,22 @@
                     @endif
                 </div>
 
+                @if ($profile->videos->isNotEmpty())
+                    <section class="mt-10">
+                        <h2 class="text-2xl font-black">Videos</h2>
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            @foreach ($profile->videos as $video)
+                                @if ($video->publicUrl())
+                                    <video controls preload="none" playsinline class="aspect-video w-full rounded-2xl bg-black shadow-sm"
+                                           @if ($video->posterUrl()) poster="{{ $video->posterUrl() }}" @endif>
+                                        <source src="{{ $video->publicUrl() }}" type="{{ $video->mime_type }}">
+                                    </video>
+                                @endif
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
                 <section class="mt-10">
                     <h2 class="text-2xl font-black">About {{ $profile->display_name }}</h2>
                     <p class="mt-4 whitespace-pre-line leading-7 text-stone-700">{{ $profile->description }}</p>

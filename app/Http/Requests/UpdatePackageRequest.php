@@ -21,6 +21,7 @@ class UpdatePackageRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:60'],
             'image_limit' => ['required', 'integer', 'between:1,50'],
+            'video_limit' => ['required', 'integer', 'between:0,20'],
             'display_order' => ['required', 'integer', 'between:0,1000'],
             'is_active' => ['boolean'],
         ];

@@ -12,8 +12,11 @@ use App\Models\PackageDurationOption;
 use App\Models\Profile;
 use App\Services\LocationInventoryService;
 use App\Services\PolicyAcceptanceService;
+use App\Services\ProfileImageLimit;
 use App\Services\ProfileImageVisibility;
+use App\Services\ProfileMediaAccess;
 use App\Services\ProfileVerificationService;
+use App\Services\ProfileVideoLimit;
 use App\Services\PublicProfileListings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -56,8 +59,8 @@ class ProfileManagementController extends Controller
         Gate::authorize('profiles.view-private');
 
         $profile->load([
-            'primaryLocation', 'sublocation', 'microLocation', 'owner', 'currentAgency.owner', 'contacts', 'images',
-            'packageAssignments.package', 'services',
+            'primaryLocation', 'sublocation', 'microLocation', 'owner', 'currentAgency.owner', 'contacts', 'images', 'videos',
+            'packageAssignments.package', 'services', 'currentPackageAssignment.package',
         ]);
         if ($profile->status === ProfileStatus::Draft) {
             $profile->load('packageRequests.requestedPackage');
@@ -67,6 +70,10 @@ class ProfileManagementController extends Controller
             'profile' => $profile,
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
             'durations' => PackageDurationOption::query()->where('is_active', true)->orderBy('display_order')->get(),
+            'canManageMedia' => app(ProfileMediaAccess::class)->canManage($request->user(), $profile),
+            'photoLimit' => app(ProfileImageLimit::class)->for($profile),
+            'videoLimit' => app(ProfileVideoLimit::class)->for($profile),
+            'mediaPolicies' => $this->policies->outstanding('media_submission', $request->user(), $profile),
             'submissionPolicies' => $profile->status === ProfileStatus::Draft
                 ? $this->policies->outstanding('profile_submission', $request->user(), $profile)
                 : collect(),

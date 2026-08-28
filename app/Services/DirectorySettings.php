@@ -32,6 +32,11 @@ class DirectorySettings
         'media.minimum_aspect_ratio' => 0.4,
         'media.maximum_aspect_ratio' => 2.5,
         'media.webp_quality' => 82,
+        'media.processing_memory_limit_mb' => 512,
+        'media.video_max_kilobytes' => 51200,
+        'media.video_max_duration_seconds' => 120,
+        'media.ffmpeg_path' => '',
+        'media.ffprobe_path' => '',
     ];
 
     public function integer(string $key): int

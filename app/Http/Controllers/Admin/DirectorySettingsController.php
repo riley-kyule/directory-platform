@@ -62,6 +62,9 @@ class DirectorySettingsController extends Controller
                 'minimum_aspect_ratio' => $this->settings->float('media.minimum_aspect_ratio'),
                 'maximum_aspect_ratio' => $this->settings->float('media.maximum_aspect_ratio'),
                 'webp_quality' => $this->settings->integer('media.webp_quality'),
+                'processing_memory_limit_mb' => $this->settings->integer('media.processing_memory_limit_mb'),
+                'video_max_megabytes' => intdiv($this->settings->integer('media.video_max_kilobytes'), 1024),
+                'video_max_duration_seconds' => $this->settings->integer('media.video_max_duration_seconds'),
             ],
         ]);
     }
@@ -111,6 +114,9 @@ class DirectorySettingsController extends Controller
             'media.minimum_aspect_ratio' => [$validated['minimum_aspect_ratio'], 'decimal', 'media'],
             'media.maximum_aspect_ratio' => [$validated['maximum_aspect_ratio'], 'decimal', 'media'],
             'media.webp_quality' => [$validated['webp_quality'], 'integer', 'media'],
+            'media.processing_memory_limit_mb' => [$validated['processing_memory_limit_mb'], 'integer', 'media'],
+            'media.video_max_kilobytes' => [$validated['video_max_megabytes'] * 1024, 'integer', 'media'],
+            'media.video_max_duration_seconds' => [$validated['video_max_duration_seconds'], 'integer', 'media'],
         ];
 
         DB::transaction(function () use ($request, $values): void {
@@ -200,7 +206,7 @@ class DirectorySettingsController extends Controller
             if (! $validated['is_active'] && $package->is_active && Package::query()->where('is_active', true)->count() === 1) {
                 return false;
             }
-            $previous = $package->only(['name', 'image_limit', 'display_order', 'is_active']);
+            $previous = $package->only(['name', 'image_limit', 'video_limit', 'display_order', 'is_active']);
             $package->update($validated);
             $this->audit($request->user()->id, 'packages.update', $package->id, $previous, $package->fresh()->only(array_keys($previous)));
 

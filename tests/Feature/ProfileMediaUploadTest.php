@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ProfileMediaUploadTest extends TestCase
@@ -70,6 +71,14 @@ class ProfileMediaUploadTest extends TestCase
             'requested_by' => $this->owner->id,
             'requested_at' => now(),
         ]);
+    }
+
+    public function test_owner_can_open_the_media_manager(): void
+    {
+        $this->actingAs($this->owner)->get(route('profiles.media.index', $this->profile))
+            ->assertOk()
+            ->assertSee('Photos')
+            ->assertSee('Videos');
     }
 
     public function test_owner_can_upload_valid_image_into_private_quarantine(): void
@@ -131,6 +140,58 @@ class ProfileMediaUploadTest extends TestCase
 
         $this->assertCount(5, $this->profile->images);
         Queue::assertNothingPushed();
+    }
+
+    public function test_json_upload_returns_a_json_status(): void
+    {
+        $response = $this->actingAs($this->owner)->postJson(route('profiles.media.store', $this->profile), [
+            'image' => UploadedFile::fake()->image('portrait.jpg', 800, 1000),
+            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
+        ]);
+
+        $response->assertOk()->assertJsonStructure(['status']);
+        $this->assertSame('quarantined', $this->profile->images()->firstOrFail()->status);
+    }
+
+    public function test_owner_can_retry_a_rejected_image(): void
+    {
+        $image = $this->profile->images()->create([
+            'public_id' => (string) Str::uuid(),
+            'storage_directory' => $this->profile->public_id.'/pending.upload',
+            'sort_order' => 10,
+            'status' => 'rejected',
+            'width' => 800, 'height' => 1000, 'aspect_ratio' => 0.8,
+            'mime_type' => 'image/jpeg', 'file_size' => 1000,
+            'exact_hash' => hash('sha256', 'retry'),
+            'processing_error' => 'Something went wrong.',
+        ]);
+        Storage::disk('quarantine')->put($this->profile->public_id.'/'.$image->public_id.'.upload', 'bytes');
+
+        $this->actingAs($this->owner)->post(route('profiles.media.retry', [$this->profile, $image]))
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('quarantined', $image->refresh()->status);
+        $this->assertNull($image->processing_error);
+        Queue::assertPushed(ProcessProfileImage::class);
+    }
+
+    public function test_retry_without_the_original_upload_asks_for_a_re_upload(): void
+    {
+        $image = $this->profile->images()->create([
+            'public_id' => (string) Str::uuid(),
+            'storage_directory' => $this->profile->public_id.'/gone.upload',
+            'sort_order' => 10, 'status' => 'rejected',
+            'width' => 800, 'height' => 1000, 'aspect_ratio' => 0.8,
+            'mime_type' => 'image/jpeg', 'file_size' => 1000,
+            'exact_hash' => hash('sha256', 'gone'),
+        ]);
+
+        $this->actingAs($this->owner)
+            ->from(route('profiles.media.index', $this->profile))
+            ->post(route('profiles.media.retry', [$this->profile, $image]))
+            ->assertSessionHasErrors('image');
+
+        $this->assertSame('rejected', $image->refresh()->status);
     }
 
     /** @return array<int, int> */

@@ -152,6 +152,11 @@ class Profile extends Model
         return $this->hasMany(ProfileImage::class)->orderBy('sort_order');
     }
 
+    public function videos(): HasMany
+    {
+        return $this->hasMany(ProfileVideo::class)->orderBy('sort_order');
+    }
+
     public function slugHistory(): HasMany
     {
         return $this->hasMany(ProfileSlugHistory::class);

@@ -14,7 +14,9 @@ use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Services\LocationInventoryService;
 use App\Services\PolicyAcceptanceService;
+use App\Services\ProfileImageLimit;
 use App\Services\ProfileMediaAccess;
+use App\Services\ProfileVideoLimit;
 use App\Services\PublicPageCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +29,8 @@ class ProviderProfileController extends Controller
         private readonly LocationInventoryService $locationInventory,
         private readonly PolicyAcceptanceService $policies,
         private readonly PublicPageCache $pageCache,
+        private readonly ProfileImageLimit $imageLimit,
+        private readonly ProfileVideoLimit $videoLimit,
     ) {}
 
     public function show(Profile $profile): View
@@ -38,9 +42,13 @@ class ProviderProfileController extends Controller
             'profile' => $profile->load([
                 'primaryLocation', 'sublocation', 'microLocation', 'gender', 'ethnicity', 'build', 'bustSize',
                 'details', 'contacts', 'services', 'languages', 'rates', 'rates.period',
-                'images', 'currentPackageAssignment.package', 'packageRequests.requestedPackage',
+                'images', 'videos', 'currentPackageAssignment.package', 'packageRequests.requestedPackage',
             ]),
             'packages' => Package::query()->where('is_active', true)->orderBy('display_order')->get(),
+            'canManageMedia' => $this->access->canManage(request()->user(), $profile),
+            'photoLimit' => $this->imageLimit->for($profile),
+            'videoLimit' => $this->videoLimit->for($profile),
+            'mediaPolicies' => $this->policies->outstanding('media_submission', request()->user(), $profile),
             'canEdit' => in_array($profile->status, [ProfileStatus::Draft, ProfileStatus::Active], true),
             'canRenew' => in_array($profile->status, [ProfileStatus::Expired, ProfileStatus::Deactivated], true)
                 && ! $moderationRestricted

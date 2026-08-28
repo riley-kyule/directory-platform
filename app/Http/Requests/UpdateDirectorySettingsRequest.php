@@ -41,6 +41,9 @@ class UpdateDirectorySettingsRequest extends FormRequest
             'minimum_aspect_ratio' => ['required', 'numeric', 'between:0.1,5'],
             'maximum_aspect_ratio' => ['required', 'numeric', 'between:0.1,5', 'gt:minimum_aspect_ratio'],
             'webp_quality' => ['required', 'integer', 'between:50,100'],
+            'processing_memory_limit_mb' => ['required', 'integer', 'between:128,4096'],
+            'video_max_megabytes' => ['required', 'integer', 'between:1,2048'],
+            'video_max_duration_seconds' => ['required', 'integer', 'between:5,1800'],
         ];
     }
 

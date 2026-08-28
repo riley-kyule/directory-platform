@@ -48,7 +48,7 @@ class ProfileReviewController extends Controller
         abort_unless($packageRequest->status === PackageRequestStatus::Pending, 404);
 
         $packageRequest->load([
-            'profile.primaryLocation', 'profile.sublocation', 'profile.microLocation', 'profile.contacts', 'profile.images',
+            'profile.primaryLocation', 'profile.sublocation', 'profile.microLocation', 'profile.contacts', 'profile.images', 'profile.videos',
             'profile.services', 'profile.verificationChecks.performer', 'requestedPackage', 'requestedBy',
         ]);
 

@@ -27,8 +27,8 @@
                         @if ($canEdit)
                             <a href="{{ route('provider.profiles.edit', $profile) }}" class="inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Edit profile</a>
                         @endif
-                        <a href="{{ route('profiles.media.index', $profile) }}" class="inline-flex rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                            {{ $canEdit ? 'Manage media' : 'View media' }}
+                        <a href="#media" class="inline-flex rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                            {{ $canManageMedia ? 'Manage media' : 'View media' }}
                         </a>
                     </div>
                 </div>
@@ -58,6 +58,15 @@
                 <div class="md:col-span-2"><p class="text-sm text-gray-500">Services</p><p class="font-medium">{{ $profile->services->pluck('label')->join(', ') }}</p></div>
                 <div class="md:col-span-2"><p class="text-sm text-gray-500">Contact methods</p><p class="font-medium">{{ $profile->contacts->map(fn ($contact) => str($contact->type)->replace('_', ' ')->title().': '.$contact->display_value)->join(' · ') }}</p></div>
             </section>
+
+            <div id="media">
+                <x-media-manager
+                    :profile="$profile"
+                    :can-manage="$canManageMedia"
+                    :photo-limit="$photoLimit"
+                    :video-limit="$videoLimit"
+                    :required-policies="$mediaPolicies" />
+            </div>
 
             @if ($canRenew)
                 <section class="bg-white p-6 shadow-sm sm:rounded-lg">

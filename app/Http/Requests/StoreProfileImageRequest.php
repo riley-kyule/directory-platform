@@ -42,6 +42,21 @@ class StoreProfileImageRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        $extension = strtolower((string) $this->file('image')?->getClientOriginalExtension());
+        if (in_array($extension, ['heic', 'heif'], true)) {
+            $heic = "iPhone HEIC photos aren't supported yet. On your iPhone open Settings → Camera → Formats and choose \"Most Compatible\", then take the photo again — or share it as a JPEG.";
+
+            return ['image.mimes' => $heic, 'image.mimetypes' => $heic];
+        }
+
+        return [
+            'image.mimes' => 'The photo must be a JPEG, PNG or WebP file.',
+            'image.mimetypes' => 'The photo must be a JPEG, PNG or WebP file.',
+        ];
+    }
+
     public function after(): array
     {
         return [function (Validator $validator): void {
