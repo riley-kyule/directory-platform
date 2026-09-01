@@ -99,8 +99,13 @@ class ProcessProfileVideo implements ShouldQueue
 
         // No moderation hold: on a live profile the video goes public as soon as
         // it is processed; on a draft it waits for the profile to be activated.
+        // Best-effort — a publish failure must not fail the job (see the image job).
         if ($video->profile && $video->profile->status->isPublic()) {
-            app(ProfileImageVisibility::class)->publishVideos($video->profile);
+            try {
+                app(ProfileImageVisibility::class)->publishVideos($video->profile);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         }
     }
 
@@ -108,6 +113,10 @@ class ProcessProfileVideo implements ShouldQueue
     {
         $video = ProfileVideo::query()->with('profile')->find($this->profileVideoId);
         if (! $video) {
+            return;
+        }
+
+        if (in_array($video->status, ['pending_review', 'approved'], true)) {
             return;
         }
 
