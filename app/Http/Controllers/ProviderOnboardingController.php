@@ -18,7 +18,6 @@ use App\Services\ProfileCreationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProviderOnboardingController extends Controller
@@ -38,16 +37,10 @@ class ProviderOnboardingController extends Controller
             'profile.packageRequests.requestedPackage', 'profile.images',
             'agency.profiles.packageRequests.requestedPackage', 'agency.profiles.images',
         ]);
-        $profiles = collect([$user->profile])
-            ->merge($user->agency?->profiles ?? [])
-            ->filter();
 
         return view('onboarding.index', [
             'user' => $user,
             'agencyProfileLimit' => $this->settings->integer('profiles.agency_limit'),
-            'submissionPolicies' => $profiles->mapWithKeys(fn (Profile $profile) => [
-                $profile->id => $this->policies->outstanding('profile_submission', $user, $profile),
-            ]),
         ]);
     }
 
@@ -113,27 +106,17 @@ class ProviderOnboardingController extends Controller
         abort_unless($profile->status === ProfileStatus::Draft, 409, 'Only a draft profile can be submitted.');
         abort_unless($profile->packageRequests()->where('status', PackageRequestStatus::Pending)->exists(), 409, 'Choose a package before submitting.');
         if (! $profile->images()->whereIn('status', ['pending_review', 'reviewed', 'approved'])->exists()) {
-            return back()->withErrors(['media' => 'Upload at least one image and wait for processing to finish before submitting.']);
+            return back()->withErrors(['media' => 'Add at least one photo before submitting.']);
         }
 
-        $selected = $request->validate([
-            'policy_acceptances' => ['nullable', 'array'],
-            'policy_acceptances.*' => ['integer'],
-        ])['policy_acceptances'] ?? [];
-        if (! $this->policies->allRequiredSelected('profile_submission', $selected, $user, $profile)) {
-            throw ValidationException::withMessages([
-                'policy_acceptances' => 'Accept every required provider policy before submitting this profile.',
-            ]);
-        }
-        $accepted = $this->policies->acceptedSelection('profile_submission', $selected, $user, $profile);
+        $this->policies->acknowledge('profile_submission', $user, $request, $profile);
 
-        DB::transaction(function () use ($request, $profile, $user, $accepted): void {
+        DB::transaction(function () use ($profile, $user): void {
             $profile->update(['status' => ProfileStatus::PendingReview]);
             $user->update([
                 'onboarding_status' => OnboardingStatus::Submitted,
                 'last_onboarding_activity_at' => now(),
             ]);
-            $this->policies->record($user, 'profile_submission', $accepted, $request, $profile);
         });
 
         return redirect()->route('onboarding.index')->with('status', 'Profile submitted for staff review.');

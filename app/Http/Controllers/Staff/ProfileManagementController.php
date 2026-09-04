@@ -11,7 +11,6 @@ use App\Models\Package;
 use App\Models\PackageDurationOption;
 use App\Models\Profile;
 use App\Services\LocationInventoryService;
-use App\Services\PolicyAcceptanceService;
 use App\Services\ProfileImageLimit;
 use App\Services\ProfileImageVisibility;
 use App\Services\ProfileMediaAccess;
@@ -32,7 +31,6 @@ class ProfileManagementController extends Controller
         private readonly PublicProfileListings $listings,
         private readonly LocationInventoryService $locationInventory,
         private readonly ProfileImageVisibility $imageVisibility,
-        private readonly PolicyAcceptanceService $policies,
         private readonly ProfileVerificationService $verification,
     ) {}
 
@@ -73,10 +71,6 @@ class ProfileManagementController extends Controller
             'canManageMedia' => app(ProfileMediaAccess::class)->canManage($request->user(), $profile),
             'photoLimit' => app(ProfileImageLimit::class)->for($profile),
             'videoLimit' => app(ProfileVideoLimit::class)->for($profile),
-            'mediaPolicies' => $this->policies->outstanding('media_submission', $request->user(), $profile),
-            'submissionPolicies' => $profile->status === ProfileStatus::Draft
-                ? $this->policies->outstanding('profile_submission', $request->user(), $profile)
-                : collect(),
             'audits' => AuditLog::query()
                 ->where('target_type', 'profile')
                 ->where('target_id', $profile->id)

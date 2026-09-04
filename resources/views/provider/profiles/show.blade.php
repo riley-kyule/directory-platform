@@ -64,8 +64,7 @@
                     :profile="$profile"
                     :can-manage="$canManageMedia"
                     :photo-limit="$photoLimit"
-                    :video-limit="$videoLimit"
-                    :required-policies="$mediaPolicies" />
+                    :video-limit="$videoLimit" />
             </div>
 
             @if ($canRenew)
@@ -83,9 +82,7 @@
                                 @endforeach
                             </select>
                             <x-input-error :messages="$errors->get('requested_package_id')" class="mt-2" />
-                        </div>
-                        <x-policy-acceptances :policies="$renewalPolicies" class="sm:basis-full" />
-                        <x-primary-button>Request renewal</x-primary-button>
+                        </div>                        <x-primary-button>Request renewal</x-primary-button>
                     </form>
                 </section>
             @elseif ($profile->packageRequests->where('status', \App\Enums\PackageRequestStatus::Pending)->isNotEmpty())

@@ -12,8 +12,7 @@
                 :profile="$profile"
                 :can-manage="$canManage"
                 :photo-limit="$limit"
-                :video-limit="$videoLimit"
-                :required-policies="$requiredPolicies" />
+                :video-limit="$videoLimit" />
 
             @unless ($canManage)
                 <p class="rounded-md bg-gray-50 p-4 text-sm text-gray-600">Media cannot be changed while this profile is in its current state.</p>

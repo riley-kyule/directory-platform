@@ -12,7 +12,6 @@ use App\Models\Package;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
-use App\Services\PolicyAcceptanceService;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -76,7 +75,6 @@ class ProfileVideoUploadTest extends TestCase
     {
         $response = $this->actingAs($this->owner)->post(route('profiles.media.videos.store', $this->profile), [
             'video' => UploadedFile::fake()->create('clip.mp4', 4000, 'video/mp4'),
-            'policy_acceptances' => $this->outstandingPolicyIds(),
         ]);
 
         $response->assertRedirect()->assertSessionHasNoErrors();
@@ -114,19 +112,8 @@ class ProfileVideoUploadTest extends TestCase
 
         $this->actingAs($this->owner)->post(route('profiles.media.videos.store', $this->profile), [
             'video' => UploadedFile::fake()->create('second.mp4', 1000, 'video/mp4'),
-            'policy_acceptances' => $this->outstandingPolicyIds(),
         ])->assertStatus(422);
 
         $this->assertCount(1, $this->profile->videos);
         Queue::assertNothingPushed();
-    }
-
-    /** @return array<int, int> */
-    private function outstandingPolicyIds(): array
-    {
-        return app(PolicyAcceptanceService::class)
-            ->outstanding('media_submission', $this->owner, $this->profile)
-            ->pluck('id')
-            ->all();
-    }
-}
+    }}

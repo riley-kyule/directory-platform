@@ -12,7 +12,6 @@ use App\Models\Package;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
-use App\Services\PolicyAcceptanceService;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -33,6 +32,9 @@ class ProfileMediaUploadTest extends TestCase
     {
         parent::setUp();
         Storage::fake('quarantine');
+        Storage::fake('media_staging');
+        Storage::fake('media_review');
+        Storage::fake('profile_media');
         Queue::fake();
         $this->seed(DirectoryDefaultsSeeder::class);
 
@@ -81,39 +83,38 @@ class ProfileMediaUploadTest extends TestCase
             ->assertSee('Videos');
     }
 
-    public function test_media_manager_updates_itself_while_an_upload_is_processing(): void
+    public function test_media_manager_updates_itself_while_a_video_is_processing(): void
     {
-        $this->profile->images()->create([
-            'storage_directory' => $this->profile->public_id.'/processing.upload',
+        $this->profile->videos()->create([
+            'public_id' => (string) Str::uuid(),
+            'storage_directory' => 'videos/'.$this->profile->public_id.'/processing.upload',
             'sort_order' => 10,
             'status' => 'processing',
-            'width' => 800,
-            'height' => 1000,
-            'aspect_ratio' => 0.8,
-            'mime_type' => 'image/jpeg',
+            'mime_type' => 'video/mp4',
             'file_size' => 1000,
-            'exact_hash' => hash('sha256', 'processing-image'),
+            'file_extension' => 'mp4',
+            'exact_hash' => hash('sha256', 'processing-video'),
         ]);
 
         $this->actingAs($this->owner)->get(route('profiles.media.index', $this->profile))
             ->assertOk()
-            ->assertSee('This page will update when it is ready')
-            ->assertSee('x-data="mediaManager(true)"', false)
-            ->assertDontSee('>Retry<', false);
+            ->assertSee('A video is still processing')
+            ->assertSee('pollForVideo: true', false);
     }
 
-    public function test_owner_can_upload_valid_image_into_private_quarantine(): void
+    public function test_owner_can_upload_a_photo_and_it_processes_immediately(): void
     {
         $response = $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
             'image' => UploadedFile::fake()->image('portrait.jpg', 800, 1000),
-            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
         ]);
 
         $response->assertRedirect()->assertSessionHasNoErrors();
         $image = $this->profile->images()->firstOrFail();
-        $this->assertSame('quarantined', $image->status);
-        Storage::disk('quarantine')->assertExists($image->storage_directory);
-        Queue::assertPushed(ProcessProfileImage::class, fn ($job) => $job->profileImageId === $image->id);
+        // Draft profile: the photo is fully processed and waiting for activation.
+        $this->assertSame('pending_review', $image->status);
+        $this->assertNotEmpty($image->derivatives);
+        Storage::disk('media_review')->assertExists($image->storage_directory.'/card-640.webp');
+        Queue::assertNotPushed(ProcessProfileImage::class);
     }
 
     public function test_undersized_image_is_rejected_before_quarantine(): void
@@ -156,48 +157,40 @@ class ProfileMediaUploadTest extends TestCase
 
         $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
             'image' => UploadedFile::fake()->image('sixth.jpg', 800, 1000),
-            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
         ])->assertStatus(422);
 
         $this->assertCount(5, $this->profile->images);
-        Queue::assertNothingPushed();
     }
 
     public function test_json_upload_returns_a_json_status(): void
     {
         $response = $this->actingAs($this->owner)->postJson(route('profiles.media.store', $this->profile), [
             'image' => UploadedFile::fake()->image('portrait.jpg', 800, 1000),
-            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
         ]);
 
         $response->assertOk()->assertJsonStructure(['status']);
-        $this->assertSame('quarantined', $this->profile->images()->firstOrFail()->status);
+        $this->assertSame('pending_review', $this->profile->images()->firstOrFail()->status);
     }
 
     public function test_invalid_json_upload_returns_structured_validation_errors(): void
     {
         $this->actingAs($this->owner)->postJson(route('profiles.media.store', $this->profile), [
             'image' => UploadedFile::fake()->image('small.jpg', 300, 300),
-            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
         ])->assertUnprocessable()->assertJsonValidationErrors('image');
     }
 
     public function test_media_uploads_are_rate_limited_per_actor_and_profile(): void
     {
-        for ($attempt = 1; $attempt <= 10; $attempt++) {
+        // 40 hits are allowed per minute; a wrong file type still consumes one
+        // (throttle runs before validation), which keeps this fast.
+        for ($attempt = 1; $attempt <= 40; $attempt++) {
             $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
-                'image' => UploadedFile::fake()->image('portrait-'.$attempt.'.jpg', 800 + $attempt, 1000),
-                'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
-            ])->assertRedirect()->assertSessionHasNoErrors();
-
-            $image = $this->profile->images()->latest('id')->firstOrFail();
-            $this->actingAs($this->owner)->delete(route('profiles.media.destroy', [$this->profile, $image]))
-                ->assertRedirect();
+                'image' => UploadedFile::fake()->create('not-image-'.$attempt.'.txt', 4),
+            ])->assertRedirect();
         }
 
         $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
             'image' => UploadedFile::fake()->image('blocked.jpg', 800, 1000),
-            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
         ])->assertTooManyRequests();
     }
 
@@ -213,14 +206,17 @@ class ProfileMediaUploadTest extends TestCase
             'exact_hash' => hash('sha256', 'retry'),
             'processing_error' => 'Something went wrong.',
         ]);
-        Storage::disk('quarantine')->put($this->profile->public_id.'/'.$image->public_id.'.upload', 'bytes');
+        Storage::disk('quarantine')->put(
+            $this->profile->public_id.'/'.$image->public_id.'.upload',
+            UploadedFile::fake()->image('retry.jpg', 800, 1000)->get(),
+        );
 
         $this->actingAs($this->owner)->post(route('profiles.media.retry', [$this->profile, $image]))
             ->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame('quarantined', $image->refresh()->status);
+        // Retry now processes in the request too.
+        $this->assertSame('pending_review', $image->refresh()->status);
         $this->assertNull($image->processing_error);
-        Queue::assertPushed(ProcessProfileImage::class);
     }
 
     public function test_retry_without_the_original_upload_asks_for_a_re_upload(): void
@@ -240,14 +236,5 @@ class ProfileMediaUploadTest extends TestCase
             ->assertSessionHasErrors('image');
 
         $this->assertSame('rejected', $image->refresh()->status);
-    }
-
-    /** @return array<int, int> */
-    private function outstandingPolicyIds(string $action, User $user, ?Profile $profile = null): array
-    {
-        return app(PolicyAcceptanceService::class)
-            ->outstanding($action, $user, $profile)
-            ->pluck('id')
-            ->all();
     }
 }

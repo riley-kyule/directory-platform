@@ -13,7 +13,6 @@ use App\Models\Profile;
 use App\Models\Role;
 use App\Models\TaxonomyOption;
 use App\Models\User;
-use App\Services\PolicyAcceptanceService;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -178,21 +177,12 @@ class StaffProfileCreationTest extends TestCase
 
         $this->actingAs($csr)->get(route('staff.directory.show', $profile))
             ->assertOk()
-            ->assertSee('Complete onboarding')
-            ->assertSee('Confirm the provider has agreed to the');
+            ->assertSee('Complete onboarding');
 
-        $outstanding = app(PolicyAcceptanceService::class)->outstanding('profile_submission', $csr, $profile)->pluck('id')->all();
-
-        $this->actingAs($csr)->post(route('onboarding.profiles.submit', $profile), [
-            'policy_acceptances' => $outstanding,
-        ])->assertRedirect(route('onboarding.index'));
+        $this->actingAs($csr)->post(route('onboarding.profiles.submit', $profile))
+            ->assertRedirect(route('onboarding.index'));
 
         $this->assertSame(ProfileStatus::PendingReview, $profile->refresh()->status);
-        $this->assertDatabaseHas('policy_acceptances', [
-            'profile_id' => $profile->id,
-            'user_id' => $csr->id,
-            'action' => 'profile_submission',
-        ]);
     }
 
     public function test_staff_with_media_upload_permission_can_reach_media_routes_for_a_profile_they_did_not_onboard(): void

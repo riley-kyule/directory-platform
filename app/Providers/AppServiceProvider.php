@@ -52,7 +52,9 @@ class AppServiceProvider extends ServiceProvider
             $profileKey = is_object($profile) && isset($profile->public_id) ? $profile->public_id : (string) $profile;
             $actor = $request->user()?->public_id ?? 'guest';
 
-            return Limit::perMinute(10)->by('profile-media:'.$this->rateLimitDigest($actor.'|'.$profileKey));
+            // Generous enough to add a full package's worth of photos in one
+            // multi-select, but still bounds an abusive loop.
+            return Limit::perMinute(40)->by('profile-media:'.$this->rateLimitDigest($actor.'|'.$profileKey));
         });
 
         Gate::before(function (User $user, string $ability): ?bool {

@@ -42,7 +42,6 @@
                             @endif
                             <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}" class="mt-5">
                                 @csrf
-                                <x-policy-acceptances :policies="$submissionPolicies->get($user->profile->id, collect())" class="mb-4" />
                                 <x-primary-button @disabled(! $mediaReady($user->profile)) class="disabled:opacity-50">Submit for review</x-primary-button>
                             </form>
                         @endif
@@ -95,7 +94,6 @@
                                             @endif
                                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="mt-2">
                                                 @csrf
-                                                <x-policy-acceptances :policies="$submissionPolicies->get($profile->id, collect())" class="my-3 text-left" />
                                                 <button @disabled(! $mediaReady($profile)) class="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50">Submit for review</button>
                                             </form>
                                         @endif

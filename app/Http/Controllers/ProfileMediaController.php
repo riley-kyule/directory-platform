@@ -42,7 +42,6 @@ class ProfileMediaController extends Controller
             'limit' => $this->imageLimit->for($profile),
             'videoLimit' => $this->videoLimit->for($profile),
             'canManage' => $this->access->canManage(request()->user(), $profile),
-            'requiredPolicies' => $this->policies->outstanding('media_submission', request()->user(), $profile),
         ]);
     }
 
@@ -54,15 +53,8 @@ class ProfileMediaController extends Controller
             return $this->mediaError($request, 'image', 'The file could not be read as an image. Please upload a standard JPEG, PNG or WebP.');
         }
 
-        $accepted = $this->policies->acceptedSelection(
-            'media_submission',
-            $request->validated('policy_acceptances', []),
-            $request->user(),
-            $profile,
-        );
-
         try {
-            $image = DB::transaction(function () use ($request, $profile, $file, $dimensions, $accepted): ProfileImage {
+            $image = DB::transaction(function () use ($profile, $file, $dimensions): ProfileImage {
                 $profile = Profile::query()->lockForUpdate()->findOrFail($profile->id);
                 $limit = $this->imageLimit->for($profile);
                 $currentCount = $profile->images()->whereNotIn('status', ['rejected', 'private'])->count();
@@ -75,7 +67,7 @@ class ProfileMediaController extends Controller
                 $quarantinePath = $profile->public_id.'/'.$publicId.'.upload';
                 Storage::disk('quarantine')->putFileAs($profile->public_id, $file, $publicId.'.upload');
 
-                $image = $profile->images()->create([
+                return $profile->images()->create([
                     'public_id' => $publicId,
                     'storage_directory' => $quarantinePath,
                     'sort_order' => ($profile->images()->max('sort_order') ?? 0) + 10,
@@ -87,9 +79,6 @@ class ProfileMediaController extends Controller
                     'file_size' => $file->getSize(),
                     'exact_hash' => $hash,
                 ]);
-                $this->policies->record($request->user(), 'media_submission', $accepted, $request, $profile);
-
-                return $image;
             });
         } catch (HttpException $exception) {
             throw $exception;
@@ -99,13 +88,40 @@ class ProfileMediaController extends Controller
             return $this->mediaError($request, 'image', 'The photo could not be stored. Please try again in a moment.');
         }
 
-        ProcessProfileImage::dispatch($image->id)->afterCommit();
+        $this->policies->acknowledge('media_submission', $request->user(), $request, $profile);
+        $this->processImageNow($image);
+        $image->refresh();
 
-        if ($request->expectsJson()) {
-            return response()->json(['status' => 'Photo uploaded securely and queued for processing.']);
+        if ($image->status === 'rejected') {
+            return $this->mediaError($request, 'image', $image->processing_error ?: 'The photo could not be processed. Please try a different file.');
         }
 
-        return back()->with('status', 'Photo uploaded securely and queued for processing.');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => $image->status === 'approved' ? 'Photo added.' : 'Photo added — it will appear when the profile goes live.',
+            ]);
+        }
+
+        return back()->with('status', 'Photo added.');
+    }
+
+    /**
+     * Process an uploaded image in the request instead of on the queue, so it
+     * appears immediately. The job is still the single unit of work — this
+     * only changes where it runs — and its failed() handler still does the
+     * rejection bookkeeping if the decode/encode throws.
+     */
+    private function processImageNow(ProfileImage $image): void
+    {
+        @set_time_limit(120);
+        $job = new ProcessProfileImage($image->id);
+
+        try {
+            $job->handle();
+        } catch (Throwable $exception) {
+            report($exception);
+            $job->failed($exception);
+        }
     }
 
     public function retry(Profile $profile, ProfileImage $image): RedirectResponse
@@ -121,9 +137,12 @@ class ProfileMediaController extends Controller
         }
 
         $image->update(['status' => 'quarantined', 'processing_error' => null]);
-        ProcessProfileImage::dispatch($image->id)->afterCommit();
+        $this->processImageNow($image);
+        $image->refresh();
 
-        return back()->with('status', 'Photo re-queued for processing.');
+        return $image->status === 'rejected'
+            ? back()->withErrors(['image' => $image->processing_error ?: 'The photo could not be processed.'])
+            : back()->with('status', 'Photo added.');
     }
 
     private function mediaError(Request $request, string $key, string $message): RedirectResponse|JsonResponse
@@ -138,15 +157,9 @@ class ProfileMediaController extends Controller
     public function storeVideo(StoreProfileVideoRequest $request, Profile $profile): RedirectResponse|JsonResponse
     {
         $file = $request->file('video');
-        $accepted = $this->policies->acceptedSelection(
-            'media_submission',
-            $request->validated('policy_acceptances', []),
-            $request->user(),
-            $profile,
-        );
 
         try {
-            $video = DB::transaction(function () use ($request, $profile, $file, $accepted): ProfileVideo {
+            $video = DB::transaction(function () use ($profile, $file): ProfileVideo {
                 $profile = Profile::query()->lockForUpdate()->findOrFail($profile->id);
                 $limit = $this->videoLimit->for($profile);
                 $currentCount = $profile->videos()->whereNotIn('status', ['rejected', 'private'])->count();
@@ -159,7 +172,7 @@ class ProfileMediaController extends Controller
                 $extension = strtolower($file->getClientOriginalExtension() ?: 'mp4');
                 Storage::disk('quarantine')->putFileAs('videos/'.$profile->public_id, $file, $publicId.'.upload');
 
-                $video = $profile->videos()->create([
+                return $profile->videos()->create([
                     'public_id' => $publicId,
                     'storage_directory' => 'videos/'.$profile->public_id.'/'.$publicId.'.upload',
                     'sort_order' => ($profile->videos()->max('sort_order') ?? 0) + 10,
@@ -169,9 +182,6 @@ class ProfileMediaController extends Controller
                     'file_extension' => in_array($extension, ['mp4', 'm4v', 'webm', 'mov'], true) ? $extension : 'mp4',
                     'exact_hash' => $hash,
                 ]);
-                $this->policies->record($request->user(), 'media_submission', $accepted, $request, $profile);
-
-                return $video;
             });
         } catch (HttpException $exception) {
             throw $exception;
@@ -181,13 +191,16 @@ class ProfileMediaController extends Controller
             return $this->mediaError($request, 'video', 'The video could not be stored. Please try again in a moment.');
         }
 
+        $this->policies->acknowledge('media_submission', $request->user(), $request, $profile);
+        // Video transcode is genuinely slow, so it stays on the queue; the
+        // manager shows a "processing" state and refreshes when it lands.
         ProcessProfileVideo::dispatch($video->id)->afterCommit();
 
         if ($request->expectsJson()) {
-            return response()->json(['status' => 'Video uploaded securely and queued for processing.']);
+            return response()->json(['status' => 'Video uploaded — it will appear once processing finishes.']);
         }
 
-        return back()->with('status', 'Video uploaded securely and queued for processing.');
+        return back()->with('status', 'Video uploaded — it will appear once processing finishes.');
     }
 
     public function previewVideo(Profile $profile, ProfileVideo $video): BinaryFileResponse

@@ -52,17 +52,14 @@ class RegisteredUserController extends Controller
                 Rule::enum(ProviderType::class),
                 Rule::prohibitedIf($request->string('account_type')->toString() === AccountType::Member->value),
             ],
-            'policy_acceptances' => ['nullable', 'array'],
-            'policy_acceptances.*' => ['integer'],
+            'agree_to_policies' => ['accepted'],
+        ], [
+            'agree_to_policies.accepted' => 'You must confirm you are 18+ and agree to the policies to create an account.',
         ]);
 
-        $selectedPolicies = $validated['policy_acceptances'] ?? [];
-        if (! $this->policies->allRequiredSelected('registration', $selectedPolicies)) {
-            throw ValidationException::withMessages([
-                'policy_acceptances' => 'You must accept every required policy to create an account.',
-            ]);
-        }
-        $acceptedPolicies = $this->policies->acceptedSelection('registration', $selectedPolicies);
+        // One checkbox covers every policy that could ever apply to this
+        // account, so no later step needs to ask again.
+        $acceptedPolicies = $this->policies->outstanding('registration');
 
         $user = DB::transaction(function () use ($request, $validated, $acceptedPolicies): User {
             $user = User::create([

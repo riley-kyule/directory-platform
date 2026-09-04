@@ -64,7 +64,6 @@
 
                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="space-y-4 border-t pt-4">
                                 @csrf
-                                <x-policy-acceptances :policies="$submissionPolicies" label="Confirm the provider has agreed to the" />
                                 <x-primary-button>Submit for review</x-primary-button>
                             </form>
                         </div>
@@ -79,8 +78,7 @@
                     :profile="$profile"
                     :can-manage="$canManageMedia"
                     :photo-limit="$photoLimit"
-                    :video-limit="$videoLimit"
-                    :required-policies="$mediaPolicies" />
+                    :video-limit="$videoLimit" />
             </div>
 
             <section class="overflow-hidden bg-white shadow-sm sm:rounded-lg">

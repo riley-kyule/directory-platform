@@ -124,15 +124,16 @@ class PolicyManagementTest extends TestCase
         $this->assertStringNotContainsString('javascript:', $stored);
     }
 
-    public function test_registration_requires_and_records_current_terms_and_privacy(): void
+    public function test_registration_requires_one_consent_and_records_every_current_policy(): void
     {
+        // One checkbox at sign-up now covers every policy that could apply to
+        // the account, so nothing downstream needs to ask again.
         $terms = $this->publish('terms');
-        $privacy = $this->publish('privacy');
-        $this->assertSame(
-            ['privacy', 'terms'],
-            app(PolicyAcceptanceService::class)->latestPublished()->keys()->sort()->values()->all(),
-        );
-        $this->assertCount(2, app(PolicyAcceptanceService::class)->outstanding('registration'));
+        $this->publish('privacy');
+        $this->publish('provider');
+        $media = $this->publish('media');
+        $this->publish('agency');
+        $this->assertCount(5, app(PolicyAcceptanceService::class)->outstanding('registration'));
 
         $payload = [
             'name' => 'Policy User',
@@ -143,20 +144,21 @@ class PolicyManagementTest extends TestCase
         ];
 
         $this->post(route('register'), $payload)
-            ->assertSessionHasErrors('policy_acceptances');
+            ->assertSessionHasErrors('agree_to_policies');
         $this->assertDatabaseMissing('users', ['email' => 'policy@example.com']);
 
-        $this->post(route('register'), $payload + [
-            'policy_acceptances' => [$terms->id, $privacy->id],
-        ])->assertRedirect(route('dashboard', absolute: false));
+        $this->post(route('register'), $payload + ['agree_to_policies' => '1'])
+            ->assertRedirect(route('dashboard', absolute: false));
 
         $user = User::query()->where('email', 'policy@example.com')->firstOrFail();
-        $this->assertDatabaseCount('policy_acceptances', 2);
-        $this->assertDatabaseHas('policy_acceptances', [
-            'user_id' => $user->id,
-            'policy_version_id' => $terms->id,
-            'action' => 'registration',
-        ]);
+        $this->assertDatabaseCount('policy_acceptances', 5);
+        foreach ([$terms->id, $media->id] as $policyVersionId) {
+            $this->assertDatabaseHas('policy_acceptances', [
+                'user_id' => $user->id,
+                'policy_version_id' => $policyVersionId,
+                'action' => 'registration',
+            ]);
+        }
     }
 
     public function test_only_material_policy_updates_require_reacceptance(): void

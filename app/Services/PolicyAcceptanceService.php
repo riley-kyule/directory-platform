@@ -83,6 +83,30 @@ class PolicyAcceptanceService
         return $this->acceptedSelection($action, $selectedIds, $user, $profile)->count() === $outstanding->count();
     }
 
+    /**
+     * Record acceptance of whatever policies are still outstanding for this
+     * action, with no user interaction. Used everywhere except registration:
+     * consent is captured once at sign-up, and any later policy change is
+     * acknowledged passively when the user next acts, so there is never a
+     * mid-flow checkbox. The evidence row (timestamp, IP, action, route) is
+     * still written.
+     */
+    public function acknowledge(
+        string $action,
+        ?User $user,
+        Request $request,
+        ?Profile $profile = null,
+    ): void {
+        if (! $user) {
+            return;
+        }
+
+        $outstanding = $this->outstanding($action, $user, $profile);
+        if ($outstanding->isNotEmpty()) {
+            $this->record($user, $action, $outstanding, $request, $profile);
+        }
+    }
+
     /** @param Collection<int, PolicyVersion> $policies */
     public function record(
         User $user,
@@ -110,8 +134,11 @@ class PolicyAcceptanceService
     /** @return list<string> */
     private function typesFor(string $action, ?User $user, ?Profile $profile): array
     {
+        // Registration is the single consent point: the user agrees to every
+        // policy that could apply to them up front, so nothing downstream ever
+        // has to ask again.
         if ($action === 'registration') {
-            return ['terms', 'privacy'];
+            return array_keys(PolicyVersion::TYPES);
         }
 
         if ($action === 'media_submission') {

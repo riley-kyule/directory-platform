@@ -5,7 +5,6 @@
     'canRemove' => null,
     'photoLimit' => 0,
     'videoLimit' => 0,
-    'requiredPolicies' => null,
     'heading' => 'Photos & videos',
 ])
 
@@ -18,22 +17,19 @@
     $mediaViewer = request()->user();
     $canUpload = $canUpload ?? ($mediaViewer && $mediaAccess->canUpload($mediaViewer, $profile));
     $canRemove = $canRemove ?? ($mediaViewer && $mediaAccess->canRemove($mediaViewer, $profile));
-@endphp
-@php
+
     $settings = app(\App\Services\DirectorySettings::class);
     $photoMaxKb = $settings->integer('media.maximum_file_kilobytes');
     $videoMaxKb = $settings->integer('media.video_max_kilobytes');
-    $policies = $requiredPolicies ?? collect();
     $photos = $profile->images;
     $videos = $profile->videos;
     $photoUsed = $photos->whereNotIn('status', ['rejected', 'private'])->count();
     $videoUsed = $videos->whereNotIn('status', ['rejected', 'private'])->count();
-    $hasProcessingMedia = $photos->whereIn('status', ['quarantined', 'processing'])->isNotEmpty()
-        || $videos->whereIn('status', ['quarantined', 'processing'])->isNotEmpty();
+    // Photos process in the request now, so only video ever sits in "processing".
+    $hasProcessingMedia = $videos->whereIn('status', ['quarantined', 'processing'])->isNotEmpty();
     $badge = fn (string $status) => match ($status) {
         'approved' => 'bg-green-100 text-green-800',
-        'pending_review' => 'bg-blue-100 text-blue-800',
-        'reviewed' => 'bg-indigo-100 text-indigo-800',
+        'pending_review', 'reviewed' => 'bg-blue-100 text-blue-800',
         'processing', 'quarantined' => 'bg-amber-100 text-amber-800',
         'rejected' => 'bg-red-100 text-red-800',
         default => 'bg-gray-100 text-gray-700',
@@ -47,26 +43,51 @@
     };
 @endphp
 
-<section {{ $attributes->merge(['class' => 'space-y-8 bg-white p-6 shadow-sm sm:rounded-lg']) }} x-data="mediaManager({{ $hasProcessingMedia ? 'true' : 'false' }})">
+<section {{ $attributes->merge(['class' => 'space-y-8 bg-white p-6 shadow-sm sm:rounded-lg']) }}
+         x-data="mediaManager({
+             photoUrl: '{{ route('profiles.media.store', $profile) }}',
+             videoUrl: '{{ route('profiles.media.videos.store', $profile) }}',
+             photoMaxKb: {{ $photoMaxKb }},
+             videoMaxKb: {{ $videoMaxKb }},
+             photoSlotsLeft: {{ max(0, $photoLimit - $photoUsed) }},
+             videoSlotsLeft: {{ max(0, $videoLimit - $videoUsed) }},
+             pollForVideo: {{ $hasProcessingMedia ? 'true' : 'false' }},
+         })">
     <div>
         <h3 class="text-lg font-semibold text-gray-900">{{ $heading }}</h3>
         <p class="mt-1 text-sm text-gray-600">
-            Uploads publish automatically on live profiles as soon as processing finishes. Videos are inspected and transcoded into a metadata-free delivery format first.
+            Photos appear the moment they finish uploading. Videos are inspected and converted to a safe format first, which takes a little longer.
         </p>
     </div>
 
+    <template x-if="uploading || errors.length">
+        <div class="space-y-2">
+            <template x-if="uploading">
+                <div class="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status" aria-live="polite">
+                    <span x-text="progressLabel"></span>
+                </div>
+            </template>
+            <template x-if="errors.length">
+                <div class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+                    <ul class="list-disc space-y-1 pl-5">
+                        <template x-for="message in errors" :key="message"><li x-text="message"></li></template>
+                    </ul>
+                </div>
+            </template>
+        </div>
+    </template>
+
     @if ($hasProcessingMedia)
         <div class="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status" aria-live="polite">
-            Your upload is processing automatically. This page will update when it is ready—no action is needed.
+            A video is still processing. This page updates on its own when it's ready — no action needed.
         </div>
     @endif
 
-    @if ($errors->hasAny(['image', 'video', 'policy_acceptances']))
+    @if ($errors->hasAny(['image', 'video']))
         <div class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
             <ul class="list-disc space-y-1 pl-5">
                 @foreach ($errors->get('image') as $message)<li>{{ $message }}</li>@endforeach
                 @foreach ($errors->get('video') as $message)<li>{{ $message }}</li>@endforeach
-                @foreach ($errors->get('policy_acceptances') as $message)<li>{{ $message }}</li>@endforeach
             </ul>
         </div>
     @endif
@@ -79,20 +100,16 @@
         </div>
 
         @if ($canUpload && $photoUsed < $photoLimit)
-            <form method="POST" enctype="multipart/form-data" action="{{ route('profiles.media.store', $profile) }}"
-                  class="flex flex-wrap items-end gap-4 rounded-md border border-dashed border-gray-300 p-4"
-                  @submit="if (! validateFile($refs.photo, {{ $photoMaxKb }})) $event.preventDefault()">
-                @csrf
-                <div class="min-w-0 flex-1">
-                    <x-input-label for="photo-input" value="Add a photo" />
-                    <input id="photo-input" x-ref="photo" name="image" type="file" required
-                           accept="image/jpeg,image/png,image/webp"
-                           class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
-                    <p x-show="photoError" x-text="photoError" class="mt-1 text-sm text-red-600" x-cloak></p>
-                </div>
-                <x-policy-acceptances :policies="$policies" class="w-full" />
-                <x-primary-button>Upload photo</x-primary-button>
-            </form>
+            <div class="rounded-md border border-dashed border-gray-300 p-4">
+                <input type="file" x-ref="photoInput" class="sr-only" multiple
+                       accept="image/jpeg,image/png,image/webp"
+                       @change="upload('photo', $event.target.files); $event.target.value = ''">
+                <button type="button" @click="$refs.photoInput.click()" :disabled="uploading"
+                        class="inline-flex min-h-11 items-center rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50">
+                    <span x-text="uploading ? 'Uploading…' : 'Add photos'"></span>
+                </button>
+                <p class="mt-2 text-xs text-gray-500">Pick one or several at once. <span x-text="photoSlotsLeft"></span> slot(s) left.</p>
+            </div>
         @elseif ($canUpload)
             <p class="rounded-md bg-gray-50 p-4 text-sm text-gray-600">All photo slots for the current package are in use. Remove a photo to add another.</p>
         @endif
@@ -137,7 +154,7 @@
                 </article>
             @empty
                 <p class="rounded-lg border border-dashed border-gray-300 p-6 text-sm text-gray-600 sm:col-span-2 lg:col-span-3">
-                    No photos yet. At least one processed photo is required before a profile can be submitted for review.
+                    No photos yet. At least one photo is required before a profile can be submitted for review.
                 </p>
             @endforelse
         </div>
@@ -151,20 +168,16 @@
         </div>
 
         @if ($canUpload && $videoLimit > 0 && $videoUsed < $videoLimit)
-            <form method="POST" enctype="multipart/form-data" action="{{ route('profiles.media.videos.store', $profile) }}"
-                  class="flex flex-wrap items-end gap-4 rounded-md border border-dashed border-gray-300 p-4"
-                  @submit="if (! validateFile($refs.video, videoMaxKb)) $event.preventDefault()">
-                @csrf
-                <div class="min-w-0 flex-1">
-                    <x-input-label for="video-input" value="Add a video" />
-                    <input id="video-input" x-ref="video" name="video" type="file" required
-                           accept="video/mp4,video/webm,video/quicktime"
-                           class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
-                    <p x-show="videoError" x-text="videoError" class="mt-1 text-sm text-red-600" x-cloak></p>
-                </div>
-                <x-policy-acceptances :policies="$policies" class="w-full" />
-                <x-primary-button>Upload video</x-primary-button>
-            </form>
+            <div class="rounded-md border border-dashed border-gray-300 p-4">
+                <input type="file" x-ref="videoInput" class="sr-only" multiple
+                       accept="video/mp4,video/webm,video/quicktime"
+                       @change="upload('video', $event.target.files); $event.target.value = ''">
+                <button type="button" @click="$refs.videoInput.click()" :disabled="uploading"
+                        class="inline-flex min-h-11 items-center rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50">
+                    <span x-text="uploading ? 'Uploading…' : 'Add videos'"></span>
+                </button>
+                <p class="mt-2 text-xs text-gray-500">Pick one or several at once. <span x-text="videoSlotsLeft"></span> slot(s) left.</p>
+            </div>
         @elseif ($canUpload && $videoLimit === 0)
             <p class="rounded-md bg-gray-50 p-4 text-sm text-gray-600">The current package does not include video slots.</p>
         @elseif ($canUpload)
@@ -226,28 +239,76 @@
 
 @once
     <script>
-        window.mediaManager = function (shouldPoll = false) {
+        window.mediaManager = function (config) {
             return {
-                photoError: '',
-                videoError: '',
-                videoMaxKb: {{ $videoMaxKb }},
+                ...config,
+                uploading: false,
+                errors: [],
+                progressLabel: '',
+                pollTimer: null,
+
                 init() {
-                    if (!shouldPoll) return;
-                    window.setTimeout(() => {
-                        if (this.$refs.photo?.files?.length || this.$refs.video?.files?.length) return;
-                        window.location.reload();
-                    }, 8000);
-                },
-                validateFile(input, maxKb) {
-                    const key = input === this.$refs.photo ? 'photoError' : 'videoError';
-                    this[key] = '';
-                    const file = input.files && input.files[0];
-                    if (!file) { this[key] = 'Choose a file first.'; return false; }
-                    if (file.size > maxKb * 1024) {
-                        this[key] = 'That file is ' + Math.ceil(file.size / 1048576) + ' MB — the limit is ' + Math.floor(maxKb / 1024) + ' MB.';
-                        return false;
+                    if (this.pollForVideo) {
+                        this.pollTimer = window.setTimeout(() => window.location.reload(), 9000);
                     }
-                    return true;
+                },
+
+                async upload(kind, fileList) {
+                    const files = Array.from(fileList || []);
+                    if (!files.length || this.uploading) return;
+
+                    const isPhoto = kind === 'photo';
+                    const url = isPhoto ? this.photoUrl : this.videoUrl;
+                    const field = isPhoto ? 'image' : 'video';
+                    const maxKb = isPhoto ? this.photoMaxKb : this.videoMaxKb;
+                    const slots = isPhoto ? this.photoSlotsLeft : this.videoSlotsLeft;
+                    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+                    this.errors = [];
+                    if (files.length > slots) {
+                        this.errors.push(`Only ${slots} more ${isPhoto ? 'photo' : 'video'} slot(s) — the rest were skipped.`);
+                        files.length = slots;
+                    }
+                    if (!files.length) return;
+
+                    this.uploading = true;
+                    let added = 0;
+                    for (let i = 0; i < files.length; i++) {
+                        this.progressLabel = `Uploading ${isPhoto ? 'photo' : 'video'} ${i + 1} of ${files.length}…`;
+                        const file = files[i];
+                        if (file.size > maxKb * 1024) {
+                            this.errors.push(`${file.name}: ${Math.ceil(file.size / 1048576)} MB is over the ${Math.floor(maxKb / 1024)} MB limit.`);
+                            continue;
+                        }
+                        try {
+                            const body = new FormData();
+                            body.append(field, file);
+                            const response = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                                body,
+                            });
+                            if (response.status === 429) {
+                                this.errors.push('Too many uploads at once — wait a minute and add the rest.');
+                                break;
+                            }
+                            const data = await response.json().catch(() => ({}));
+                            if (!response.ok) {
+                                const detail = data.errors ? Object.values(data.errors).flat()[0] : (data.message || 'Upload failed.');
+                                this.errors.push(`${file.name}: ${detail}`);
+                                continue;
+                            }
+                            added++;
+                        } catch (e) {
+                            this.errors.push(`${file.name}: the upload could not be completed.`);
+                        }
+                    }
+
+                    this.uploading = false;
+                    this.progressLabel = '';
+                    if (added > 0) {
+                        window.location.reload();
+                    }
                 },
             };
         };

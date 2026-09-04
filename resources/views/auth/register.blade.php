@@ -67,7 +67,17 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <x-policy-acceptances :policies="$requiredPolicies" class="mt-5" />
+        <div class="mt-5">
+            <label class="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                <input type="checkbox" name="agree_to_policies" value="1" required @checked(old('agree_to_policies'))
+                       class="mt-0.5 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                <span>
+                    I confirm I am at least 18 years old and I agree to the
+                    @foreach ($requiredPolicies as $policy)<a href="{{ $policy->publicRoute() }}" target="_blank" rel="noopener" class="font-semibold text-indigo-600 underline hover:text-indigo-500">{{ $policy->title }}</a>{{ ! $loop->last ? ($loop->remaining === 1 ? ' and ' : ', ') : '.' }}@endforeach
+                </span>
+            </label>
+            <x-input-error :messages="$errors->get('agree_to_policies')" class="mt-2" />
+        </div>
 
         <div class="flex items-center justify-end mt-4">
             <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">

@@ -48,12 +48,10 @@ class ProviderProfileController extends Controller
             'canManageMedia' => $this->access->canManage(request()->user(), $profile),
             'photoLimit' => $this->imageLimit->for($profile),
             'videoLimit' => $this->videoLimit->for($profile),
-            'mediaPolicies' => $this->policies->outstanding('media_submission', request()->user(), $profile),
             'canEdit' => in_array($profile->status, [ProfileStatus::Draft, ProfileStatus::Active], true),
             'canRenew' => in_array($profile->status, [ProfileStatus::Expired, ProfileStatus::Deactivated], true)
                 && ! $moderationRestricted
                 && ! $profile->packageRequests()->where('status', PackageRequestStatus::Pending)->exists(),
-            'renewalPolicies' => $this->policies->outstanding('renewal_request', request()->user(), $profile),
             'moderationRestricted' => $moderationRestricted,
             'canAppeal' => $moderationRestricted
                 && ! $profile->moderationAppeals()->where('status', 'pending')->exists(),
@@ -143,14 +141,9 @@ class ProviderProfileController extends Controller
 
     public function requestRenewal(RequestProfileRenewalRequest $request, Profile $profile): RedirectResponse
     {
-        $accepted = $this->policies->acceptedSelection(
-            'renewal_request',
-            $request->validated('policy_acceptances', []),
-            $request->user(),
-            $profile,
-        );
+        $this->policies->acknowledge('renewal_request', $request->user(), $request, $profile);
 
-        DB::transaction(function () use ($request, $profile, $accepted): void {
+        DB::transaction(function () use ($request, $profile): void {
             $profile = Profile::query()->lockForUpdate()->findOrFail($profile->id);
             abort_unless($this->access->owns($request->user(), $profile), 403);
             abort_unless(
@@ -176,7 +169,6 @@ class ProviderProfileController extends Controller
                 'onboarding_status' => OnboardingStatus::Submitted,
                 'last_onboarding_activity_at' => now(),
             ]);
-            $this->policies->record($request->user(), 'renewal_request', $accepted, $request, $profile);
 
             AuditLog::query()->create([
                 'actor_user_id' => $request->user()->id,

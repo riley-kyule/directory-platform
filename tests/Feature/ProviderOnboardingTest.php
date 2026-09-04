@@ -12,7 +12,6 @@ use App\Models\PolicyVersion;
 use App\Models\Profile;
 use App\Models\TaxonomyOption;
 use App\Models\User;
-use App\Services\PolicyAcceptanceService;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -102,17 +101,17 @@ class ProviderOnboardingTest extends TestCase
         $this->processedImage($profile);
 
         $this->actingAs($provider)
-            ->post(route('onboarding.profiles.submit', $profile), [
-                'policy_acceptances' => $this->outstandingPolicyIds('profile_submission', $provider, $profile),
-            ])
+            ->post(route('onboarding.profiles.submit', $profile))
             ->assertRedirect(route('onboarding.index'));
 
         $this->assertSame(ProfileStatus::PendingReview, $profile->refresh()->status);
         $this->assertSame(OnboardingStatus::Submitted, $provider->refresh()->onboarding_status);
     }
 
-    public function test_profile_submission_records_required_provider_policy_acceptance(): void
+    public function test_profile_submission_passively_records_a_reissued_provider_policy(): void
     {
+        // No mid-flow checkbox: submitting acknowledges any policy that changed
+        // since the provider signed up, and never blocks on it.
         $provider = $this->provider(ProviderType::Independent);
         $this->actingAs($provider)->post(route('onboarding.profiles.store'), $this->validProfileData());
         $profile = Profile::query()->firstOrFail();
@@ -130,16 +129,10 @@ class ProviderOnboardingTest extends TestCase
 
         $this->actingAs($provider)
             ->post(route('onboarding.profiles.submit', $profile))
-            ->assertSessionHasErrors('policy_acceptances');
-        $this->assertSame(ProfileStatus::Draft, $profile->refresh()->status);
-
-        $this->actingAs($provider)
-            ->post(route('onboarding.profiles.submit', $profile), [
-                'policy_acceptances' => [$policy->id],
-            ])
             ->assertRedirect(route('onboarding.index'))
             ->assertSessionHasNoErrors();
 
+        $this->assertSame(ProfileStatus::PendingReview, $profile->refresh()->status);
         $this->assertDatabaseHas('policy_acceptances', [
             'policy_version_id' => $policy->id,
             'user_id' => $provider->id,
@@ -235,15 +228,6 @@ class ProviderOnboardingTest extends TestCase
         ]))->assertRedirect(route('onboarding.index'))->assertSessionHasNoErrors();
 
         $this->assertSame($micro->id, Profile::query()->firstOrFail()->micro_location_id);
-    }
-
-    /** @return array<int, int> */
-    private function outstandingPolicyIds(string $action, User $user, ?Profile $profile = null): array
-    {
-        return app(PolicyAcceptanceService::class)
-            ->outstanding($action, $user, $profile)
-            ->pluck('id')
-            ->all();
     }
 
     private function provider(ProviderType $type): User

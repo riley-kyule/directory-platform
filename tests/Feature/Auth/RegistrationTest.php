@@ -27,6 +27,7 @@ class RegistrationTest extends TestCase
             'account_type' => 'member',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'agree_to_policies' => '1',
         ]);
 
         $this->assertAuthenticated();
