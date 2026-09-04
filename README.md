@@ -185,7 +185,7 @@ Google Staff SSO requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the ca
 
 Session cookies default to `secure` automatically whenever `APP_URL` starts with `https://`, so a forgotten `SESSION_SECURE_COOKIE` can't silently ship insecure cookies on a real domain — set it explicitly only if you need to override that inference.
 
-The app trusts all proxies (`at: '*'`) for `X-Forwarded-*` headers so it resolves the visitor's real IP/scheme correctly behind Cloudflare or any other TLS-terminating proxy, and `APP_URL=https://…` forces the URL generator to always emit `https://` links regardless of what scheme the proxy reports internally. Trusting all proxies for header parsing is not the same as an access-control allowlist — for defense in depth, also restrict origin traffic to Cloudflare's IP ranges at the host firewall level, or enable Cloudflare's "Authenticated Origin Pulls," if your hosting plan allows it.
+Set `TRUSTED_PROXIES` to the comma-separated IP addresses or CIDR ranges of the deployment's actual reverse proxies. Forwarded headers are ignored by default; the application no longer trusts every source. `APP_URL=https://…` forces generated links to HTTPS, while `CANONICAL_HOST` redirects safe requests from alternate hosts and rejects non-idempotent requests sent to the wrong host. Also restrict origin traffic at the host firewall or enable the CDN's authenticated-origin feature where available.
 
 If you discover a security issue, report it privately to the project maintainer rather than opening a public issue.
 

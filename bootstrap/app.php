@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CachePublicPage;
+use App\Http\Middleware\EnforceCanonicalHost;
 use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureAgeConfirmed;
 use App\Http\Middleware\EnsurePrivilegedMfa;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             SecurityHeaders::class,
+            EnforceCanonicalHost::class,
             EnsureActiveAccount::class,
             TrackUserActivity::class,
             EnsurePrivilegedMfa::class,
@@ -37,20 +39,22 @@ return Application::configure(basePath: dirname(__DIR__))
         // pages to use sendBeacon without embedding a guest-specific CSRF token
         // in the shared page cache.
         $middleware->validateCsrfTokens(except: ['conversion/contact', 'conversion/profile-view']);
-        // Behind Cloudflare (or any TLS-terminating proxy) the app only ever
-        // sees the proxy's own IP, so it must trust forwarded headers to know
-        // the visitor's real IP/scheme. '*' trusts whichever host actually
-        // connects to PHP-FPM — safe here because shared cPanel hosting
-        // doesn't offer a way to firewall origin traffic to Cloudflare's IP
-        // ranges from inside the app; do that at the host/DNS level too via
-        // Cloudflare's "Authenticated Origin Pulls" if your plan supports it.
-        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR
-            | Request::HEADER_X_FORWARDED_HOST
-            | Request::HEADER_X_FORWARDED_PORT
-            | Request::HEADER_X_FORWARDED_PROTO);
+        // Trust forwarded headers only from explicitly configured proxy IPs or
+        // CIDRs. Trusting every sender allows direct-origin clients to spoof the
+        // IP used by throttles and audit logs.
+        $trustedProxies = array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TRUSTED_PROXIES', '')),
+        )));
+        if ($trustedProxies !== []) {
+            $middleware->trustProxies(at: $trustedProxies, headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO);
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->expectsJson() || $request->is('api/*'),
         );
     })->create();

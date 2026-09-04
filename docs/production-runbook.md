@@ -11,6 +11,7 @@ This is the operating procedure for each deployed directory instance. Replace ev
 - A real support email, published policy versions, and Google staff SSO credentials when SSO enforcement is enabled.
 - Scheduler and queue-worker cron entries installed by `deploy/install-cron.sh`.
 - Private, preferably encrypted off-host database and media backup storage.
+- `TRUSTED_PROXIES` limited to the real proxy/CDN ranges and `CANONICAL_HOST` matching the public hostname.
 - Google Search Console ownership token configured under Admin → Settings and `/sitemap.xml` submitted after verification.
 
 Run the authoritative gate from the active release:
