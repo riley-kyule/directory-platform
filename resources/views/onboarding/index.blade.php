@@ -3,6 +3,11 @@
         <h2 class="text-xl font-semibold leading-tight text-gray-800">{{ __('Provider onboarding') }}</h2>
     </x-slot>
 
+    @php
+        // Mirrors the submit gate in ProviderOnboardingController::submitProfile.
+        $mediaReady = fn ($profile) => $profile->images->whereIn('status', ['pending_review', 'reviewed', 'approved'])->isNotEmpty();
+        $mediaProcessing = fn ($profile) => $profile->images->whereIn('status', ['quarantined', 'processing'])->isNotEmpty();
+    @endphp
     <div class="py-12">
         <div class="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
             @if (session('status'))
@@ -26,10 +31,19 @@
                             <a href="{{ route('profiles.media.index', $user->profile) }}" class="inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500">{{ in_array($user->profile->status, [\App\Enums\ProfileStatus::Draft, \App\Enums\ProfileStatus::Active], true) ? 'Manage media' : 'View media' }}</a>
                         </div>
                         @if ($user->profile->status === \App\Enums\ProfileStatus::Draft)
+                            @if (! $mediaReady($user->profile))
+                                <p class="mt-5 rounded-md bg-amber-50 p-3 text-sm text-amber-800" role="status">
+                                    @if ($mediaProcessing($user->profile))
+                                        Your photos are still processing. This usually takes under a minute — refresh this page, then submit.
+                                    @else
+                                        Add at least one photo on the media screen before submitting.
+                                    @endif
+                                </p>
+                            @endif
                             <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}" class="mt-5">
                                 @csrf
                                 <x-policy-acceptances :policies="$submissionPolicies->get($user->profile->id, collect())" class="mb-4" />
-                                <x-primary-button>Submit for review</x-primary-button>
+                                <x-primary-button @disabled(! $mediaReady($user->profile)) class="disabled:opacity-50">Submit for review</x-primary-button>
                             </form>
                         @endif
                     @else
@@ -76,10 +90,13 @@
                                         <a href="{{ route('provider.profiles.show', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">View profile</a>
                                         <a href="{{ route('profiles.media.index', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">{{ in_array($profile->status, [\App\Enums\ProfileStatus::Draft, \App\Enums\ProfileStatus::Active], true) ? 'Manage media' : 'View media' }}</a>
                                         @if ($profile->status === \App\Enums\ProfileStatus::Draft)
+                                            @if (! $mediaReady($profile))
+                                                <p class="mt-2 text-xs text-amber-700">{{ $mediaProcessing($profile) ? 'Photos still processing — refresh, then submit.' : 'Add a photo before submitting.' }}</p>
+                                            @endif
                                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="mt-2">
                                                 @csrf
                                                 <x-policy-acceptances :policies="$submissionPolicies->get($profile->id, collect())" class="my-3 text-left" />
-                                                <button class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Submit for review</button>
+                                                <button @disabled(! $mediaReady($profile)) class="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50">Submit for review</button>
                                             </form>
                                         @endif
                                     </div>

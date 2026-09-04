@@ -34,7 +34,10 @@ class ProviderOnboardingController extends Controller
         $user = request()->user();
         abort_unless($user->account_type === AccountType::Provider, 403);
 
-        $user->load(['profile.packageRequests.requestedPackage', 'agency.profiles.packageRequests.requestedPackage']);
+        $user->load([
+            'profile.packageRequests.requestedPackage', 'profile.images',
+            'agency.profiles.packageRequests.requestedPackage', 'agency.profiles.images',
+        ]);
         $profiles = collect([$user->profile])
             ->merge($user->agency?->profiles ?? [])
             ->filter();
