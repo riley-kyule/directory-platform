@@ -47,7 +47,11 @@ class RestoreDrill extends Command
             return self::FAILURE;
         }
 
-        $backup = BackupRecord::query()->whereNotNull('verified_at')->latest('completed_at')->first();
+        $backup = BackupRecord::query()
+            ->where('backup_type', 'database')
+            ->whereNotNull('verified_at')
+            ->latest('completed_at')
+            ->first();
         if (! $backup) {
             $this->error('No verified backup is available to restore.');
 

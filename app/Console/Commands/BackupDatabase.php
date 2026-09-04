@@ -38,6 +38,7 @@ class BackupDatabase extends Command
             }
 
             $record = BackupRecord::query()->create([
+                'backup_type' => 'database',
                 'disk' => $diskName,
                 'path' => $path,
                 'size_bytes' => $size,

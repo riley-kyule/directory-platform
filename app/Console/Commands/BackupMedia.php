@@ -36,6 +36,7 @@ class BackupMedia extends Command
             }
 
             $record = BackupRecord::query()->create([
+                'backup_type' => 'media',
                 'disk' => $diskName,
                 'path' => $path,
                 'size_bytes' => $size,
@@ -76,6 +77,7 @@ class BackupMedia extends Command
     {
         $profileMediaRoot = public_path('media');
         $publicDiskRoot = storage_path('app/public');
+        $reviewMediaRoot = storage_path('app/media-review');
 
         // Deliberately no "--" separator: it only terminates option parsing
         // once, so a second occurrence between repeated -C pairs gets read
@@ -88,6 +90,9 @@ class BackupMedia extends Command
         }
         if (is_dir($publicDiskRoot) && (new FilesystemIterator($publicDiskRoot))->valid()) {
             $command = [...$command, '-C', dirname($publicDiskRoot), basename($publicDiskRoot)];
+        }
+        if (is_dir($reviewMediaRoot) && (new FilesystemIterator($reviewMediaRoot))->valid()) {
+            $command = [...$command, '-C', dirname($reviewMediaRoot), basename($reviewMediaRoot)];
         }
         throw_if(count($command) === 3, RuntimeException::class, 'No public media directories were found to back up.');
 

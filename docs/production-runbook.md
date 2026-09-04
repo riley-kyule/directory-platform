@@ -5,6 +5,7 @@ This is the operating procedure for each deployed directory instance. Replace ev
 ## 1. Required production state
 
 - PHP 8.3 or newer for both the web handler and CLI commands.
+- Executable `ffmpeg` and `ffprobe` binaries for fail-closed video inspection and transcoding.
 - `APP_ENV=production`, `APP_DEBUG=false`, and an HTTPS `APP_URL` matching the canonical domain.
 - Separate production database, database-backed or Redis cache/session storage, and an asynchronous queue.
 - A delivery mailer; `log` and `array` are not production mailers.

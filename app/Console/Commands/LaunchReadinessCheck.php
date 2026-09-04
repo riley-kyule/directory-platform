@@ -37,8 +37,8 @@ class LaunchReadinessCheck extends Command
         $failed = $this->runChecks([
             ['Scheduler heartbeat is fresh', SystemHeartbeat::query()->where('name', 'scheduler')->where('last_seen_at', '>=', now()->subMinutes(config('operations.scheduler_stale_minutes')))->exists()],
             ['Queue worker heartbeat is fresh', SystemHeartbeat::query()->where('name', 'queue_worker')->where('last_seen_at', '>=', now()->subMinutes(config('operations.queue_worker_stale_minutes')))->exists()],
-            ['Database backup is fresh and verified', BackupRecord::query()->whereNotNull('verified_at')->where('path', 'like', '%/database-%')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
-            ['Media backup is fresh and verified', BackupRecord::query()->whereNotNull('verified_at')->where('path', 'like', '%/media-%')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
+            ['Database backup is fresh and verified', BackupRecord::query()->where('backup_type', 'database')->whereNotNull('verified_at')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
+            ['Media backup is fresh and verified', BackupRecord::query()->where('backup_type', 'media')->whereNotNull('verified_at')->where('completed_at', '>=', now()->subHours(config('operations.backup_stale_hours')))->exists()],
         ], allowFailureWithWarning: $coldStart) || $failed;
 
         if ($production) {
@@ -51,6 +51,9 @@ class LaunchReadinessCheck extends Command
                 ['Session storage is shared/persistent', in_array(config('session.driver'), ['database', 'redis'], true)],
                 ['Cache storage is shared/persistent', in_array(config('cache.default'), ['database', 'redis', 'memcached', 'dynamodb'], true)],
                 ['Notification mailer delivers externally', ! in_array(config('mail.default'), ['log', 'array'], true)],
+                ['Video inspection is configured', $this->executableSetting($settings->string('media.ffprobe_path'))],
+                ['Video transcoding is configured', $this->executableSetting($settings->string('media.ffmpeg_path'))],
+                ['Backups use non-local storage', ! in_array(config('operations.backup_disk'), ['local', 'public'], true)],
             ];
             if (config('security.require_google_admin_sso')) {
                 $checks[] = ['Google Staff SSO is configured', filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect'))];
@@ -117,5 +120,10 @@ class LaunchReadinessCheck extends Command
 
         return $heartbeat?->last_seen_at?->gte(now()->subDays(config('operations.restore_drill_stale_days')))
             && (int) ($heartbeat->metadata['pending_migrations'] ?? 0) === 0;
+    }
+
+    private function executableSetting(string $path): bool
+    {
+        return $path !== '' && is_file($path) && is_executable($path);
     }
 }
