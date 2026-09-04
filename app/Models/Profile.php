@@ -48,7 +48,7 @@ class Profile extends Model
      * make the sitemap lastmod claim the page changed when it didn't.
      */
     private const CONTENT_FIELDS = [
-        'display_name', 'slug', 'headline', 'description',
+        'display_name', 'slug', 'description',
         'primary_location_id', 'sublocation_id', 'micro_location_id',
         'allows_incall', 'allows_outcall', 'date_of_birth',
         'gender_option_id', 'ethnicity_option_id', 'build_option_id', 'bust_size_option_id',

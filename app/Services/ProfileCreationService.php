@@ -52,22 +52,6 @@ class ProfileCreationService
                 ]);
             }
 
-            DB::table('profile_details')->insert([
-                'profile_id' => $profile->id,
-                'hair_color_option_id' => $validated['hair_color_option_id'] ?? null,
-                'hair_length_option_id' => $validated['hair_length_option_id'] ?? null,
-                'height_cm' => $validated['height_cm'] ?? null,
-                'weight_kg' => $validated['weight_kg'] ?? null,
-                'smoker' => $validated['smoker'] ?? null,
-                'sexual_orientation_option_id' => $validated['sexual_orientation_option_id'] ?? null,
-                'website_url' => $validated['website_url'] ?? null,
-                'instagram_handle' => $validated['instagram_handle'] ?? null,
-                'snapchat_handle' => $validated['snapchat_handle'] ?? null,
-                'tiktok_handle' => $validated['tiktok_handle'] ?? null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
             $profile->contacts()->createMany($this->contacts($validated));
             $profile->services()->sync($validated['service_ids']);
             $profile->languages()->sync($validated['language_ids'] ?? []);

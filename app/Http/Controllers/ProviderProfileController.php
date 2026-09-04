@@ -106,17 +106,6 @@ class ProviderProfileController extends Controller
                     $this->pageCache->forgetLocationId($locationId);
                 });
 
-            $detailFields = [
-                'hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg',
-                'smoker', 'sexual_orientation_option_id', 'website_url', 'instagram_handle',
-                'snapchat_handle', 'tiktok_handle',
-            ];
-            $profile->details()->updateOrCreate(
-                ['profile_id' => $profile->id],
-                collect($validated)->only($detailFields)->all(),
-            );
-            $changedFields = array_values(array_unique([...$changedFields, ...$detailFields]));
-
             $profile->contacts()->delete();
             $profile->contacts()->createMany($this->contacts($validated));
             $profile->services()->sync($validated['service_ids']);
@@ -241,11 +230,6 @@ class ProviderProfileController extends Controller
                 'rate_currency' => $rate?->currency_code,
                 'rate_period_option_id' => $rate?->rate_period_option_id,
                 'rate_price' => $rate?->price,
-                ...($profile->details?->only([
-                    'hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg',
-                    'smoker', 'sexual_orientation_option_id', 'website_url', 'instagram_handle',
-                    'snapchat_handle', 'tiktok_handle',
-                ]) ?? []),
             ],
             'locations' => Location::query()->whereNull('parent_id')->where('status', 'published')->orderBy('name')->get(),
             'sublocations' => Location::query()

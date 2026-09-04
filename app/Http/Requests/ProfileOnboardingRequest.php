@@ -40,7 +40,6 @@ class ProfileOnboardingRequest extends FormRequest
             'allows_outcall' => $this->boolean('allows_outcall'),
             'whatsapp_enabled' => $this->boolean('whatsapp_enabled'),
             'telegram_phone_enabled' => $this->boolean('telegram_phone_enabled'),
-            'smoker' => $this->filled('smoker') ? $this->boolean('smoker') : null,
         ]);
     }
 
@@ -53,10 +52,6 @@ class ProfileOnboardingRequest extends FormRequest
             'whatsapp_enabled' => ['boolean'],
             'telegram_phone_enabled' => ['boolean'],
             'telegram_username' => ['nullable', 'string', 'max:64', 'regex:/^@?[A-Za-z0-9_]{5,32}$/'],
-            'website_url' => ['nullable', 'url:http,https', 'max:255'],
-            'instagram_handle' => ['nullable', 'string', 'max:64', 'regex:/^@?[A-Za-z0-9._]{1,30}$/'],
-            'snapchat_handle' => ['nullable', 'string', 'max:64'],
-            'tiktok_handle' => ['nullable', 'string', 'max:64', 'regex:/^@?[A-Za-z0-9._]{1,30}$/'],
             'primary_location_id' => ['required', Rule::exists('locations', 'id')->where('status', 'published')],
             'sublocation_id' => ['required', Rule::exists('locations', 'id')->where('status', 'published')],
             'micro_location_id' => ['nullable', Rule::exists('locations', 'id')->where('status', 'published')],
@@ -67,12 +62,6 @@ class ProfileOnboardingRequest extends FormRequest
             'bust_size_option_id' => ['nullable', $this->taxonomyRule('bust_size')],
             'allows_incall' => ['boolean'],
             'allows_outcall' => ['boolean'],
-            'hair_color_option_id' => ['nullable', $this->taxonomyRule('hair_color')],
-            'hair_length_option_id' => ['nullable', $this->taxonomyRule('hair_length')],
-            'height_cm' => ['nullable', 'integer', 'between:100,250'],
-            'weight_kg' => ['nullable', 'numeric', 'between:30,300'],
-            'smoker' => ['nullable', 'boolean'],
-            'sexual_orientation_option_id' => ['nullable', $this->taxonomyRule('sexual_orientation')],
             'language_ids' => ['nullable', 'array'],
             'language_ids.*' => [$this->taxonomyRule('language')],
             'service_ids' => ['required', 'array', 'min:1'],

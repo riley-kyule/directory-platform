@@ -3,7 +3,7 @@
     $value = fn (string $field, mixed $default = null) => old($field, ($form ?? [])[$field] ?? $default);
 @endphp
 <div x-data="{
-        additionalOpen: {{ $errors->hasAny(['hair_color_option_id', 'hair_length_option_id', 'height_cm', 'weight_kg', 'smoker', 'language_ids', 'website_url', 'instagram_handle', 'snapchat_handle', 'tiktok_handle']) ? 'true' : 'false' }},
+        additionalOpen: {{ $errors->hasAny(['language_ids']) ? 'true' : 'false' }},
         telegramPhoneEnabled: {{ $value('telegram_phone_enabled') ? 'true' : 'false' }},
         primaryLocationId: '{{ (string) ($value('primary_location_id') ?? '') }}',
         sublocationId: '{{ (string) ($value('sublocation_id') ?? '') }}',
@@ -57,16 +57,7 @@
     <section class="bg-white p-6 shadow-sm sm:rounded-lg">
         <button type="button" @click="additionalOpen = ! additionalOpen" :aria-expanded="additionalOpen" class="flex w-full items-center justify-between text-left text-lg font-semibold text-gray-900"><span>Additional information</span><span aria-hidden="true" x-text="additionalOpen ? '−' : '+'"></span></button>
         <div x-show="additionalOpen" x-cloak class="mt-6 grid gap-5 md:grid-cols-2">
-            @foreach ([['hair_color_option_id', 'hair_color', 'Hair color'], ['hair_length_option_id', 'hair_length', 'Hair length'], ['sexual_orientation_option_id', 'sexual_orientation', 'Sexual orientation']] as [$field, $type, $label])
-                <div><x-input-label :for="$field" :value="$label" /><select id="{{ $field }}" name="{{ $field }}" class="mt-1 block w-full rounded-md border-gray-300"><option value="">Not specified</option>@foreach ($taxonomies[$type] ?? [] as $option)<option value="{{ $option->id }}" @selected($value($field) == $option->id)>{{ $option->label }}</option>@endforeach</select><x-input-error :messages="$errors->get($field)" class="mt-2" /></div>
-            @endforeach
-            <div><x-input-label for="height_cm" value="Height (cm)" /><x-text-input id="height_cm" name="height_cm" type="number" min="100" max="250" class="mt-1 block w-full" :value="$value('height_cm')" /></div>
-            <div><x-input-label for="weight_kg" value="Weight (kg)" /><x-text-input id="weight_kg" name="weight_kg" type="number" min="30" max="300" step="0.1" class="mt-1 block w-full" :value="$value('weight_kg')" /></div>
-            <div><x-input-label for="smoker" value="Smoker" /><select id="smoker" name="smoker" class="mt-1 block w-full rounded-md border-gray-300"><option value="">Not specified</option><option value="1" @selected((string) $value('smoker') === '1')>Yes</option><option value="0" @selected((string) $value('smoker') === '0')>No</option></select></div>
             <fieldset class="md:col-span-2"><legend class="text-sm font-medium text-gray-700">Languages spoken</legend><div class="mt-2 flex flex-wrap gap-4">@foreach ($taxonomies['language'] ?? [] as $option)<label><input type="checkbox" name="language_ids[]" value="{{ $option->id }}" @checked(in_array($option->id, $value('language_ids', [])))> {{ $option->label }}</label>@endforeach</div></fieldset>
-            @foreach ([['website_url', 'Website', 'url'], ['instagram_handle', 'Instagram', 'text'], ['snapchat_handle', 'Snapchat', 'text'], ['tiktok_handle', 'TikTok', 'text']] as [$field, $label, $type])
-                <div><x-input-label :for="$field" :value="$label" /><x-text-input :id="$field" :name="$field" :type="$type" class="mt-1 block w-full" :value="$value($field)" /><x-input-error :messages="$errors->get($field)" class="mt-2" /></div>
-            @endforeach
         </div>
     </section>
 
