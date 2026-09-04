@@ -51,8 +51,9 @@
         {!! $structuredData ?? '' !!}
     </head>
     <body class="min-h-screen bg-stone-50 font-sans text-stone-900 antialiased">
+        @php $ageGateRequired = request()->attributes->get('age_gate_required', false); @endphp
         <a href="#main-content" class="fixed left-4 top-4 z-[60] -translate-y-24 rounded-lg bg-white px-4 py-3 font-bold text-stone-950 shadow-xl transition focus:translate-y-0">Skip to main content</a>
-        <header x-data="{
+        <header @if($ageGateRequired) inert aria-hidden="true" @endif x-data="{
             mobileOpen: false,
             toggleMenu() {
                 this.mobileOpen ? this.closeMenu() : (this.mobileOpen = true, this.$nextTick(() => this.$refs.mobileMenuFirst.focus()));
@@ -106,9 +107,9 @@
             </nav>
         </header>
 
-        <main id="main-content" tabindex="-1">{{ $slot }}</main>
+        <main id="main-content" tabindex="-1"@if($ageGateRequired) inert aria-hidden="true"@endif>{{ $slot }}</main>
 
-        <footer class="border-t border-stone-200 bg-white pb-20 md:pb-0">
+        <footer @if($ageGateRequired) inert aria-hidden="true" @endif class="border-t border-stone-200 bg-white pb-20 md:pb-0">
             <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-10 text-sm text-stone-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
                 <p>&copy; {{ now()->year }} {{ config('app.name') }}. Adults only.</p>
                 <div class="flex flex-wrap gap-5">
@@ -121,5 +122,18 @@
                 </div>
             </div>
         </footer>
+        @if ($ageGateRequired)
+            <div class="fixed inset-0 z-[100] grid min-h-screen place-items-center overflow-y-auto bg-stone-950/95 p-4" role="dialog" aria-modal="true" aria-labelledby="age-gate-title" aria-describedby="age-gate-description">
+                <div class="w-full max-w-lg rounded-2xl bg-white p-6 text-center shadow-2xl sm:p-8">
+                    <h1 id="age-gate-title" class="text-3xl font-black text-stone-950">Adults only</h1>
+                    <p id="age-gate-description" class="mt-3 leading-7 text-stone-700">You must be at least 18 years old, or the age of majority where you live, to enter this directory.</p>
+                    <form method="POST" action="{{ route('age-gate.confirm') }}" class="mt-6">@csrf
+                        <input type="hidden" name="redirect" value="{{ request()->fullUrl() }}">
+                        <button autofocus class="min-h-12 w-full rounded-xl bg-rose-700 px-6 py-3 font-bold text-white hover:bg-rose-800">I am 18 or older</button>
+                    </form>
+                    <p class="mt-4 text-xs text-stone-600">By continuing, you agree to follow the laws that apply where you live.</p>
+                </div>
+            </div>
+        @endif
     </body>
 </html>

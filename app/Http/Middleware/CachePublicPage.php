@@ -26,7 +26,7 @@ class CachePublicPage
         // visitor create an unbounded number of otherwise identical entries.
         // Real campaign parameters may still render normally; they simply do
         // not consume shared cache storage.
-        if (! $request->isMethod('GET') || $request->user() || $request->query->count() > 0) {
+        if (! $request->isMethod('GET') || $request->user() || $request->query->count() > 0 || $request->attributes->get('age_gate_required')) {
             return $next($request);
         }
 

@@ -195,7 +195,7 @@ The website title and support email shown in the header, page titles, structured
 
 A generic starting policy is seeded and published for each type by default (`DirectoryDefaultsSeeder` / `database/seeders/PolicyTemplates.php`), so a fresh install has working, non-empty legal pages immediately. **This is a reasonable starting draft, not a substitute for review by qualified legal counsel** — particularly for an adult-services directory, where age-verification, advertising, and anti-trafficking law vary by jurisdiction. Review and republish each policy from Admin → Policies before relying on it for a real launch.
 
-An optional 18+ consent gate can be turned on from Admin → Settings. When enabled, first-time visitors see an interstitial before any listing content; confirmation is remembered for a year via cookie. Known search-engine crawlers (by user agent) always bypass the gate so it never affects indexing, and policy pages, sitemaps, and `robots.txt` are never gated in the first place.
+An optional 18+ consent gate can be turned on from Admin → Settings. When enabled, first-time visitors see an accessible blocking dialog over the canonical page, and confirmation is remembered for a year via cookie. The canonical content and metadata remain in the response, gated responses never enter the shared page cache, known crawlers bypass the dialog, and policy pages, sitemaps, and `robots.txt` are never gated.
 
 ## Status
 

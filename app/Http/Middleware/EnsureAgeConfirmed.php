@@ -42,8 +42,11 @@ class EnsureAgeConfirmed
             return $next($request);
         }
 
-        return response()->view('age-gate.show', [
-            'intendedUrl' => $request->fullUrl(),
-        ]);
+        // Keep the canonical page and its metadata in the response. The public
+        // layout renders an accessible blocking consent dialog for humans. This
+        // avoids replacing canonical URLs with a thin 200/noindex interstitial.
+        $request->attributes->set('age_gate_required', true);
+
+        return $next($request);
     }
 }
