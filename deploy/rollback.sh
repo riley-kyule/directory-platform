@@ -15,10 +15,14 @@
 # domain doesn't use the defaults (e.g. multiple domains under one account).
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib-php.sh"
+
 APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 RELEASES_DIR="$APP_ROOT/releases"
 DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"
 MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
+resolve_php_bin || true
 PHP_BIN="${PHP_BIN:-php}"
 
 if [ ! -L "$APP_ROOT/current" ]; then

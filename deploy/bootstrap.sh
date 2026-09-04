@@ -42,10 +42,18 @@
 # be the same path.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib-php.sh"
+
 APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 SHARED_DIR="$APP_ROOT/shared"
 DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"
 MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
+
+# Auto-detect a PHP 8.3+ CLI so the cron entries below are installed with the
+# right binary (a bare `php` on shared hosting is usually too old). Non-fatal
+# here — bootstrap still finishes and prints guidance if none is found.
+resolve_php_bin || true
 
 if [ "$MANAGE_DOCROOT" = "1" ] && [ "$DOCROOT" = "$APP_ROOT" ]; then
     echo "error: DEPLOY_DOCROOT and DEPLOY_APP_ROOT are both '$APP_ROOT'." >&2
@@ -66,9 +74,13 @@ mkdir -p "$SHARED_DIR/public/branding"
 if [ -f "$SHARED_DIR/.env" ]; then
     echo "==> $SHARED_DIR/.env already exists, leaving it alone"
 else
-    echo "==> No shared .env found yet."
-    echo "    Copy your production .env to $SHARED_DIR/.env before running deploy.sh —"
-    echo "    it is intentionally not created automatically."
+    cp "$SCRIPT_DIR/production.env.template" "$SHARED_DIR/.env"
+    chmod 600 "$SHARED_DIR/.env"
+    echo "==> Wrote a starter production .env to $SHARED_DIR/.env"
+    echo "    EDIT IT NOW: open that file and fill in every line marked '<<< SET THIS'"
+    echo "    (app name, https URL, database name/user/password, staff sign-in)."
+    echo "    deploy.sh generates APP_KEY for you and will refuse to run while any"
+    echo "    '<<< SET THIS' marker is still in the file."
 fi
 
 if [ "$MANAGE_DOCROOT" != "1" ]; then
@@ -92,11 +104,12 @@ else
     echo "==> $DOCROOT does not exist yet, deploy.sh will create it"
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "==> Installing cron entries (scheduler + queue worker)"
 echo "    These point at $APP_ROOT/current, which doesn't exist until your"
 echo "    first deploy.sh run — cron will just no-op (harmlessly) every"
 echo "    minute until then. Nothing further to do once deploy.sh finishes."
-DEPLOY_APP_ROOT="$APP_ROOT" "$SCRIPT_DIR/install-cron.sh"
+PHP_BIN="${PHP_BIN:-php}" DEPLOY_APP_ROOT="$APP_ROOT" "$SCRIPT_DIR/install-cron.sh"
 
-echo "==> Bootstrap complete. Next: put your production .env at $SHARED_DIR/.env, then run deploy.sh."
+echo "==> Bootstrap complete."
+echo "    1. Edit $SHARED_DIR/.env — fill in every '<<< SET THIS' line."
+echo "    2. Run deploy/deploy.sh with the same DEPLOY_APP_ROOT/DEPLOY_MANAGE_DOCROOT you used here."

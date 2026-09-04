@@ -18,13 +18,15 @@
 # requests for a domain — it does not change what a bare `php`/`composer`
 # resolve to in an SSH shell, which is often a much older system-default PHP
 # (commonly still 7.x/8.1/8.2 even when 8.3+ is selected for the site).
-# Composer/artisan need to run under the same 8.3+ version the app requires.
-# Find your host's PHP 8.3+ CLI binary — commonly one of:
-#   ls /opt/cpanel/ea-php8*/root/usr/bin/php
-#   command -v php83   (or php8.3, ea-php83 — varies by host)
-# then pass it explicitly:
+# Composer/artisan need to run under the same 8.3+ version the app requires,
+# so this script AUTO-DETECTS a PHP 8.3+ CLI binary (checking /opt/cpanel/
+# ea-php8* and php8.3/php83/... on PATH). Only set PHP_BIN yourself if the
+# detection can't find it:
 #   PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php DEPLOY_APP_ROOT=... ./deploy.sh
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib-php.sh"
 
 APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 RELEASES_DIR="$APP_ROOT/releases"
@@ -33,15 +35,22 @@ DOCROOT="${DEPLOY_DOCROOT:-$HOME/public_html}"
 MANAGE_DOCROOT="${DEPLOY_MANAGE_DOCROOT:-1}"
 KEEP_RELEASES="${DEPLOY_KEEP_RELEASES:-5}"
 BRANCH="${DEPLOY_BRANCH:-main}"
-REPO_URL="${DEPLOY_REPO_URL:?Set DEPLOY_REPO_URL to a git remote reachable without a password prompt}"
-PHP_BIN="${PHP_BIN:-php}"
+# Public repo — override only for a fork or a private mirror.
+REPO_URL="${DEPLOY_REPO_URL:-https://github.com/riley-kyule/directory-platform.git}"
+resolve_php_bin
 COMPOSER_PATH="$(command -v "${COMPOSER_BIN:-composer}")"
 RELEASE_NAME="$(date +%Y%m%d%H%M%S)"
 RELEASE_DIR="$RELEASES_DIR/$RELEASE_NAME"
 CPANEL_HANDLER_FILE="$SHARED_DIR/cpanel-php-handler.conf"
 
 if [ ! -f "$SHARED_DIR/.env" ]; then
-    echo "error: $SHARED_DIR/.env is missing. Run bootstrap.sh and put a production .env there first." >&2
+    echo "error: $SHARED_DIR/.env is missing. Run bootstrap.sh first, then edit that file." >&2
+    exit 1
+fi
+if grep -q '<<< SET THIS' "$SHARED_DIR/.env"; then
+    echo "error: $SHARED_DIR/.env still has unfilled placeholders:" >&2
+    grep -n '<<< SET THIS' "$SHARED_DIR/.env" | sed 's/^/       /' >&2
+    echo "       Fill in each of those lines (values from cPanel), then re-run deploy.sh." >&2
     exit 1
 fi
 
@@ -103,6 +112,14 @@ ln -s "$SHARED_DIR/public/branding" "$RELEASE_DIR/public/branding"
 echo "==> Installing PHP dependencies (using $PHP_BIN: $("$PHP_BIN" -v | head -n 1))"
 cd "$RELEASE_DIR"
 "$PHP_BIN" "$COMPOSER_PATH" install --no-dev --optimize-autoloader --no-interaction
+
+# APP_KEY is required for encryption, sessions and signed URLs. Generate one on
+# the first deploy if the operator left it blank in shared/.env — key:generate
+# writes through the .env symlink into shared/, so it persists across releases.
+if ! grep -qE '^APP_KEY=base64:.+' "$SHARED_DIR/.env"; then
+    echo "==> No APP_KEY set in shared/.env — generating one now"
+    "$PHP_BIN" artisan key:generate --force --no-interaction
+fi
 
 if [ -f "$RELEASE_DIR/public/build/manifest.json" ]; then
     echo "==> public/build/ is already committed in this release — skipping npm entirely"

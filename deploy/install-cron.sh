@@ -24,8 +24,12 @@
 #   (PHP_BIN defaults to `php`; DEPLOY_APP_ROOT defaults to ~/directory-platform)
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib-php.sh"
+
 APP_ROOT="${DEPLOY_APP_ROOT:-$HOME/directory-platform}"
 CURRENT="$APP_ROOT/current"
+resolve_php_bin || true
 PHP_BIN="${PHP_BIN:-php}"
 APP_SLUG="$(basename "$APP_ROOT" | tr -c 'A-Za-z0-9._-' '-')"
 MARKER="directory-platform-cron:${APP_SLUG}"
