@@ -6,7 +6,6 @@
     @php
         // Mirrors the submit gate in ProviderOnboardingController::submitProfile.
         $mediaReady = fn ($profile) => $profile->images->whereIn('status', ['pending_review', 'reviewed', 'approved'])->isNotEmpty();
-        $mediaProcessing = fn ($profile) => $profile->images->whereIn('status', ['quarantined', 'processing'])->isNotEmpty();
     @endphp
     <div class="py-12">
         <div class="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
@@ -26,24 +25,23 @@
                             <div><dt class="text-sm text-gray-500">Status</dt><dd class="font-medium capitalize">{{ str($user->profile->status->value)->replace('_', ' ') }}</dd></div>
                             <div><dt class="text-sm text-gray-500">Requested package</dt><dd class="font-medium">{{ $user->profile->packageRequests->last()?->requestedPackage?->name ?? '—' }}</dd></div>
                         </dl>
-                        <div class="mt-5 flex flex-wrap gap-4">
-                            <a href="{{ route('provider.profiles.show', $user->profile) }}" class="inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500">View profile</a>
-                            <a href="{{ route('profiles.media.index', $user->profile) }}" class="inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500">{{ in_array($user->profile->status, [\App\Enums\ProfileStatus::Draft, \App\Enums\ProfileStatus::Active], true) ? 'Manage media' : 'View media' }}</a>
-                        </div>
-                        @if ($user->profile->status === \App\Enums\ProfileStatus::Draft)
-                            @if (! $mediaReady($user->profile))
-                                <p class="mt-5 rounded-md bg-amber-50 p-3 text-sm text-amber-800" role="status">
-                                    @if ($mediaProcessing($user->profile))
-                                        Your photos are still processing. This usually takes under a minute — refresh this page, then submit.
-                                    @else
-                                        Add at least one photo on the media screen before submitting.
-                                    @endif
-                                </p>
+                        <div class="mt-5 flex flex-wrap items-center gap-4">
+                            @if ($user->profile->status === \App\Enums\ProfileStatus::Draft && ! $mediaReady($user->profile))
+                                <a href="{{ route('profiles.media.index', $user->profile) }}" class="inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Add photos</a>
+                                <span class="text-sm text-gray-600">One photo is all it takes to submit.</span>
+                            @elseif ($user->profile->status === \App\Enums\ProfileStatus::Draft)
+                                <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}">
+                                    @csrf
+                                    <x-primary-button class="bg-indigo-600 hover:bg-indigo-500">Submit for review</x-primary-button>
+                                </form>
+                                <a href="{{ route('profiles.media.index', $user->profile) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">Add more photos</a>
+                            @else
+                                <a href="{{ route('provider.profiles.show', $user->profile) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">View profile</a>
+                                <a href="{{ route('profiles.media.index', $user->profile) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">{{ in_array($user->profile->status, [\App\Enums\ProfileStatus::Active], true) ? 'Manage media' : 'View media' }}</a>
                             @endif
-                            <form method="POST" action="{{ route('onboarding.profiles.submit', $user->profile) }}" class="mt-5">
-                                @csrf
-                                <x-primary-button @disabled(! $mediaReady($user->profile)) class="disabled:opacity-50">Submit for review</x-primary-button>
-                            </form>
+                        </div>
+                        @if ($user->profile->status === \App\Enums\ProfileStatus::PendingReview)
+                            <p class="mt-4 rounded-md bg-blue-50 p-3 text-sm text-blue-900">Submitted. Staff review the listing and its verification checks before it goes live — you'll get an email either way.</p>
                         @endif
                     @else
                         <p class="mt-2 text-sm text-gray-600">Complete your listing and choose a package. Staff will review it before publication.</p>
@@ -88,13 +86,12 @@
                                         <span class="text-sm text-gray-600">{{ $profile->packageRequests->last()?->requestedPackage?->name ?? 'No package' }}</span>
                                         <a href="{{ route('provider.profiles.show', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">View profile</a>
                                         <a href="{{ route('profiles.media.index', $profile) }}" class="mt-2 block text-sm font-medium text-indigo-600">{{ in_array($profile->status, [\App\Enums\ProfileStatus::Draft, \App\Enums\ProfileStatus::Active], true) ? 'Manage media' : 'View media' }}</a>
-                                        @if ($profile->status === \App\Enums\ProfileStatus::Draft)
-                                            @if (! $mediaReady($profile))
-                                                <p class="mt-2 text-xs text-amber-700">{{ $mediaProcessing($profile) ? 'Photos still processing — refresh, then submit.' : 'Add a photo before submitting.' }}</p>
-                                            @endif
+                                        @if ($profile->status === \App\Enums\ProfileStatus::Draft && ! $mediaReady($profile))
+                                            <a href="{{ route('profiles.media.index', $profile) }}" class="mt-2 block text-sm font-semibold text-indigo-600">Add a photo to submit</a>
+                                        @elseif ($profile->status === \App\Enums\ProfileStatus::Draft)
                                             <form method="POST" action="{{ route('onboarding.profiles.submit', $profile) }}" class="mt-2">
                                                 @csrf
-                                                <button @disabled(! $mediaReady($profile)) class="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50">Submit for review</button>
+                                                <button class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">Submit for review</button>
                                             </form>
                                         @endif
                                     </div>
