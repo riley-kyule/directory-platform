@@ -28,7 +28,7 @@ class StoreLocationRequest extends FormRequest
 
         return [
             'parent_id' => ['nullable', Rule::exists('locations', 'id')],
-            'country_code' => ['required', 'string', 'size:2', 'alpha:ascii'],
+            'country_code' => ['nullable', 'required_without:parent_id', 'string', 'size:2', 'alpha:ascii'],
             'type' => ['required', Rule::in(['country', 'county', 'city', 'town', 'neighbourhood', 'area', 'landmark'])],
             'name' => ['required', 'string', 'max:160'],
             'status' => ['required', Rule::in(['draft', 'published'])],
@@ -53,8 +53,23 @@ class StoreLocationRequest extends FormRequest
                 $validator->errors()->add('is_indexable', 'A new location needs at least one active profile before indexability can be enabled.');
             }
 
+            $parent = $this->filled('parent_id')
+                ? Location::query()->find($this->integer('parent_id'))
+                : null;
+
+            if ($parent && $this->filled('country_code') && strtoupper((string) $this->input('country_code')) !== strtoupper($parent->country_code)) {
+                $validator->errors()->add('country_code', 'Child locations inherit their parent country code.');
+            }
+
+            if (! $parent && in_array($this->input('type'), ['neighbourhood', 'area', 'landmark'], true)) {
+                $validator->errors()->add('parent_id', 'This location type requires a parent location.');
+            }
+
+            if ($parent && $this->input('type') === 'country') {
+                $validator->errors()->add('type', 'A country must be a top-level location.');
+            }
+
             if (in_array($this->input('type'), ['area', 'landmark'], true)) {
-                $parent = Location::query()->find($this->integer('parent_id'));
                 if (! $parent || ! $parent->parent_id || in_array($parent->type, ['area', 'landmark'], true)) {
                     $validator->errors()->add('parent_id', 'An area or landmark must sit beneath a neighbourhood.');
                 }

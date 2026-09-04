@@ -11,11 +11,10 @@
 
             <section class="bg-white p-6 shadow-sm sm:rounded-lg">
                 <h3 class="text-lg font-semibold">Add taxonomy option</h3>
-                <p class="mt-1 text-sm text-gray-600">These options power the dropdowns providers use when filling out gender, ethnicity, services, and other profile attributes.</p>
+                <p class="mt-1 text-sm text-gray-600">These options power the dropdowns providers use for current profile and search attributes.</p>
                 <form method="POST" action="{{ route('seo.taxonomies.store') }}" class="mt-5 grid gap-4 sm:grid-cols-2">@csrf
-                    <div><x-input-label for="type" value="Type" /><select id="type" name="type" required class="mt-1 block w-full rounded-md border-gray-300">@foreach (['gender', 'ethnicity', 'hair_color', 'hair_length', 'bust_size', 'build', 'sexual_orientation', 'language', 'service', 'rate_period'] as $type)<option value="{{ $type }}" @selected(old('type') === $type)>{{ str($type)->replace('_', ' ')->title() }}</option>@endforeach</select></div>
+                    <div><x-input-label for="type" value="Type" /><select id="type" name="type" required class="mt-1 block w-full rounded-md border-gray-300">@foreach (['gender', 'ethnicity', 'bust_size', 'build', 'language', 'service', 'rate_period'] as $type)<option value="{{ $type }}" @selected(old('type') === $type)>{{ str($type)->replace('_', ' ')->title() }}</option>@endforeach</select></div>
                     <div><x-input-label for="label" value="Label" /><x-text-input id="label" name="label" class="mt-1 block w-full" :value="old('label')" required /><x-input-error :messages="$errors->get('label')" class="mt-2" /></div>
-                    <div><x-input-label for="country_code" value="Country code (optional)" /><x-text-input id="country_code" name="country_code" maxlength="2" class="mt-1 block w-full uppercase" :value="old('country_code')" /><p class="mt-1 text-xs text-gray-500">Leave blank for an option available in every country.</p></div>
                     <div><x-input-label for="sort_order" value="Sort order" /><x-text-input id="sort_order" name="sort_order" type="number" min="0" class="mt-1 block w-full" :value="old('sort_order', 100)" required /><p class="mt-1 text-xs text-gray-500">Lower numbers appear first in dropdowns.</p></div>
                     <label class="flex items-center gap-2"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', true))> Active</label>
                     <label class="flex items-center gap-2"><input type="checkbox" name="requires_bust_size" value="1" @checked(old('requires_bust_size'))> Require bust size for this gender</label>
@@ -26,7 +25,7 @@
             <section class="bg-white p-6 shadow-sm sm:rounded-lg">
                 <h3 class="text-lg font-semibold">Existing options</h3>
                 <p class="mt-1 text-sm text-gray-600">Grouped by type, in the order they appear in dropdowns.</p>
-                <p class="mt-1 text-sm text-gray-600">Type and country are fixed once created. Options in use by at least one profile can't be deleted — deactivate them instead.</p>
+                <p class="mt-1 text-sm text-gray-600">Type is fixed once created. Options in use by at least one profile can't be deleted — deactivate them instead.</p>
                 @php $grouped = $taxonomyOptions->groupBy('type'); @endphp
                 <div class="mt-6 space-y-6">
                     @forelse ($grouped as $type => $options)
@@ -50,7 +49,6 @@
                                             @if ($type === 'gender')
                                                 <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" name="requires_bust_size" value="1" @checked($option->settings['requires_bust_size'] ?? false)> Requires bust size</label>
                                             @endif
-                                            <div class="text-xs text-gray-500">{{ $option->country_code ?: 'All countries' }}</div>
                                             <div><x-primary-button>Save</x-primary-button></div>
                                         </form>
                                         <form method="POST" action="{{ route('seo.taxonomies.delete', $option) }}" onsubmit="return confirm('Delete &quot;{{ $option->label }}&quot;? This cannot be undone.');" class="mt-2">

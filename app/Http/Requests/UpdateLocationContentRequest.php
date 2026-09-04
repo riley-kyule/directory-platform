@@ -27,6 +27,8 @@ class UpdateLocationContentRequest extends FormRequest
     public function rules(): array
     {
         $publishing = $this->input('status') === 'published';
+        $location = $this->route('location');
+        $canonicalPath = $location ? '/'.$location->full_slug.'-escorts' : null;
 
         return [
             'status' => ['required', Rule::in(['draft', 'published'])],
@@ -41,9 +43,9 @@ class UpdateLocationContentRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                'regex:/^\/[a-z0-9\/-]+$/',
+                Rule::in(array_filter([$canonicalPath])),
                 Rule::unique('location_contents', 'canonical_path')
-                    ->ignore($this->route('location')?->id, 'location_id'),
+                    ->ignore($location?->id, 'location_id'),
             ],
             'aliases' => ['array', 'max:20'],
             'aliases.*' => ['string', 'max:160'],

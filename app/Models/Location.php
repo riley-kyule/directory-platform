@@ -80,11 +80,10 @@ class Location extends Model
      */
     public function publicPath(): string
     {
-        $canonicalPath = $this->relationLoaded('content')
-            ? $this->content?->canonical_path
-            : $this->content()->value('canonical_path');
-
-        return $canonicalPath ?? '/'.$this->full_slug.'-escorts';
+        // Public location routes are derived from the hierarchy. Never allow
+        // editable content to point internal links or sitemap entries at an
+        // unrelated/reserved path which the router cannot serve.
+        return '/'.$this->full_slug.'-escorts';
     }
 
     protected function casts(): array

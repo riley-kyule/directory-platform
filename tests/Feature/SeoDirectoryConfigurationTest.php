@@ -219,14 +219,13 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->assertDatabaseCount('locations', 0);
     }
 
-    public function test_seo_user_can_add_country_specific_ethnicity_option(): void
+    public function test_seo_user_can_add_global_ethnicity_option_without_an_unused_country_scope(): void
     {
         $seo = $this->staff('seo');
 
         $this->actingAs($seo)->post(route('seo.taxonomies.store'), [
             'type' => 'ethnicity',
             'label' => 'African',
-            'country_code' => 'ke',
             'sort_order' => 10,
             'is_active' => '1',
         ])->assertRedirect(route('seo.taxonomies.index'))->assertSessionHasNoErrors();
@@ -234,7 +233,7 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->assertDatabaseHas('taxonomy_options', [
             'type' => 'ethnicity',
             'slug' => 'african',
-            'country_code' => 'KE',
+            'country_code' => null,
             'is_active' => true,
         ]);
     }
@@ -426,9 +425,9 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->assertSame('east-african', $option->slug);
         $this->assertSame(5, $option->sort_order);
         $this->assertFalse($option->is_active);
-        // type and country_code are immutable through this endpoint.
+        // Type is immutable and new taxonomy options are global.
         $this->assertSame('ethnicity', $option->type);
-        $this->assertSame('KE', $option->country_code);
+        $this->assertNull($option->country_code);
         $this->assertDatabaseHas('audit_logs', ['action' => 'taxonomies.update', 'target_id' => $option->id]);
     }
 

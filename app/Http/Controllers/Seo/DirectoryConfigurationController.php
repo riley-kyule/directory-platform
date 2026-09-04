@@ -98,16 +98,17 @@ class DirectoryConfigurationController extends Controller
         }
 
         $parent = ! empty($validated['parent_id']) ? Location::query()->findOrFail($validated['parent_id']) : null;
+        $countryCode = $parent?->country_code ?? $validated['country_code'];
         $fullSlug = $parent ? $parent->full_slug.'/'.$slug : $slug;
 
         if (Location::query()->where('full_slug', $fullSlug)->exists()) {
             return back()->withInput()->withErrors(['name' => 'A location with this canonical path already exists.']);
         }
 
-        $location = DB::transaction(function () use ($request, $validated, $slug, $fullSlug, $parent): Location {
+        $location = DB::transaction(function () use ($request, $validated, $slug, $fullSlug, $parent, $countryCode): Location {
             $location = Location::query()->create([
                 'parent_id' => $parent?->id,
-                'country_code' => $validated['country_code'],
+                'country_code' => $countryCode,
                 'type' => $validated['type'],
                 'name' => $validated['name'],
                 'slug' => $slug,
@@ -166,7 +167,7 @@ class DirectoryConfigurationController extends Controller
             'faq_content' => ! empty($validated['faq_content']) ? ['content' => $validated['faq_content']] : null,
             'seo_title' => $validated['seo_title'] ?? '',
             'meta_description' => $validated['meta_description'] ?? '',
-            'canonical_path' => $validated['canonical_path'] ?? $location->content->canonical_path,
+            'canonical_path' => $location->publicPath(),
             'content_status' => $validated['status'] === 'published' ? 'approved' : 'draft',
             'last_reviewed_at' => $validated['status'] === 'published' ? now() : null,
             'reviewed_by' => $validated['status'] === 'published' ? $request->user()->id : null,
@@ -252,7 +253,7 @@ class DirectoryConfigurationController extends Controller
         if (TaxonomyOption::query()->where([
             'type' => $validated['type'],
             'slug' => $slug,
-            'country_code' => $validated['country_code'],
+            'country_code' => null,
         ])->exists()) {
             return back()->withInput()->withErrors(['label' => 'That option already exists for this type and country.']);
         }
@@ -261,7 +262,7 @@ class DirectoryConfigurationController extends Controller
             'type' => $validated['type'],
             'slug' => $slug,
             'label' => $validated['label'],
-            'country_code' => $validated['country_code'],
+            'country_code' => null,
             'sort_order' => $validated['sort_order'],
             'is_active' => $validated['is_active'],
             'settings' => $validated['type'] === 'gender'
