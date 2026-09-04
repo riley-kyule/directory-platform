@@ -41,7 +41,11 @@ class PublicPageCache
 
     /**
      * Move every public URL into a fresh cache namespace. Old entries expire
-     * naturally, while site-wide settings become visible immediately.
+     * naturally. Reserved for changes that can add or remove entries from
+     * rosters we cannot enumerate (deep pagination, /locations, /agencies):
+     * site identity/settings, and a profile or agency visibility transition.
+     * Not for routine content edits — those ride the targeted forgets below
+     * plus the 60s freshness window in remember().
      */
     public function forgetAll(): void
     {
@@ -77,24 +81,17 @@ class PublicPageCache
                 $this->forget(route('directory.agencies.show', $agency->slug));
                 $this->forget(route('directory.agencies.index'));
             });
-
-        // Paginated location and agency URLs are not enumerable from a single
-        // model event. Rotate the namespace so no stale roster survives a
-        // moderation, verification, media, package, or rank change.
-        $this->forgetAll();
     }
 
     public function forgetForLocation(Location $location): void
     {
         $this->forget(url($location->publicPath()));
-        $this->forgetAll();
     }
 
     public function forgetForAgency(Agency $agency): void
     {
         $this->forget(route('directory.agencies.show', $agency->slug));
         $this->forget(route('directory.agencies.index'));
-        $this->forgetAll();
     }
 
     public function forgetLocationId(int $locationId): void

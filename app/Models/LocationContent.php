@@ -17,8 +17,15 @@ class LocationContent extends Model
     protected static function booted(): void
     {
         static::saved(function (LocationContent $content): void {
-            if ($content->location) {
-                app(PublicPageCache::class)->forgetForLocation($content->location);
+            if (! $content->location) {
+                return;
+            }
+            $cache = app(PublicPageCache::class);
+            $cache->forgetForLocation($content->location);
+            // Publishing/unpublishing a location adds or removes it from
+            // /locations and the sidebar tree across every public page.
+            if ($content->wasChanged('content_status')) {
+                $cache->forgetAll();
             }
         });
     }

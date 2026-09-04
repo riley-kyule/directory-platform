@@ -25,8 +25,18 @@ class Agency extends Model
             }
         });
 
-        static::saved(fn (Agency $agency) => app(PublicPageCache::class)->forgetForAgency($agency));
-        static::deleted(fn (Agency $agency) => app(PublicPageCache::class)->forgetForAgency($agency));
+        static::saved(function (Agency $agency): void {
+            $cache = app(PublicPageCache::class);
+            $cache->forgetForAgency($agency);
+            if ($agency->wasChanged('status')) {
+                $cache->forgetAll();
+            }
+        });
+        static::deleted(function (Agency $agency): void {
+            $cache = app(PublicPageCache::class);
+            $cache->forgetForAgency($agency);
+            $cache->forgetAll();
+        });
     }
 
     public function owner(): BelongsTo

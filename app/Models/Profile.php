@@ -66,8 +66,22 @@ class Profile extends Model
             }
         });
 
-        static::saved(fn (Profile $profile) => app(PublicPageCache::class)->forgetForProfile($profile));
-        static::deleted(fn (Profile $profile) => app(PublicPageCache::class)->forgetForProfile($profile));
+        static::saved(function (Profile $profile): void {
+            $cache = app(PublicPageCache::class);
+            $cache->forgetForProfile($profile);
+            // A visibility transition (activation, ban, make-private, expiry,
+            // renewal) adds or removes this profile from rosters we can't
+            // enumerate — deep pagination, /locations, /agencies. That is the
+            // only kind of change worth a full namespace rotation.
+            if ($profile->wasChanged('status') || $profile->wasChanged('expires_at')) {
+                $cache->forgetAll();
+            }
+        });
+        static::deleted(function (Profile $profile): void {
+            $cache = app(PublicPageCache::class);
+            $cache->forgetForProfile($profile);
+            $cache->forgetAll();
+        });
     }
 
     public function owner(): BelongsTo
