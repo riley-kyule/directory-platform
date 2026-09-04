@@ -239,5 +239,26 @@ ls -1t | tail -n "+$((KEEP_RELEASES + 1))" | while read -r old; do
     rm -rf "$RELEASES_DIR/$old"
 done
 
+# Post-activation smoke test for the static asset dirs that break most often.
+for rel in build/manifest.json media/profiles/ branding/; do
+    if [ ! -e "$APP_ROOT/current/public/$rel" ]; then
+        echo "warning: $APP_ROOT/current/public/$rel does not resolve — the logo/favicon/images may 404." >&2
+    fi
+done
+CANARY="$SHARED_DIR/public/media/profiles/.deploy-healthcheck"
+: > "$CANARY" 2>/dev/null || true
+if [ -n "$APP_URL_VAL" ] && command -v curl >/dev/null 2>&1; then
+    code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "$APP_URL_VAL/media/profiles/.deploy-healthcheck" || echo 000)"
+    if [ "$code" != "200" ]; then
+        echo "warning: GET $APP_URL_VAL/media/profiles/.deploy-healthcheck returned $code, not 200." >&2
+        echo "         Apache is not serving the symlinked media directory. Check that the vhost or" >&2
+        echo "         public/.htaccess allows 'Options +SymLinksIfOwnerMatch', and that APP_URL matches" >&2
+        echo "         the hostname you actually browse to (scheme and www included)." >&2
+    else
+        echo "==> Static media directory is serving correctly ($APP_URL_VAL/media/profiles/)"
+    fi
+fi
+rm -f "$CANARY" 2>/dev/null || true
+
 echo "SELF_DEPLOY_COMMIT=$(git -C "$RELEASE_DIR" rev-parse HEAD)"
 echo "==> Deployed $RELEASE_NAME"
