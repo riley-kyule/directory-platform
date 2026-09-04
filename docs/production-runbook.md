@@ -33,6 +33,7 @@ Primary-domain example:
 
 ```bash
 PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php \
+DEPLOY_PHP_PACKAGE=ea-php83 \
 DEPLOY_APP_ROOT="$HOME/apps/example.com" \
 DEPLOY_DOCROOT="$HOME/public_html" \
 DEPLOY_MANAGE_DOCROOT=1 \
@@ -45,6 +46,7 @@ Addon-domain example:
 
 ```bash
 PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php \
+DEPLOY_PHP_PACKAGE=ea-php83 \
 DEPLOY_APP_ROOT="$HOME/apps/addon.example" \
 DEPLOY_DOCROOT="$HOME/addon.example" \
 DEPLOY_MANAGE_DOCROOT=1 \
@@ -54,6 +56,8 @@ bash deploy/deploy.sh
 ```
 
 The deploy is atomic: it prepares a release, runs migrations and the launch gate, and only then moves the active symlink. A failed gate leaves the previous release serving traffic. Database migrations are forward-only during routine rollback; never reverse production migrations merely to match an older code release.
+
+**Web PHP version.** `PHP_BIN` only sets the CLI used for Composer and artisan — it does not set the version Apache runs the site with. That is controlled entirely by **cPanel → MultiPHP Manager**: set the domain to PHP 8.3 (or a newer version your host provides a working web handler for) once, and Apply. `deploy.sh` never imposes a version — it carries forward whatever handler is already live (a `# php -- BEGIN cPanel-generated handler` block in the docroot `.htaccess`, or nothing when the host manages PHP at the vhost/FPM level). On a first-ever deploy with no version set yet, pass `DEPLOY_PHP_PACKAGE=ea-php83`. If a deploy leaves the site returning 500, it is almost always this — set the version in MultiPHP Manager and it sticks for every deploy after.
 
 ## 3. Post-deploy verification
 

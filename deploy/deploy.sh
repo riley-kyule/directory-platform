@@ -90,35 +90,62 @@ fi
 echo "==> Cloning $BRANCH into $RELEASE_DIR"
 git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$RELEASE_DIR"
 
-# MultiPHP Manager commonly persists the selected WEB PHP version as a
-# cPanel-generated AddHandler block inside the current document root's
-# .htaccess. Atomic releases replace that file, so without carrying the
-# handler forward the new release silently falls back to the account default
-# (often PHP 8.2) even though Composer/artisan correctly used PHP 8.3+.
-CPANEL_PHP_PACKAGE="$(printf '%s\n' "$PHP_BIN" | sed -n 's#^/opt/cpanel/\(ea-php[0-9][0-9]*\)/root/usr/bin/php$#\1#p')"
-if [ -n "$CPANEL_PHP_PACKAGE" ]; then
-    echo "==> Configuring cPanel web PHP handler for $CPANEL_PHP_PACKAGE"
+# --- Web PHP version -------------------------------------------------------
+# This is SEPARATE from $PHP_BIN (which is just the CLI used for composer and
+# artisan — newest is fine there). The version Apache uses for the site is
+# whatever cPanel > MultiPHP Manager set for the domain, and how it's stored
+# depends on the host:
+#   * PHP-FPM / vhost handler (modern default): nothing in .htaccess. It's
+#     attached to the docroot path and survives the `current` symlink swap on
+#     its own — deploy.sh must NOT touch it. Writing an AddHandler line here
+#     fights FPM and 500s the site.
+#   * suPHP / CGI handler (older): a `# php -- BEGIN cPanel-generated handler`
+#     block in the docroot .htaccess. Atomic releases replace that file, so it
+#     has to be copied into each new release verbatim.
+# Rule: an explicit DEPLOY_PHP_PACKAGE wins; otherwise preserve whatever is
+# already live; NEVER derive it from $PHP_BIN (auto-detect picks the newest
+# CLI, e.g. 8.5, whose *web* handler may not exist on the account -> 500).
+: > "$CPANEL_HANDLER_FILE"
+write_handler_block() {
     {
         echo '# php -- BEGIN cPanel-generated handler, do not edit'
-        echo "# Set the '$CPANEL_PHP_PACKAGE' package as the default PHP programming language."
+        echo "# Set the '$1' package as the default PHP programming language."
         echo '<IfModule mime_module>'
-        echo "  AddHandler application/x-httpd-$CPANEL_PHP_PACKAGE .php .php8 .phtml"
+        echo "  AddHandler application/x-httpd-$1 .php .php8 .phtml"
         echo '</IfModule>'
         echo '# php -- END cPanel-generated handler, do not edit'
     } > "$CPANEL_HANDLER_FILE"
-elif [ -f "$APP_ROOT/current/public/.htaccess" ] && grep -q '# php -- BEGIN cPanel-generated handler' "$APP_ROOT/current/public/.htaccess"; then
-    echo '==> Preserving the current cPanel web PHP handler'
-    sed -n '/# php -- BEGIN cPanel-generated handler/,/# php -- END cPanel-generated handler/p' \
-        "$APP_ROOT/current/public/.htaccess" > "$CPANEL_HANDLER_FILE"
+}
+
+if [ -n "${DEPLOY_PHP_PACKAGE:-}" ]; then
+    echo "==> Setting the cPanel web PHP handler to DEPLOY_PHP_PACKAGE=$DEPLOY_PHP_PACKAGE"
+    write_handler_block "$DEPLOY_PHP_PACKAGE"
+elif [ -f "$APP_ROOT/current/public/.htaccess" ] \
+     && grep -q '# php -- BEGIN cPanel-generated handler' "$APP_ROOT/current/public/.htaccess"; then
+    LIVE_PKG="$(sed -n "s#.*AddHandler application/x-httpd-\(ea-php[0-9]*\).*#\1#p" "$APP_ROOT/current/public/.htaccess" | head -n1)"
+    if [ -n "$LIVE_PKG" ] && [ ! -x "/opt/cpanel/$LIVE_PKG/root/usr/bin/php" ]; then
+        echo "warning: live .htaccess selects $LIVE_PKG but /opt/cpanel/$LIVE_PKG is not installed —" >&2
+        echo "         dropping that handler block. Set the version in cPanel > MultiPHP Manager," >&2
+        echo "         or re-run with DEPLOY_PHP_PACKAGE=ea-php83." >&2
+    else
+        echo "==> Carrying the live cPanel PHP handler ($LIVE_PKG) into the new release"
+        sed -n '/# php -- BEGIN cPanel-generated handler/,/# php -- END cPanel-generated handler/p' \
+            "$APP_ROOT/current/public/.htaccess" > "$CPANEL_HANDLER_FILE"
+    fi
+elif [ -f "$APP_ROOT/current/public/.htaccess" ]; then
+    echo '==> Live release has no .htaccess PHP handler — this domain sets PHP at the vhost/FPM'
+    echo '    level, which survives the release swap on its own. Leaving it alone.'
+else
+    echo 'warning: first deploy and no web PHP version chosen.' >&2
+    echo '         After activation, if the site 500s: cPanel > MultiPHP Manager, set this domain' >&2
+    echo '         to PHP 8.3 (or a newer version your host has a working web handler for), Apply.' >&2
+    echo '         Every deploy after that preserves your choice. Or re-run now with' >&2
+    echo '         DEPLOY_PHP_PACKAGE=ea-php83 prepended.' >&2
 fi
 
-if [ -s "$CPANEL_HANDLER_FILE" ]; then
-    if ! grep -q '# php -- BEGIN cPanel-generated handler' "$RELEASE_DIR/public/.htaccess"; then
-        printf '\n' >> "$RELEASE_DIR/public/.htaccess"
-        cat "$CPANEL_HANDLER_FILE" >> "$RELEASE_DIR/public/.htaccess"
-    fi
-else
-    echo 'warning: no cPanel web PHP handler could be derived or preserved; confirm this domain inherits PHP 8.3+ at the vhost level.' >&2
+if [ -s "$CPANEL_HANDLER_FILE" ] && ! grep -q '# php -- BEGIN cPanel-generated handler' "$RELEASE_DIR/public/.htaccess"; then
+    printf '\n' >> "$RELEASE_DIR/public/.htaccess"
+    cat "$CPANEL_HANDLER_FILE" >> "$RELEASE_DIR/public/.htaccess"
 fi
 
 echo "==> Linking shared resources into the release"
@@ -248,9 +275,23 @@ done
 CANARY="$SHARED_DIR/public/media/profiles/.deploy-healthcheck"
 : > "$CANARY" 2>/dev/null || true
 if [ -n "$APP_URL_VAL" ] && command -v curl >/dev/null 2>&1; then
-    code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "$APP_URL_VAL/media/profiles/.deploy-healthcheck" || echo 000)"
-    if [ "$code" != "200" ]; then
-        echo "warning: GET $APP_URL_VAL/media/profiles/.deploy-healthcheck returned $code, not 200." >&2
+    home_code="$(curl -sSL -o /dev/null -w '%{http_code}' -m 15 "$APP_URL_VAL/" || echo 000)"
+    if [ "$home_code" = "500" ] || [ "$home_code" = "503" ]; then
+        echo "warning: GET $APP_URL_VAL/ returned $home_code — the site is down." >&2
+        echo "         Almost always the web PHP version. Open cPanel > MultiPHP Manager, set this" >&2
+        echo "         domain's PHP to 8.3 (or a newer version your host has a working web handler" >&2
+        echo "         for) and Apply. This deploy did NOT change the PHP handler; every deploy" >&2
+        echo "         from now on preserves whatever you set there." >&2
+        echo "         Check: tail ~/logs/*error* or cPanel > Errors." >&2
+    elif [ "$home_code" != "200" ] && [ "$home_code" != "302" ]; then
+        echo "warning: GET $APP_URL_VAL/ returned $home_code (expected 200/302)." >&2
+    else
+        echo "==> Site responds OK ($APP_URL_VAL/ -> $home_code)"
+    fi
+
+    media_code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "$APP_URL_VAL/media/profiles/.deploy-healthcheck" || echo 000)"
+    if [ "$media_code" != "200" ]; then
+        echo "warning: GET $APP_URL_VAL/media/profiles/.deploy-healthcheck returned $media_code, not 200." >&2
         echo "         Apache is not serving the symlinked media directory. Check that the vhost or" >&2
         echo "         public/.htaccess allows 'Options +SymLinksIfOwnerMatch', and that APP_URL matches" >&2
         echo "         the hostname you actually browse to (scheme and www included)." >&2
