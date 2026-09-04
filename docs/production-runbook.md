@@ -9,7 +9,7 @@ This is the operating procedure for each deployed directory instance. Replace ev
 - `APP_ENV=production`, `APP_DEBUG=false`, and an HTTPS `APP_URL` matching the canonical domain.
 - Separate production database, database-backed or Redis cache/session storage, and an asynchronous queue.
 - A delivery mailer; `log` and `array` are not production mailers.
-- A real support email, published policy versions, and Google staff SSO credentials when SSO enforcement is enabled.
+- A real support email, published policy versions, and Google staff SSO credentials when SSO enforcement is enabled (section 3).
 - Scheduler and queue-worker cron entries installed by `deploy/install-cron.sh`.
 - Private, preferably encrypted off-host database and media backup storage.
 - `TRUSTED_PROXIES` limited to the real proxy/CDN ranges and `CANONICAL_HOST` matching the public hostname.
@@ -25,14 +25,26 @@ cd "$HOME/apps/example.com/current"
 
 Errors block launch. Advisories identify work that should be closed but does not make a code release unsafe by itself.
 
-## 2. Deploying
+## 2. Domain and document-root layouts
 
-Use a distinct application root and document root for every domain.
+Every domain gets three things under its own **application root** (`$DEPLOY_APP_ROOT`, never shared with another domain): `releases/` (one timestamped directory per deploy), `shared/` (`.env`, `storage/`, and public media/branding — everything that must survive a release), and a `current` symlink that `deploy.sh` atomically repoints at the newest good release on every successful deploy. What differs between the three layouts below is only how that release's `public/` directory becomes reachable from the web; the release/shared/current mechanics are identical in all of them, and `deploy.sh`/`rollback.sh` take the exact same three variables regardless of which one you're running.
 
-Primary-domain example:
+Run `deploy/bootstrap.sh` once per domain with the variables for its layout, edit `shared/.env`, then run `deploy/deploy.sh` for the first real deploy. **Every deploy after that must reuse the same `DEPLOY_APP_ROOT`/`DEPLOY_DOCROOT`/`DEPLOY_MANAGE_DOCROOT`** — that triplet is what makes the release swap atomic and keeps domains from colliding.
+
+### A. Primary domain, served from `~/public_html`
+
+The account's main domain. cPanel already points `~/public_html` at it; nothing to configure in cPanel itself.
 
 ```bash
-PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php \
+DEPLOY_APP_ROOT="$HOME/apps/example.com" \
+DEPLOY_DOCROOT="$HOME/public_html" \
+DEPLOY_MANAGE_DOCROOT=1 \
+bash deploy/bootstrap.sh
+```
+
+Edit `$HOME/apps/example.com/shared/.env` (fill in every `<<< SET THIS` line), then:
+
+```bash
 DEPLOY_PHP_PACKAGE=ea-php83 \
 DEPLOY_APP_ROOT="$HOME/apps/example.com" \
 DEPLOY_DOCROOT="$HOME/public_html" \
@@ -42,24 +54,105 @@ DEPLOY_BRANCH=main \
 bash deploy/deploy.sh
 ```
 
-Addon-domain example:
+`bootstrap.sh` converts `~/public_html` from a real directory into a symlink (backing up whatever was already there — see Fallbacks below); `deploy.sh` then keeps that symlink pointed at `current/public` on every subsequent deploy.
+
+### B. Addon domain whose docroot cPanel names after the domain
+
+Common when "Domains → Manage" doesn't offer a custom Document Root field: adding `domain.com` as an addon domain makes cPanel create `~/domain.com` itself and use it directly as the docroot. `DEPLOY_DOCROOT` and `DEPLOY_APP_ROOT` **cannot be the same path** — `DOCROOT` becomes a symlink *into* `$APP_ROOT/current/public` — so give the app root a distinct name:
 
 ```bash
-PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php \
-DEPLOY_PHP_PACKAGE=ea-php83 \
-DEPLOY_APP_ROOT="$HOME/apps/addon.example" \
-DEPLOY_DOCROOT="$HOME/addon.example" \
+DEPLOY_APP_ROOT="$HOME/domain.com-app" \
+DEPLOY_DOCROOT="$HOME/domain.com" \
 DEPLOY_MANAGE_DOCROOT=1 \
+bash deploy/bootstrap.sh
+```
+
+Edit `$HOME/domain.com-app/shared/.env`, then deploy with the same three variables plus the usual `DEPLOY_PHP_PACKAGE`/`DEPLOY_REPO_URL`/`DEPLOY_BRANCH`. Everything else behaves exactly like scenario A — `bootstrap.sh` backs up the real `~/domain.com` directory cPanel created and replaces it with a symlink.
+
+### C. Addon domain with a custom Document Root, app under `~/apps/domain.com`
+
+If "Domains → Manage" *does* let you set a custom Document Root, skip the docroot symlink entirely and point cPanel straight at the release:
+
+```bash
+DEPLOY_APP_ROOT="$HOME/apps/domain.com" \
+DEPLOY_MANAGE_DOCROOT=0 \
+bash deploy/bootstrap.sh
+```
+
+Then, once, in cPanel → Domains → Manage, set this domain's Document Root to (relative to the home directory):
+
+```
+apps/domain.com/current/public
+```
+
+cPanel accepts any path under the home directory as a custom Document Root, so the app root can be named however you like — `apps/domain.com` is just a convention for keeping multiple domains organized side by side; it doesn't have to live under `apps/`. Edit `$HOME/apps/domain.com/shared/.env`, then deploy with the same two variables and **no `DEPLOY_DOCROOT` at all**:
+
+```bash
+DEPLOY_PHP_PACKAGE=ea-php83 \
+DEPLOY_APP_ROOT="$HOME/apps/domain.com" \
+DEPLOY_MANAGE_DOCROOT=0 \
 DEPLOY_REPO_URL=https://github.com/OWNER/REPOSITORY.git \
 DEPLOY_BRANCH=main \
 bash deploy/deploy.sh
 ```
 
-The deploy is atomic: it prepares a release, runs migrations and the launch gate, and only then moves the active symlink. A failed gate leaves the previous release serving traffic. Database migrations are forward-only during routine rollback; never reverse production migrations merely to match an older code release.
+This is the preferred layout when the host supports it — one fewer symlink, and cPanel's Document Root already tracks the active release automatically since `current` is part of the path it points at.
+
+### Fallbacks
+
+These failure modes live in the shared `bootstrap.sh`/`deploy.sh` logic, not the layout choice, so they apply the same way across all three:
+
+- **`DEPLOY_DOCROOT` and `DEPLOY_APP_ROOT` are the same path.** `bootstrap.sh` refuses outright and tells you to either rename one or switch to scenario C (`DEPLOY_MANAGE_DOCROOT=0`, no separate docroot).
+- **The docroot already exists as a real directory with files in it** — a freshly created addon domain (scenarios A/B), or an existing site being converted to atomic deploys. `bootstrap.sh` moves it to `<docroot>.pre-atomic-deploy.<timestamp>` next to itself — nothing is deleted — before creating the symlink. Confirm the new deployment serves correctly, then remove the backup yourself once you're satisfied.
+- **`current` already exists as a real (non-symlink) directory the first time you deploy.** This happens when cPanel's custom-Document-Root feature (scenario C) pre-creates the whole path before any release exists. `deploy.sh` clears it automatically if it's empty scaffolding; if it already contains files, it refuses and tells you to inspect and clear it by hand rather than guessing and destroying something.
+- **A deploy's migrations or launch check fail.** The release is left on disk at `releases/<timestamp>/` for inspection; `current` is never repointed, so the previous release keeps serving traffic untouched. Fix the problem and deploy again — never manually point `current` at a release that failed its own launch check.
+- **The site returns 500 right after a deploy.** Almost always the web PHP version, not the code — see "Web PHP version" under section 4. `deploy.sh`'s own post-activation check requests the homepage and tells you this directly when it sees a 500/503, without your having to go looking.
+- **Images, the logo, or the favicon 404 after a deploy.** `deploy.sh` already `chmod -R a+rX`'s the shared `public/` tree and adds `Options +SymLinksIfOwnerMatch` to the release `.htaccess` on every run; if it still 404s, confirm `APP_URL`/`CANONICAL_HOST` match the hostname you're actually browsing to — a mismatch 301-redirects every request, including asset requests, which reads the same as a broken image.
+- **You need to abandon a deploy and go back.** `deploy/rollback.sh` takes the exact same `DEPLOY_APP_ROOT`/`DEPLOY_DOCROOT`/`DEPLOY_MANAGE_DOCROOT` as the layout you're running and only re-points symlinks to the previous release — no rebuild, no migration changes. See "Code regression rollback" in section 7.
+
+### Updating a site already running under any of the three layouts
+
+Re-run `deploy/deploy.sh` with **exactly the same** `DEPLOY_APP_ROOT`/`DEPLOY_DOCROOT`/`DEPLOY_MANAGE_DOCROOT` used for that domain's `bootstrap.sh` — nothing else changes between an initial deploy and a routine update. When more than one domain lives under the same cPanel account:
+
+- **Every variable is per-domain.** Keep a short note (or a tiny wrapper script per domain) recording the exact `DEPLOY_APP_ROOT`/`DEPLOY_DOCROOT`/`DEPLOY_MANAGE_DOCROOT`/`DEPLOY_PHP_PACKAGE` for each one. Reusing another domain's `DEPLOY_APP_ROOT` by mistake silently overwrites that domain's `.env`, media, and release history.
+- **Cron entries are already namespaced per domain.** `install-cron.sh` derives its marker from `DEPLOY_APP_ROOT`'s basename, so re-running it — which every `deploy.sh` does automatically at the end — only ever replaces that one domain's three cron lines and leaves every other domain's entries alone. `crontab -l` should show one scheduler line and two queue-worker lines per domain.
+- **Update one domain at a time.** There's no "deploy all domains" command by design: each domain's release history, database, and rollback point are independent, so a bad deploy on one domain never has to touch the others.
+- **The web PHP version stays per-domain and keeps preserving itself** (section 4) — `DEPLOY_PHP_PACKAGE` is only needed on that domain's first deploy, or to correct a handler block that's pointing at an uninstalled PHP version. Routine updates don't need it.
+
+## 3. Google Staff SSO setup
+
+Google sign-in is for existing **Admin/CSR/SEO staff accounts only** — it never creates a user or grants a role. The signing-in Google account's verified email must already belong to an active user with one of those roles; the Google identity is linked to that user on first successful sign-in and must match on every sign-in after.
+
+1. **Google Cloud Console** ([console.cloud.google.com](https://console.cloud.google.com)) — create or select a project.
+2. **APIs & Services → OAuth consent screen** — set the app name and support email. The default `openid profile email` scopes are all that's needed; add nothing else.
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID** → Application type **Web application**.
+4. **Authorized redirect URIs** — add exactly:
+   ```
+   https://<canonical-domain>/auth/google/callback
+   ```
+   This must match `GOOGLE_REDIRECT_URI` byte-for-byte (scheme, host, no trailing slash). Add every hostname you actually serve login from (e.g. both apex and `www`) unless `CANONICAL_HOST` already redirects one to the other before it reaches this route.
+5. Save, then copy the **Client ID** and **Client Secret** into `shared/.env`:
+   ```bash
+   GOOGLE_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=xxxxxxxx
+   GOOGLE_REDIRECT_URI=https://<canonical-domain>/auth/google/callback   # optional — defaults to {APP_URL}/auth/google/callback
+   GOOGLE_ADMIN_ALLOWED_DOMAINS=yourcompany.com                          # optional, recommended if staff share a Workspace domain
+   ```
+6. Config is cached on every deploy. Editing `.env` directly on the server outside of `deploy.sh` needs `php artisan optimize` (or `config:clear`) re-run afterward, or the new values won't take effect.
+7. **Verify:**
+   - `system:launch-check --production` stops flagging "Google Staff SSO is configured."
+   - `/login` shows a "Continue with Google as Staff" button (hidden until client ID, secret, and redirect all resolve).
+   - Signing in with a Google account whose email matches an active Admin/CSR/SEO user logs them in and writes a `security.google-sso-login` audit row. A rejection (unverified email, disallowed domain, no matching staff account, or a Google identity already linked elsewhere) writes `security.google-sso-rejected`/`-failed` with a reason instead of failing silently.
+
+Set `LAUNCH_CHECK_REQUIRE_GOOGLE_SSO=false` (config `security.require_google_admin_sso`) if you don't want Google SSO at all — staff then authenticate with email/password and, optionally, authenticator MFA.
+
+## 4. Deploying
+
+The deploy is atomic: it prepares a release, runs migrations and the launch gate, and only then moves the active symlink. A failed gate leaves the previous release serving traffic (see Fallbacks in section 2). Database migrations are forward-only during routine rollback; never reverse production migrations merely to match an older code release.
 
 **Web PHP version.** `PHP_BIN` only sets the CLI used for Composer and artisan — it does not set the version Apache runs the site with. That is controlled entirely by **cPanel → MultiPHP Manager**: set the domain to PHP 8.3 (or a newer version your host provides a working web handler for) once, and Apply. `deploy.sh` never imposes a version — it carries forward whatever handler is already live (a `# php -- BEGIN cPanel-generated handler` block in the docroot `.htaccess`, or nothing when the host manages PHP at the vhost/FPM level). On a first-ever deploy with no version set yet, pass `DEPLOY_PHP_PACKAGE=ea-php83`. If a deploy leaves the site returning 500, it is almost always this — set the version in MultiPHP Manager and it sticks for every deploy after.
 
-## 3. Post-deploy verification
+## 5. Post-deploy verification
 
 Within ten minutes of every deployment:
 
@@ -82,7 +175,7 @@ Within ten minutes of every deployment:
 
 This is a smoke test, not a capacity test. Never increase beyond the command's built-in bounds or run sustained load against shared production hosting without provider approval.
 
-## 4. Daily and weekly operations
+## 6. Daily and weekly operations
 
 Daily:
 
@@ -104,7 +197,7 @@ Monthly:
 - Review legal copy and privacy-retention settings with the responsible owner.
 - Test a rollback in a non-production environment.
 
-## 5. Incident response
+## 7. Incident response
 
 Severity:
 
@@ -132,7 +225,7 @@ DEPLOY_MANAGE_DOCROOT=1 \
 bash deploy/rollback.sh
 ```
 
-Rollback moves symlinks only. Afterward, run the readiness checks and smoke paths again. If the incident involves a migration incompatibility, deploy a forward corrective migration; do not run destructive rollback commands against the live database.
+Use the `DEPLOY_APP_ROOT`/`DEPLOY_DOCROOT`/`DEPLOY_MANAGE_DOCROOT` for whichever layout (section 2) that domain actually runs — a scenario-C domain passes `DEPLOY_MANAGE_DOCROOT=0` and no `DEPLOY_DOCROOT`, exactly as it does for `deploy.sh`. Rollback moves symlinks only. Afterward, run the readiness checks and smoke paths again. If the incident involves a migration incompatibility, deploy a forward corrective migration; do not run destructive rollback commands against the live database.
 
 ### Queue or scheduler outage
 
@@ -144,7 +237,7 @@ Rollback moves symlinks only. Afterward, run the readiness checks and smoke path
 
 ### Staff SSO outage
 
-1. Check the exact callback URI in Google and production `.env`.
+1. Check the exact callback URI in Google Cloud Console against production `.env` — see section 3.
 2. Confirm the staff user is active, has Admin/CSR/SEO, and the Google email matches the pre-authorized account.
 3. Verify system time, HTTPS URL generation, session/cache health, and Google client credentials.
 4. Do not enable public self-provisioning or grant a role from Google claims as a workaround.
@@ -156,7 +249,7 @@ Rollback moves symlinks only. Afterward, run the readiness checks and smoke path
 3. Preserve relevant logs/backups, scope accessed records, and obtain legal/privacy guidance.
 4. Force affected sessions and credentials to be replaced before restoring access.
 
-## 6. Backup and recovery
+## 8. Backup and recovery
 
 - Never restore over the live database as a test.
 - Verify archive checksum and decryptability before importing.
@@ -166,7 +259,7 @@ Rollback moves symlinks only. Afterward, run the readiness checks and smoke path
 
 Recovery is complete only when public pages, Admin/CSR access, queue processing, media, policies, moderation history, backups, and Search Console/sitemap behavior have been checked.
 
-## 7. Release evidence
+## 9. Release evidence
 
 For each production release retain:
 
