@@ -188,9 +188,27 @@ class PublicDirectoryPagesTest extends TestCase
         $response = $this->get(route('directory.profiles.show', $this->profile->slug))->assertOk();
         // In the meta tag...
         $response->assertSee('<meta name="description" content="'.$sentence.'">', false);
-        // ...and as visible, crawlable body copy in the About section.
-        $response->assertSee('About Jane Public');
+        // ...and as visible, crawlable body copy in the details panel.
         $response->assertSeeText($sentence);
+    }
+
+    public function test_meta_template_never_renders_a_raw_country_code_and_tidies_omitted_tokens(): void
+    {
+        // The SEO team mistyped the country code as "DU"; a template that omits
+        // {country} and {nationality} entirely must still read cleanly.
+        $this->city->update(['country_code' => 'DU']);
+        DirectorySetting::query()->create([
+            'key' => 'seo.profile_meta_template',
+            'value' => '{profile_title} is a {nationality} {gender} in {locality}, {city}, {country}. {pronoun} offers {availability}.',
+            'value_type' => 'string', 'group' => 'seo',
+        ]);
+
+        $meta = app(\App\Services\ProfileMetaDescription::class)->for($this->profile->fresh());
+
+        $this->assertStringNotContainsString('DU', $meta);
+        $this->assertStringContainsString('Jane Public is a Woman in Westlands, Nairobi.', $meta);
+        $this->assertStringNotContainsString(', .', $meta);
+        $this->assertStringNotContainsString(',,', $meta);
     }
 
     public function test_contact_events_are_stored_only_as_daily_aggregates(): void

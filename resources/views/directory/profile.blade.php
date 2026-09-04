@@ -129,15 +129,12 @@
                     </section>
                 @endif
 
-                <section class="mt-10">
-                    <h2 class="text-2xl font-black">About {{ $profile->display_name }}</h2>
-                    {{-- Same sentence as the meta description, rendered as a visible,
-                         crawlable summary. Built from the admin SEO template. --}}
-                    <p class="mt-4 text-lg font-medium leading-8 text-stone-800">{{ $metaDescription }}</p>
-                    @if (filled($profile->description))
+                @if (filled($profile->description))
+                    <section class="mt-10">
+                        <h2 class="text-2xl font-black">About {{ $profile->display_name }}</h2>
                         <p class="mt-4 whitespace-pre-line leading-7 text-stone-700">{{ $profile->description }}</p>
-                    @endif
-                </section>
+                    </section>
+                @endif
 
                 @if ($profile->services->isNotEmpty())
                     <section class="mt-10"><h2 class="text-2xl font-black">Services</h2><div class="mt-4 flex flex-wrap gap-2">@foreach ($profile->services as $service)<span class="rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-sm ring-1 ring-stone-200">{{ $service->label }}</span>@endforeach</div></section>
@@ -168,6 +165,12 @@
                         <div><dt class="text-stone-600">Availability</dt><dd class="mt-1 font-bold">{{ collect([$profile->allows_incall ? 'Incall' : null, $profile->allows_outcall ? 'Outcall' : null])->filter()->join(' & ') }}</dd></div>
                         @if ($profile->languages->isNotEmpty())<div><dt class="text-stone-600">Languages</dt><dd class="mt-1 font-bold">{{ $profile->languages->pluck('label')->join(', ') }}</dd></div>@endif
                     </dl>
+
+                    {{-- Same sentence as the meta description / structured data:
+                         a visible, crawlable summary built from the admin SEO template. --}}
+                    @if (filled($metaDescription))
+                        <p class="mt-6 leading-7 text-stone-700">{{ $metaDescription }}</p>
+                    @endif
 
                     @if ($profile->rates->isNotEmpty())
                         <div class="mt-6"><h2 class="font-black">Rates</h2><div class="mt-3 space-y-2">@foreach ($profile->rates as $rate)<div class="flex justify-between gap-4 text-sm"><span class="text-stone-500">{{ $rate->period->label }}</span><strong>{{ $rate->currency_code }} {{ number_format((float) $rate->price) }}</strong></div>@endforeach</div></div>

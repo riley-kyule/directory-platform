@@ -13,7 +13,11 @@
         move(i, by) { const next = i + by; if (next < 0 || next >= this.items.length) return; [this.items[i], this.items[next]] = [this.items[next], this.items[i]] },
         preview() {
             const values = { '{profile_title}': 'Ivy', '{gender}': 'Woman', '{locality}': 'Kasarani', '{city}': 'Nairobi', '{country}': 'Kenya', '{nationality}': 'Kenyan', '{availability}': 'in-calls and outcalls', '{services}': 'massage, dinner dates', '{pronoun}': 'She' };
-            return Object.entries(values).reduce((text, [token, value]) => text.split(token).join(value), this.template);
+            return Object.entries(values)
+                .reduce((text, [token, value]) => text.split(token).join(value), this.template)
+                .replace(/\s*,(\s*,)+/g, ',').replace(/\s*,\s*(?=[.!?])/g, '')
+                .replace(/\s+([.,!?;:])/g, '$1').replace(/([.!?])\s*\1+/g, '$1')
+                .replace(/\s+/g, ' ').trim();
         },
     }">
         <form method="POST" action="{{ route('seo.site-presentation.update') }}" class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">@csrf @method('PATCH')
@@ -38,7 +42,7 @@
                         <textarea id="profile_meta_template" name="profile_meta_template" x-model="template" rows="7" maxlength="1000" required class="admin-field mt-2 resize-y font-mono text-sm leading-6"></textarea>
                         <x-input-error :messages="$errors->get('profile_meta_template')" class="mt-2" />
                         <div class="mt-4">
-                            <p class="text-xs font-bold uppercase tracking-wider text-gray-400">Available profile fields</p>
+                            <p class="text-xs font-bold uppercase tracking-wider text-gray-400">Available profile fields <span class="font-medium normal-case tracking-normal text-gray-500">— use any, all, or none. An unused one is just left out.</span></p>
                             <div class="mt-2 flex flex-wrap gap-2">
                                 @foreach (['profile_title', 'gender', 'locality', 'city', 'country', 'nationality', 'availability', 'services', 'pronoun'] as $token)
                                     <button type="button" @click="template += ' {' + '{{ $token }}' + '}'" class="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 font-mono text-xs font-semibold text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100">{{ '{'.$token.'}' }}</button>

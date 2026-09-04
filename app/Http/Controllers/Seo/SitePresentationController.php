@@ -29,13 +29,9 @@ class SitePresentationController extends Controller
     {
         Gate::authorize('seo.content');
         $validated = $request->validate([
-            'profile_meta_template' => ['required', 'string', 'max:1000', function ($attribute, $value, $fail) {
-                foreach (['{profile_title}', '{gender}', '{locality}', '{city}'] as $token) {
-                    if (! str_contains($value, $token)) {
-                        $fail("The template must include {$token}.");
-                    }
-                }
-            }],
+            // Any subset of tokens is fine — an omitted one just leaves that
+            // detail out and the sentence is tidied up (see ProfileMetaDescription).
+            'profile_meta_template' => ['required', 'string', 'max:1000'],
             'navigation_items' => ['required', 'array', 'max:12'],
             'navigation_items.*.label' => ['required', 'string', 'max:40'],
             'navigation_items.*.url' => ['required', 'string', 'max:255', 'regex:/^\/(?!\/)[^\s]*$/'],

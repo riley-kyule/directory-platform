@@ -82,6 +82,21 @@ class SeoDirectoryConfigurationTest extends TestCase
         $this->get(route('directory.home'))->assertSeeInOrder(['Agencies first', 'Find a profile']);
     }
 
+    public function test_profile_meta_template_accepts_any_subset_of_tokens(): void
+    {
+        $seo = $this->staff('seo');
+
+        $this->actingAs($seo)->patch(route('seo.site-presentation.update'), [
+            'profile_meta_template' => '{profile_title} in {locality}. {pronoun} offers {availability}.',
+            'navigation_items' => [['label' => 'Home', 'url' => '/']],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            '{profile_title} in {locality}. {pronoun} offers {availability}.',
+            DirectorySetting::query()->findOrFail('seo.profile_meta_template')->value,
+        );
+    }
+
     public function test_subscriber_cannot_edit_profile_meta_or_menu(): void
     {
         $this->actingAs(User::factory()->create())
