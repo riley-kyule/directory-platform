@@ -65,6 +65,8 @@ class DirectorySettingsController extends Controller
                 'processing_memory_limit_mb' => $this->settings->integer('media.processing_memory_limit_mb'),
                 'video_max_megabytes' => intdiv($this->settings->integer('media.video_max_kilobytes'), 1024),
                 'video_max_duration_seconds' => $this->settings->integer('media.video_max_duration_seconds'),
+                'ffmpeg_path' => $this->settings->string('media.ffmpeg_path'),
+                'ffprobe_path' => $this->settings->string('media.ffprobe_path'),
             ],
         ]);
     }
@@ -117,6 +119,8 @@ class DirectorySettingsController extends Controller
             'media.processing_memory_limit_mb' => [$validated['processing_memory_limit_mb'], 'integer', 'media'],
             'media.video_max_kilobytes' => [$validated['video_max_megabytes'] * 1024, 'integer', 'media'],
             'media.video_max_duration_seconds' => [$validated['video_max_duration_seconds'], 'integer', 'media'],
+            'media.ffmpeg_path' => [trim($validated['ffmpeg_path'] ?? ''), 'string', 'media'],
+            'media.ffprobe_path' => [trim($validated['ffprobe_path'] ?? ''), 'string', 'media'],
         ];
 
         DB::transaction(function () use ($request, $values): void {

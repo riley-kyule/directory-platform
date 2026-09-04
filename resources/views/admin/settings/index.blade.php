@@ -128,6 +128,17 @@
                             <x-input-error :messages="$errors->get($field)" class="mt-2" />
                         </div>
                     @endforeach
+                    @foreach ([
+                        ['ffmpeg_path', 'ffmpeg path', '/usr/bin/ffmpeg'],
+                        ['ffprobe_path', 'ffprobe path', '/usr/bin/ffprobe'],
+                    ] as [$field, $label, $placeholder])
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <x-input-label :for="$field" :value="$label" />
+                            <x-text-input :id="$field" :name="$field" type="text" class="mt-1 block w-full font-mono" :value="old($field, $settings[$field])" :placeholder="$placeholder" />
+                            <p class="mt-1 text-sm text-gray-600">Absolute path to the executable on this server &mdash; find it by running <code>which {{ str($field)->before('_') }}</code> over SSH. This value is run as a command. Leave both blank to disable video uploads (photos are unaffected).</p>
+                            <x-input-error :messages="$errors->get($field)" class="mt-2" />
+                        </div>
+                    @endforeach
                     <div class="flex items-end lg:col-span-3"><x-primary-button>Save operational settings</x-primary-button></div>
                 </form>
             </section>

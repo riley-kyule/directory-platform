@@ -44,6 +44,8 @@ class UpdateDirectorySettingsRequest extends FormRequest
             'processing_memory_limit_mb' => ['required', 'integer', 'between:128,4096'],
             'video_max_megabytes' => ['required', 'integer', 'between:1,2048'],
             'video_max_duration_seconds' => ['required', 'integer', 'between:5,1800'],
+            'ffmpeg_path' => ['nullable', 'string', 'max:255'],
+            'ffprobe_path' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -56,6 +58,18 @@ class UpdateDirectorySettingsRequest extends FormRequest
 
             if ($this->integer('maximum_megapixels') * 1_000_000 < $this->integer('minimum_width') * $this->integer('minimum_height')) {
                 $validator->errors()->add('maximum_megapixels', 'The decoded pixel limit must accommodate the minimum image dimensions.');
+            }
+
+            // These paths are executed by the video pipeline, so only accept an
+            // absolute path to a real executable (or blank to disable video).
+            foreach (['ffmpeg_path', 'ffprobe_path'] as $field) {
+                $path = trim((string) $this->input($field));
+                if ($path === '') {
+                    continue;
+                }
+                if (! str_starts_with($path, '/') || ! is_file($path) || ! is_executable($path)) {
+                    $validator->errors()->add($field, 'Enter the absolute path to an executable file on this server, or leave it blank.');
+                }
             }
         }];
     }
