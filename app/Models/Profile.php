@@ -248,6 +248,12 @@ class Profile extends Model
         return in_array($latestDecision, ['make_private', 'ban'], true);
     }
 
+    public function markPublicContentUpdated(): void
+    {
+        $this->updateQuietly(['content_updated_at' => now()]);
+        app(PublicPageCache::class)->forgetForProfile($this);
+    }
+
     protected function casts(): array
     {
         return [

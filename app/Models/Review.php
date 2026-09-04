@@ -14,6 +14,16 @@ class Review extends Model
     protected static function booted(): void
     {
         static::creating(fn (Review $review) => $review->public_id ??= (string) Str::uuid());
+        static::saved(function (Review $review): void {
+            if ($review->status === 'published' || $review->getOriginal('status') === 'published') {
+                $review->profile?->markPublicContentUpdated();
+            }
+        });
+        static::deleted(function (Review $review): void {
+            if ($review->status === 'published') {
+                $review->profile?->markPublicContentUpdated();
+            }
+        });
     }
 
     public function profile(): BelongsTo

@@ -99,7 +99,7 @@ class SitemapController extends Controller
     public function robots(): Response
     {
         $disallow = collect([
-            '/search', '/conversion', '/dashboard', '/profile', '/profiles', '/my-profiles', '/onboarding', '/admin', '/staff', '/seo',
+            '/conversion', '/dashboard', '/profile', '/profiles', '/my-profiles', '/onboarding', '/admin', '/staff', '/seo',
         ])->map(fn (string $path) => 'Disallow: '.$path)->implode("\n");
 
         return response(

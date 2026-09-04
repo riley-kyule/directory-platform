@@ -77,17 +77,24 @@ class PublicPageCache
                 $this->forget(route('directory.agencies.show', $agency->slug));
                 $this->forget(route('directory.agencies.index'));
             });
+
+        // Paginated location and agency URLs are not enumerable from a single
+        // model event. Rotate the namespace so no stale roster survives a
+        // moderation, verification, media, package, or rank change.
+        $this->forgetAll();
     }
 
     public function forgetForLocation(Location $location): void
     {
         $this->forget(url($location->publicPath()));
+        $this->forgetAll();
     }
 
     public function forgetForAgency(Agency $agency): void
     {
         $this->forget(route('directory.agencies.show', $agency->slug));
         $this->forget(route('directory.agencies.index'));
+        $this->forgetAll();
     }
 
     public function forgetLocationId(int $locationId): void

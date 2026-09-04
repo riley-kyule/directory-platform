@@ -22,6 +22,16 @@ class ProfileVideo extends Model
                 $video->public_id = (string) Str::uuid();
             }
         });
+        static::saved(function (ProfileVideo $video): void {
+            if ($video->status === 'approved' || $video->getOriginal('status') === 'approved') {
+                $video->profile?->markPublicContentUpdated();
+            }
+        });
+        static::deleted(function (ProfileVideo $video): void {
+            if ($video->status === 'approved') {
+                $video->profile?->markPublicContentUpdated();
+            }
+        });
     }
 
     public function profile(): BelongsTo

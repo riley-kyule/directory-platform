@@ -22,6 +22,16 @@ class ProfileImage extends Model
                 $image->public_id = (string) Str::uuid();
             }
         });
+        static::saved(function (ProfileImage $image): void {
+            if ($image->status === 'approved' || $image->getOriginal('status') === 'approved') {
+                $image->profile?->markPublicContentUpdated();
+            }
+        });
+        static::deleted(function (ProfileImage $image): void {
+            if ($image->status === 'approved') {
+                $image->profile?->markPublicContentUpdated();
+            }
+        });
     }
 
     public function profile(): BelongsTo
