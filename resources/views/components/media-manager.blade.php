@@ -1,12 +1,24 @@
 @props([
     'profile',
     'canManage' => false,
+    'canUpload' => null,
+    'canRemove' => null,
     'photoLimit' => 0,
     'videoLimit' => 0,
     'requiredPolicies' => null,
     'heading' => 'Photos & videos',
 ])
 
+@php
+    // Upload/retry and removal are enforced by separate permissions at the
+    // endpoints (ProfileMediaAccess::canUpload / canRemove). Resolve each from
+    // the current viewer so a partially-scoped staff role never sees a button
+    // the endpoint will 403. An explicit prop still wins.
+    $mediaAccess = app(\App\Services\ProfileMediaAccess::class);
+    $mediaViewer = request()->user();
+    $canUpload = $canUpload ?? ($mediaViewer && $mediaAccess->canUpload($mediaViewer, $profile));
+    $canRemove = $canRemove ?? ($mediaViewer && $mediaAccess->canRemove($mediaViewer, $profile));
+@endphp
 @php
     $settings = app(\App\Services\DirectorySettings::class);
     $photoMaxKb = $settings->integer('media.maximum_file_kilobytes');
@@ -66,7 +78,7 @@
             <p class="text-sm text-gray-500">{{ $photoUsed }} of {{ $photoLimit }} slots used · JPEG, PNG or WebP · at least {{ $settings->integer('media.minimum_width') }}px on each side</p>
         </div>
 
-        @if ($canManage && $photoUsed < $photoLimit)
+        @if ($canUpload && $photoUsed < $photoLimit)
             <form method="POST" enctype="multipart/form-data" action="{{ route('profiles.media.store', $profile) }}"
                   class="flex flex-wrap items-end gap-4 rounded-md border border-dashed border-gray-300 p-4"
                   @submit="if (! validateFile($refs.photo, {{ $photoMaxKb }})) $event.preventDefault()">
@@ -81,7 +93,7 @@
                 <x-policy-acceptances :policies="$policies" class="w-full" />
                 <x-primary-button>Upload photo</x-primary-button>
             </form>
-        @elseif ($canManage)
+        @elseif ($canUpload)
             <p class="rounded-md bg-gray-50 p-4 text-sm text-gray-600">All photo slots for the current package are in use. Remove a photo to add another.</p>
         @endif
 
@@ -104,15 +116,15 @@
                         @if ($image->status === 'rejected' && $image->processing_error)
                             <p class="text-xs text-red-700">{{ $image->processing_error }}</p>
                         @endif
-                        @if ($canManage)
+                        @if ($canUpload || $canRemove)
                             <div class="flex items-center gap-3">
-                                @if ($image->status === 'rejected')
+                                @if ($image->status === 'rejected' && $canUpload)
                                     <form method="POST" action="{{ route('profiles.media.retry', [$profile, $image]) }}">
                                         @csrf
                                         <button class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Retry</button>
                                     </form>
                                 @endif
-                                @if ($image->status !== 'processing')
+                                @if ($image->status !== 'processing' && $canRemove)
                                     <form method="POST" action="{{ route('profiles.media.destroy', [$profile, $image]) }}"
                                           @submit="return confirm('Remove this photo?')">
                                         @csrf @method('DELETE')
@@ -138,7 +150,7 @@
             <p class="text-sm text-gray-500">{{ $videoUsed }} of {{ $videoLimit }} slots used · MP4, WebM or MOV</p>
         </div>
 
-        @if ($canManage && $videoLimit > 0 && $videoUsed < $videoLimit)
+        @if ($canUpload && $videoLimit > 0 && $videoUsed < $videoLimit)
             <form method="POST" enctype="multipart/form-data" action="{{ route('profiles.media.videos.store', $profile) }}"
                   class="flex flex-wrap items-end gap-4 rounded-md border border-dashed border-gray-300 p-4"
                   @submit="if (! validateFile($refs.video, videoMaxKb)) $event.preventDefault()">
@@ -153,9 +165,9 @@
                 <x-policy-acceptances :policies="$policies" class="w-full" />
                 <x-primary-button>Upload video</x-primary-button>
             </form>
-        @elseif ($canManage && $videoLimit === 0)
+        @elseif ($canUpload && $videoLimit === 0)
             <p class="rounded-md bg-gray-50 p-4 text-sm text-gray-600">The current package does not include video slots.</p>
-        @elseif ($canManage)
+        @elseif ($canUpload)
             <p class="rounded-md bg-gray-50 p-4 text-sm text-gray-600">All video slots for the current package are in use. Remove a video to add another.</p>
         @endif
 
@@ -184,15 +196,15 @@
                         @if ($video->status === 'rejected' && $video->processing_error)
                             <p class="text-xs text-red-700">{{ $video->processing_error }}</p>
                         @endif
-                        @if ($canManage)
+                        @if ($canUpload || $canRemove)
                             <div class="flex items-center gap-3">
-                                @if ($video->status === 'rejected')
+                                @if ($video->status === 'rejected' && $canUpload)
                                     <form method="POST" action="{{ route('profiles.media.videos.retry', [$profile, $video]) }}">
                                         @csrf
                                         <button class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Retry</button>
                                     </form>
                                 @endif
-                                @if ($video->status !== 'processing')
+                                @if ($video->status !== 'processing' && $canRemove)
                                     <form method="POST" action="{{ route('profiles.media.videos.destroy', [$profile, $video]) }}"
                                           @submit="return confirm('Remove this video?')">
                                         @csrf @method('DELETE')
