@@ -183,9 +183,14 @@ class PublicDirectoryPagesTest extends TestCase
             'value_type' => 'string', 'group' => 'seo',
         ]);
 
-        $this->get(route('directory.profiles.show', $this->profile->slug))
-            ->assertOk()
-            ->assertSee('<meta name="description" content="Jane Public is a Kenyan Woman escort from Westlands in Nairobi, Kenya. She offers in-calls and outcalls.">', false);
+        $sentence = 'Jane Public is a Kenyan Woman escort from Westlands in Nairobi, Kenya. She offers in-calls and outcalls.';
+
+        $response = $this->get(route('directory.profiles.show', $this->profile->slug))->assertOk();
+        // In the meta tag...
+        $response->assertSee('<meta name="description" content="'.$sentence.'">', false);
+        // ...and as visible, crawlable body copy in the About section.
+        $response->assertSee('About Jane Public');
+        $response->assertSeeText($sentence);
     }
 
     public function test_contact_events_are_stored_only_as_daily_aggregates(): void

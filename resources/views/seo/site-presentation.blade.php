@@ -29,7 +29,7 @@
                         <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200" aria-hidden="true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-5m-1-9h6m0 0v6m0-6L10 14" /></svg>
                         </span>
-                        <div><h3 class="text-lg font-bold text-gray-900">Dynamic profile description</h3><p class="mt-1 max-w-2xl text-sm leading-6 text-gray-600">Write it once and profile details are inserted automatically for every listing and social share.</p></div>
+                        <div><h3 class="text-lg font-bold text-gray-900">Dynamic profile description</h3><p class="mt-1 max-w-2xl text-sm leading-6 text-gray-600">Write it once and profile details are inserted automatically. Used for the page meta description, social shares, structured data, and shown as the opening line of each profile's "About" section.</p></div>
                     </div>
                 </div>
                 <div class="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,.6fr)]">

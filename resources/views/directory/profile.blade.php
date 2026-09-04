@@ -131,7 +131,12 @@
 
                 <section class="mt-10">
                     <h2 class="text-2xl font-black">About {{ $profile->display_name }}</h2>
-                    <p class="mt-4 whitespace-pre-line leading-7 text-stone-700">{{ $profile->description }}</p>
+                    {{-- Same sentence as the meta description, rendered as a visible,
+                         crawlable summary. Built from the admin SEO template. --}}
+                    <p class="mt-4 text-lg font-medium leading-8 text-stone-800">{{ $metaDescription }}</p>
+                    @if (filled($profile->description))
+                        <p class="mt-4 whitespace-pre-line leading-7 text-stone-700">{{ $profile->description }}</p>
+                    @endif
                 </section>
 
                 @if ($profile->services->isNotEmpty())
