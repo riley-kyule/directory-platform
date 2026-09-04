@@ -194,6 +194,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/locations', [DirectoryConfigurationController::class, 'storeLocation'])->name('locations.store');
         Route::get('/locations/{location}/content', [DirectoryConfigurationController::class, 'editLocation'])->name('locations.content.edit');
         Route::patch('/locations/{location}/content', [DirectoryConfigurationController::class, 'updateLocation'])->name('locations.content.update');
+        Route::get('/locations/{location}/edit', [DirectoryConfigurationController::class, 'editLocationDetails'])->name('locations.edit');
+        Route::patch('/locations/{location}', [DirectoryConfigurationController::class, 'updateLocationDetails'])->name('locations.update');
+        Route::delete('/locations/{location}', [DirectoryConfigurationController::class, 'destroyLocation'])->name('locations.destroy');
         Route::get('/taxonomies', [DirectoryConfigurationController::class, 'taxonomiesIndex'])->name('taxonomies.index');
         Route::post('/taxonomies', [DirectoryConfigurationController::class, 'storeTaxonomy'])->name('taxonomies.store');
         Route::patch('/taxonomies/{taxonomyOption}', [DirectoryConfigurationController::class, 'updateTaxonomy'])->name('taxonomies.update');

@@ -8,6 +8,7 @@ use App\Http\Requests\StoreTaxonomyOptionRequest;
 use App\Http\Requests\UpdateAgencyDirectoryContentRequest;
 use App\Http\Requests\UpdateHomepageContentRequest;
 use App\Http\Requests\UpdateLocationContentRequest;
+use App\Http\Requests\UpdateLocationDetailsRequest;
 use App\Http\Requests\UpdateTaxonomyOptionRequest;
 use App\Models\AuditLog;
 use App\Models\Location;
@@ -17,6 +18,7 @@ use App\Models\ProfileDetail;
 use App\Models\TaxonomyOption;
 use App\Services\ContentHtml;
 use App\Services\LocationInventoryService;
+use App\Services\PublicPageCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +37,7 @@ class DirectoryConfigurationController extends Controller
     public function __construct(
         private readonly LocationInventoryService $locationInventory,
         private readonly ContentHtml $contentHtml,
+        private readonly PublicPageCache $pageCache,
     ) {}
 
     public function homepageEdit(): View
@@ -186,6 +189,87 @@ class DirectoryConfigurationController extends Controller
         );
 
         return redirect()->route('seo.locations.index')->with('status', "Content for {$location->name} updated.");
+    }
+
+    public function editLocationDetails(Location $location): View
+    {
+        Gate::authorize('seo.locations');
+
+        return view('seo.directory.location-edit-form', [
+            'location' => $location->load('parent'),
+            'profileCount' => $this->locationProfileCount($location),
+            'childCount' => $location->children()->count(),
+        ]);
+    }
+
+    public function updateLocationDetails(UpdateLocationDetailsRequest $request, Location $location): RedirectResponse
+    {
+        $validated = $request->validated();
+        $previous = $location->only(['name', 'country_code']);
+        $oldCode = (string) $location->country_code;
+
+        $newCode = $location->parent_id === null
+            ? strtoupper((string) $validated['country_code'])
+            : $oldCode;
+
+        DB::transaction(function () use ($location, $validated, $newCode, $oldCode): void {
+            $location->update(['name' => $validated['name'], 'country_code' => $newCode]);
+
+            // Descendants keep their own copy of the country code — keep them
+            // in step when a top-level location's code is corrected.
+            if ($location->parent_id === null && $newCode !== $oldCode) {
+                Location::query()
+                    ->where('full_slug', 'like', $location->full_slug.'/%')
+                    ->update(['country_code' => $newCode]);
+            }
+        });
+
+        // Name feeds the sidebar and every profile's SEO text; country code
+        // feeds {country}/{nationality}. Both are global and rarely edited.
+        $this->pageCache->forgetAll();
+
+        $this->auditUpdate(
+            $request->user()->id,
+            'locations.details-update',
+            $location->id,
+            $previous,
+            $location->fresh()->only(['name', 'country_code']),
+        );
+
+        return redirect()->route('seo.locations.index')->with('status', "Location {$location->name} updated.");
+    }
+
+    public function destroyLocation(Location $location): RedirectResponse
+    {
+        Gate::authorize('seo.locations');
+
+        if ($location->children()->exists()) {
+            return back()->withErrors(['location' => 'Delete or move this location\'s sub-locations first.']);
+        }
+
+        $profileCount = $this->locationProfileCount($location);
+        if ($profileCount > 0) {
+            return back()->withErrors(['location' => "{$profileCount} profile(s) are listed in {$location->name}. Move them before deleting it."]);
+        }
+
+        $previous = $location->only(['name', 'type', 'full_slug', 'country_code']);
+        $locationId = $location->id;
+        $name = $location->name;
+        $location->delete(); // location_contents and location_aliases cascade
+        $this->pageCache->forgetAll();
+
+        $this->auditUpdate(request()->user()->id, 'locations.delete', $locationId, $previous, []);
+
+        return redirect()->route('seo.locations.index')->with('status', "Location {$name} deleted.");
+    }
+
+    private function locationProfileCount(Location $location): int
+    {
+        return Profile::query()
+            ->where('primary_location_id', $location->id)
+            ->orWhere('sublocation_id', $location->id)
+            ->orWhere('micro_location_id', $location->id)
+            ->count();
     }
 
     /** @param  list<string>  $aliases */

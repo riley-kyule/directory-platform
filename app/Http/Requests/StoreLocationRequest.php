@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Location;
+use App\Support\CountryName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -59,6 +60,10 @@ class StoreLocationRequest extends FormRequest
 
             if ($parent && $this->filled('country_code') && strtoupper((string) $this->input('country_code')) !== strtoupper($parent->country_code)) {
                 $validator->errors()->add('country_code', 'Child locations inherit their parent country code.');
+            }
+
+            if (! $parent && $this->filled('country_code') && ! CountryName::isValid($this->input('country_code'))) {
+                $validator->errors()->add('country_code', 'Enter a real ISO country code, e.g. AE for the United Arab Emirates.');
             }
 
             if (! $parent && in_array($this->input('type'), ['neighbourhood', 'area', 'landmark'], true)) {

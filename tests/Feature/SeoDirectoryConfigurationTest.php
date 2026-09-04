@@ -508,6 +508,64 @@ class SeoDirectoryConfigurationTest extends TestCase
         ]);
     }
 
+    public function test_seo_user_can_edit_a_locations_name_and_country_code(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData(['name' => 'Nairobi', 'country_code' => 'ke']));
+        $city = Location::query()->where('name', 'Nairobi')->firstOrFail();
+        $child = Location::query()->create([
+            'parent_id' => $city->id, 'country_code' => 'KE', 'type' => 'neighbourhood',
+            'name' => 'Westlands', 'slug' => 'westlands', 'full_slug' => $city->full_slug.'/westlands', 'status' => 'draft',
+        ]);
+
+        $this->actingAs($seo)->patch(route('seo.locations.update', $city), [
+            'name' => 'Nairobi City', 'country_code' => 'ug',
+        ])->assertRedirect(route('seo.locations.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame('Nairobi City', $city->refresh()->name);
+        $this->assertSame('UG', $city->country_code);
+        $this->assertSame('nairobi', $city->slug, 'the URL path is untouched');
+        $this->assertSame('UG', $child->refresh()->country_code, 'children inherit the corrected code');
+        $this->assertDatabaseHas('audit_logs', ['action' => 'locations.details-update', 'target_id' => $city->id]);
+    }
+
+    public function test_a_bogus_country_code_is_rejected(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData());
+        $city = Location::query()->firstOrFail();
+
+        $this->actingAs($seo)->from(route('seo.locations.edit', $city))
+            ->patch(route('seo.locations.update', $city), ['name' => 'Dubai', 'country_code' => 'DU'])
+            ->assertSessionHasErrors('country_code');
+
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData(['name' => 'Sharjah', 'country_code' => 'XX']))
+            ->assertSessionHasErrors('country_code');
+    }
+
+    public function test_seo_user_can_delete_an_unused_location_but_not_one_in_use(): void
+    {
+        $seo = $this->staff('seo');
+        $this->actingAs($seo)->post(route('seo.locations.store'), $this->locationData(['name' => 'Kisumu']));
+        $city = Location::query()->where('name', 'Kisumu')->firstOrFail();
+        $sub = Location::query()->create([
+            'parent_id' => $city->id, 'country_code' => 'KE', 'type' => 'neighbourhood',
+            'name' => 'Milimani', 'slug' => 'milimani', 'full_slug' => $city->full_slug.'/milimani', 'status' => 'draft',
+        ]);
+
+        // Has a child -> blocked.
+        $this->actingAs($seo)->from(route('seo.locations.edit', $city))
+            ->delete(route('seo.locations.destroy', $city))->assertSessionHasErrors('location');
+        $this->assertModelExists($city);
+
+        // Leaf with no profiles -> deletes, content cascades.
+        $this->actingAs($seo)->delete(route('seo.locations.destroy', $sub))
+            ->assertRedirect(route('seo.locations.index'))->assertSessionHasNoErrors();
+        $this->assertModelMissing($sub);
+        $this->assertDatabaseMissing('location_contents', ['location_id' => $sub->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'locations.delete', 'target_id' => $sub->id]);
+    }
+
     private function staff(string $role): User
     {
         $user = User::factory()->create();

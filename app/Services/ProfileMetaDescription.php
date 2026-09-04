@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Profile;
+use App\Support\CountryName;
 use Illuminate\Support\Str;
 
 class ProfileMetaDescription
@@ -37,12 +38,8 @@ class ProfileMetaDescription
 
         // Country name: a real display name if the code resolves, otherwise the
         // top-level location name — but never the raw two-letter code.
-        $resolved = class_exists(\Locale::class)
-            ? (string) \Locale::getDisplayRegion('-'.$countryCode, 'en')
-            : '';
-        $country = ($resolved !== '' && strtoupper($resolved) !== $countryCode)
-            ? $resolved
-            : ($primary->type === 'country' ? $primary->name : '');
+        $country = CountryName::resolve($countryCode)
+            ?? ($primary->type === 'country' ? $primary->name : '');
 
         $gender = $profile->gender->label;
         $genderSlug = Str::lower($profile->gender->slug ?? $gender);

@@ -37,7 +37,10 @@
                             </div>
                             <div class="flex items-center justify-between gap-4 sm:justify-end">
                                 <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold {{ $location->status === 'published' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' }}"><span class="h-1.5 w-1.5 rounded-full {{ $location->status === 'published' ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>{{ str($location->status)->title() }}</span>
-                                @if ($location->content)<a href="{{ route('seo.locations.content.edit', $location) }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm transition group-hover:border-indigo-200 hover:!border-indigo-300 hover:text-indigo-700">Edit <span aria-hidden="true">→</span></a>@endif
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ route('seo.locations.edit', $location) }}" class="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700">Details</a>
+                                    @if ($location->content)<a href="{{ route('seo.locations.content.edit', $location) }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm transition group-hover:border-indigo-200 hover:!border-indigo-300 hover:text-indigo-700">Content <span aria-hidden="true">→</span></a>@endif
+                                </div>
                             </div>
                         </article>
                     @empty
