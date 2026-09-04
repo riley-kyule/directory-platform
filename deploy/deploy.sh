@@ -54,6 +54,22 @@ if grep -q '<<< SET THIS' "$SHARED_DIR/.env"; then
     exit 1
 fi
 
+# APP_URL builds every absolute asset URL (logo, favicon, profile images).
+# CANONICAL_HOST must be exactly its hostname or EnforceCanonicalHost 301s
+# every request. Catch the common mismatch before it ships broken images.
+env_val() { sed -n "s/^$1=//p" "$SHARED_DIR/.env" | head -n1 | tr -d '"'"'"'' | tr -d '\r'; }
+APP_URL_VAL="$(env_val APP_URL)"
+CANONICAL_VAL="$(env_val CANONICAL_HOST)"
+APP_URL_HOST="$(printf '%s' "$APP_URL_VAL" | sed -E 's#^https?://##; s#/.*$##')"
+if [ -n "$APP_URL_VAL" ] && { printf '%s' "$APP_URL_VAL" | grep -q 'example\.com' || [ "$APP_URL_VAL" = "http://localhost" ]; }; then
+    echo "error: APP_URL in $SHARED_DIR/.env is still a placeholder ($APP_URL_VAL)." >&2
+    exit 1
+fi
+if [ -n "$CANONICAL_VAL" ] && [ -n "$APP_URL_HOST" ] && [ "$CANONICAL_VAL" != "$APP_URL_HOST" ]; then
+    echo "warning: CANONICAL_HOST ($CANONICAL_VAL) is not APP_URL's host ($APP_URL_HOST)." >&2
+    echo "         Every request will 301-redirect. Set CANONICAL_HOST=$APP_URL_HOST unless this is deliberate." >&2
+fi
+
 echo "==> Cloning $BRANCH into $RELEASE_DIR"
 git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$RELEASE_DIR"
 
@@ -108,6 +124,16 @@ if [ -d "$APP_ROOT/current/public/branding" ] && [ ! -L "$APP_ROOT/current/publi
 fi
 rm -rf "$RELEASE_DIR/public/branding"
 ln -s "$SHARED_DIR/public/branding" "$RELEASE_DIR/public/branding"
+
+# The logo, favicon and profile images are static files Apache serves from
+# these two symlinked directories. Make sure the targets are world-readable
+# (uploads via PHP can land as 0600 under a tight umask) and that Apache is
+# actually willing to follow the symlink — the #1 reason images 404 on cPanel
+# while the real files under public/build/ still load.
+chmod -R a+rX "$SHARED_DIR/public" 2>/dev/null || true
+if ! grep -qs 'SymLinksIfOwnerMatch\|FollowSymLinks' "$RELEASE_DIR/public/.htaccess"; then
+    printf '\n# Added by deploy.sh: serve the symlinked branding/ and media/ dirs.\n<IfModule mod_rewrite.c>\n    Options +SymLinksIfOwnerMatch\n</IfModule>\n' >> "$RELEASE_DIR/public/.htaccess"
+fi
 
 echo "==> Installing PHP dependencies (using $PHP_BIN: $("$PHP_BIN" -v | head -n 1))"
 cd "$RELEASE_DIR"
