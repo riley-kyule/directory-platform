@@ -54,11 +54,18 @@ return [
             'throw' => true,
         ],
 
+        // A directory here can be renamed straight into public/media/profiles,
+        // so it must be created world-traversable regardless of the worker's
+        // umask — otherwise the web server 404s every file inside it.
         'media_staging' => [
             'driver' => 'local',
             'root' => storage_path('app/media-staging'),
             'serve' => false,
             'throw' => true,
+            'permissions' => [
+                'file' => ['public' => 0o644, 'private' => 0o644],
+                'dir' => ['public' => 0o755, 'private' => 0o755],
+            ],
         ],
 
         'media_review' => [
@@ -79,6 +86,10 @@ return [
             'url' => '/media/profiles',
             'visibility' => 'public',
             'throw' => true,
+            'permissions' => [
+                'file' => ['public' => 0o644, 'private' => 0o644],
+                'dir' => ['public' => 0o755, 'private' => 0o755],
+            ],
         ],
 
         'branding' => [
@@ -87,6 +98,10 @@ return [
             'url' => '/branding',
             'visibility' => 'public',
             'throw' => true,
+            'permissions' => [
+                'file' => ['public' => 0o644, 'private' => 0o644],
+                'dir' => ['public' => 0o755, 'private' => 0o755],
+            ],
         ],
 
         's3' => [

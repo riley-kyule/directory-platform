@@ -103,11 +103,24 @@ class ProfileImageProcessingTest extends TestCase
             'mime_type' => 'image/jpeg', 'file_size' => strlen($bytes), 'exact_hash' => hash('sha256', $bytes),
         ]);
 
-        (new ProcessProfileImage($image->id))->handle();
+        $oldUmask = umask(0o077); // emulate the cPanel queue worker
+        try {
+            (new ProcessProfileImage($image->id))->handle();
+        } finally {
+            umask($oldUmask);
+        }
 
         $this->assertSame('approved', $image->refresh()->status);
         Storage::disk('media_review')->assertMissing($image->storage_directory.'/card-640.webp');
         Storage::disk('profile_media')->assertExists($image->storage_directory.'/card-640.webp');
+
+        // The published dir and its shard parents must be world-traversable or
+        // the web server 404s the file even though it exists.
+        $cardPath = Storage::disk('profile_media')->path($image->storage_directory.'/card-640.webp');
+        $this->assertSame(0o644, fileperms($cardPath) & 0o777);
+        for ($dir = dirname($cardPath), $i = 0; $i < 3; $dir = dirname($dir), $i++) {
+            $this->assertSame(0o755, fileperms($dir) & 0o777, "world-traversable: {$dir}");
+        }
     }
 
     private function profile(): Profile

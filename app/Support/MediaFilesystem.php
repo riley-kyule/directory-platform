@@ -29,6 +29,8 @@ class MediaFilesystem
         self::ensureParentDirectory($to);
 
         if (@rename($from, $to)) {
+            self::normalizePermissions($to);
+
             return;
         }
 
@@ -36,6 +38,7 @@ class MediaFilesystem
             throw new RuntimeException("Directory could not be copied to {$to}");
         }
         File::deleteDirectory($from);
+        self::normalizePermissions($to);
     }
 
     /**
@@ -51,6 +54,8 @@ class MediaFilesystem
         self::ensureParentDirectory($to);
 
         if (@rename($from, $to)) {
+            @chmod($to, 0o644);
+
             return;
         }
 
@@ -58,6 +63,7 @@ class MediaFilesystem
             throw new RuntimeException("File could not be copied to {$to}");
         }
         @unlink($from);
+        @chmod($to, 0o644);
     }
 
     public static function ensureParentDirectory(string $absolutePath): void
@@ -65,6 +71,34 @@ class MediaFilesystem
         $parent = dirname($absolutePath);
         if (! is_dir($parent) && ! mkdir($parent, 0755, true) && ! is_dir($parent)) {
             throw new RuntimeException("Directory could not be created: {$parent}");
+        }
+        // mkdir() is subject to the process umask (077 on the queue worker), so
+        // the shard dirs it just made can be 0700 and block the web server.
+        // Re-open the two shard levels ("ab/cd/") that the media layout uses.
+        for ($dir = $parent, $i = 0; $i < 2 && is_dir($dir); $dir = dirname($dir), $i++) {
+            @chmod($dir, 0o755);
+        }
+    }
+
+    /**
+     * Force the whole tree to owner-write / world-read+traverse. rename()
+     * carries the source directory's mode into public/, and the queue worker
+     * often runs with a 077 umask, so without this the media folders land as
+     * 0700 and the web server 404s every file inside them.
+     */
+    public static function normalizePermissions(string $absoluteDir): void
+    {
+        if (! is_dir($absoluteDir)) {
+            return;
+        }
+
+        @chmod($absoluteDir, 0o755);
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($absoluteDir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+        foreach ($items as $item) {
+            @chmod($item->getPathname(), $item->isDir() ? 0o755 : 0o644);
         }
     }
 
