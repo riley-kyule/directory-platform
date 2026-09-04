@@ -1,4 +1,3 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
@@ -9,12 +8,12 @@ export default {
         './resources/views/**/*.blade.php',
     ],
 
+    // No web font: `font-sans` resolves to the platform UI stack (Tailwind's
+    // default). The bunny.net Figtree link was removed from the layouts, and
+    // the public pages never loaded it — this makes the system font the
+    // intended one everywhere instead of a silent fallback.
     theme: {
-        extend: {
-            fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
-            },
-        },
+        extend: {},
     },
 
     plugins: [forms],
