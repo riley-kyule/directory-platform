@@ -38,7 +38,24 @@ BRANCH="${DEPLOY_BRANCH:-main}"
 # Public repo — override only for a fork or a private mirror.
 REPO_URL="${DEPLOY_REPO_URL:-https://github.com/riley-kyule/directory-platform.git}"
 resolve_php_bin
-COMPOSER_PATH="$(command -v "${COMPOSER_BIN:-composer}")"
+
+# Composer is often not on a cPanel account's PATH — it's frequently at
+# ~/composer.phar or ~/bin/composer. Find it or fail with a clear message
+# instead of dying silently under `set -e`.
+resolve_composer() {
+    local c
+    for c in "${COMPOSER_BIN:-}" composer composer.phar "$HOME/composer.phar" \
+             "$HOME/bin/composer" "$HOME/bin/composer.phar" /usr/local/bin/composer; do
+        [ -n "$c" ] || continue
+        if command -v "$c" >/dev/null 2>&1; then COMPOSER_PATH="$(command -v "$c")"; return 0; fi
+        if [ -f "$c" ]; then COMPOSER_PATH="$c"; return 0; fi
+    done
+    echo "error: could not find Composer (looked for composer / composer.phar on PATH and in ~/, ~/bin)." >&2
+    echo "       Install it once: cd ~ && curl -sS https://getcomposer.org/installer | $PHP_BIN --" >&2
+    echo "       then re-run, or set COMPOSER_BIN=/full/path/to/composer.phar." >&2
+    exit 1
+}
+resolve_composer
 RELEASE_NAME="$(date +%Y%m%d%H%M%S)"
 RELEASE_DIR="$RELEASES_DIR/$RELEASE_NAME"
 CPANEL_HANDLER_FILE="$SHARED_DIR/cpanel-php-handler.conf"
