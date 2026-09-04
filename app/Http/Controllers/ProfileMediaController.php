@@ -111,7 +111,7 @@ class ProfileMediaController extends Controller
     public function retry(Profile $profile, ProfileImage $image): RedirectResponse
     {
         abort_unless($image->profile_id === $profile->id, 404);
-        abort_unless($this->access->canManage(request()->user(), $profile), 403);
+        abort_unless($this->access->canUpload(request()->user(), $profile), 403);
 
         $stuck = $image->status === 'processing' && $image->updated_at?->lt(now()->subMinutes(15));
         abort_unless($image->status === 'rejected' || $stuck, 409, 'Only a failed photo can be retried.');
@@ -194,7 +194,7 @@ class ProfileMediaController extends Controller
     {
         abort_unless($video->profile_id === $profile->id, 404);
         abort_unless($this->access->canView(request()->user(), $profile), 403);
-        abort_unless(in_array($video->status, ['pending_review', 'approved'], true), 404);
+        abort_unless(in_array($video->status, ['pending_review', 'reviewed', 'approved'], true), 404);
 
         $disk = $video->status === 'approved' ? Storage::disk('profile_media') : Storage::disk('media_review');
         $path = $video->storage_directory.'/'.$video->sourceFilename();
@@ -211,7 +211,7 @@ class ProfileMediaController extends Controller
     public function retryVideo(Profile $profile, ProfileVideo $video): RedirectResponse
     {
         abort_unless($video->profile_id === $profile->id, 404);
-        abort_unless($this->access->canManage(request()->user(), $profile), 403);
+        abort_unless($this->access->canUpload(request()->user(), $profile), 403);
 
         $stuck = $video->status === 'processing' && $video->updated_at?->lt(now()->subMinutes(15));
         abort_unless($video->status === 'rejected' || $stuck, 409, 'Only a failed video can be retried.');
@@ -229,12 +229,12 @@ class ProfileMediaController extends Controller
     public function destroyVideo(Profile $profile, ProfileVideo $video): RedirectResponse
     {
         abort_unless($video->profile_id === $profile->id, 404);
-        abort_unless($this->access->canManage(request()->user(), $profile), 403);
+        abort_unless($this->access->canRemove(request()->user(), $profile), 403);
         abort_if($video->status === 'processing', 409, 'Wait for video processing to finish before removing it.');
 
         match ($video->status) {
             'quarantined', 'rejected' => Storage::disk('quarantine')->delete('videos/'.$profile->public_id.'/'.$video->public_id.'.upload'),
-            'pending_review' => Storage::disk('media_review')->deleteDirectory($video->storage_directory),
+            'pending_review', 'reviewed' => Storage::disk('media_review')->deleteDirectory($video->storage_directory),
             'approved' => Storage::disk('profile_media')->deleteDirectory($video->storage_directory),
             default => null,
         };
@@ -249,7 +249,7 @@ class ProfileMediaController extends Controller
         abort_unless($image->profile_id === $profile->id, 404);
         abort_unless($this->access->canView(request()->user(), $profile), 403);
         abort_unless(in_array($slot, ['thumb', 'card', 'profile', 'full'], true), 404);
-        abort_unless(in_array($image->status, ['pending_review', 'approved'], true), 404);
+        abort_unless(in_array($image->status, ['pending_review', 'reviewed', 'approved'], true), 404);
 
         $derivative = $image->derivatives[$slot] ?? null;
         abort_unless($derivative, 404);
@@ -267,12 +267,12 @@ class ProfileMediaController extends Controller
     public function destroy(Profile $profile, ProfileImage $image): RedirectResponse
     {
         abort_unless($image->profile_id === $profile->id, 404);
-        abort_unless($this->access->canManage(request()->user(), $profile), 403);
+        abort_unless($this->access->canRemove(request()->user(), $profile), 403);
         abort_if($image->status === 'processing', 409, 'Wait for photo processing to finish before removing it.');
 
         match ($image->status) {
             'quarantined', 'rejected' => Storage::disk('quarantine')->delete($profile->public_id.'/'.$image->public_id.'.upload'),
-            'pending_review' => Storage::disk('media_review')->deleteDirectory($image->storage_directory),
+            'pending_review', 'reviewed' => Storage::disk('media_review')->deleteDirectory($image->storage_directory),
             'approved' => Storage::disk('profile_media')->deleteDirectory($image->storage_directory),
             default => null,
         };

@@ -204,9 +204,9 @@ class ProfileManagementController extends Controller
             abort_unless($request->user()->canOverrideListingRequirements(), 403, 'Only an Admin or CSR may override listing requirements.');
         }
         abort_if(
-            ! $profile->images()->whereIn('status', ['pending_review', 'approved'])->exists() && ! $override,
+            ! $profile->images()->whereIn('status', ['pending_review', 'reviewed', 'approved'])->exists() && ! $override,
             422,
-            'At least one reviewed image is required.',
+            'At least one processed image is required.',
         );
         $missingVerificationTypes = $this->verification->missingTypes($profile);
         abort_if($missingVerificationTypes !== [] && ! $override, 422, 'Complete every required verification check or use an authorized staff override.');

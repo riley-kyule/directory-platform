@@ -96,7 +96,7 @@ class ProfileReviewController extends Controller
                 return;
             }
 
-            $hasReviewedImage = $profile->images()->whereIn('status', ['pending_review', 'approved'])->exists();
+            $hasReviewedImage = $profile->images()->whereIn('status', ['pending_review', 'reviewed', 'approved'])->exists();
             abort_if(! $hasReviewedImage && ! $override, 422, 'At least one successfully processed image is required for activation.');
 
             $missingVerificationTypes = $this->verification->missingTypes($profile);

@@ -16,29 +16,38 @@
     $videos = $profile->videos;
     $photoUsed = $photos->whereNotIn('status', ['rejected', 'private'])->count();
     $videoUsed = $videos->whereNotIn('status', ['rejected', 'private'])->count();
+    $hasProcessingMedia = $photos->whereIn('status', ['quarantined', 'processing'])->isNotEmpty()
+        || $videos->whereIn('status', ['quarantined', 'processing'])->isNotEmpty();
     $badge = fn (string $status) => match ($status) {
         'approved' => 'bg-green-100 text-green-800',
         'pending_review' => 'bg-blue-100 text-blue-800',
+        'reviewed' => 'bg-indigo-100 text-indigo-800',
         'processing', 'quarantined' => 'bg-amber-100 text-amber-800',
         'rejected' => 'bg-red-100 text-red-800',
         default => 'bg-gray-100 text-gray-700',
     };
     $label = fn (string $status) => match ($status) {
         'approved' => 'Live',
-        'pending_review' => 'Goes live with the profile',
+        'pending_review', 'reviewed' => 'Ready — goes live with profile',
         'processing', 'quarantined' => 'Processing',
         'rejected' => 'Rejected',
         default => str($status)->replace('_', ' ')->title()->toString(),
     };
 @endphp
 
-<section {{ $attributes->merge(['class' => 'space-y-8 bg-white p-6 shadow-sm sm:rounded-lg']) }} x-data="mediaManager()">
+<section {{ $attributes->merge(['class' => 'space-y-8 bg-white p-6 shadow-sm sm:rounded-lg']) }} x-data="mediaManager({{ $hasProcessingMedia ? 'true' : 'false' }})">
     <div>
         <h3 class="text-lg font-semibold text-gray-900">{{ $heading }}</h3>
         <p class="mt-1 text-sm text-gray-600">
-            Every file is scanned and re-encoded privately. On a live profile it goes public as soon as that finishes; on a draft it publishes when the profile is activated.
+            Uploads publish automatically on live profiles as soon as processing finishes. Videos are inspected and transcoded into a metadata-free delivery format first.
         </p>
     </div>
+
+    @if ($hasProcessingMedia)
+        <div class="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status" aria-live="polite">
+            Your upload is processing automatically. This page will update when it is ready—no action is needed.
+        </div>
+    @endif
 
     @if ($errors->hasAny(['image', 'video', 'policy_acceptances']))
         <div class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
@@ -79,7 +88,7 @@
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($photos as $image)
                 <article class="overflow-hidden rounded-lg border border-gray-200">
-                    @if (in_array($image->status, ['pending_review', 'approved']) && isset($image->derivatives['card']))
+                    @if (in_array($image->status, ['pending_review', 'reviewed', 'approved']) && isset($image->derivatives['card']))
                         <img src="{{ route('profiles.media.preview', [$profile, $image, 'card']) }}"
                              alt="Profile photo" width="{{ $image->derivatives['card']['width'] }}" height="{{ $image->derivatives['card']['height'] }}"
                              class="aspect-[4/5] w-full bg-gray-100 object-cover" loading="lazy" decoding="async">
@@ -97,7 +106,7 @@
                         @endif
                         @if ($canManage)
                             <div class="flex items-center gap-3">
-                                @if (in_array($image->status, ['rejected', 'processing']))
+                                @if ($image->status === 'rejected')
                                     <form method="POST" action="{{ route('profiles.media.retry', [$profile, $image]) }}">
                                         @csrf
                                         <button class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Retry</button>
@@ -153,7 +162,7 @@
         <div class="grid gap-4 sm:grid-cols-2">
             @forelse ($videos as $video)
                 <article class="overflow-hidden rounded-lg border border-gray-200">
-                    @if (in_array($video->status, ['pending_review', 'approved']))
+                    @if (in_array($video->status, ['pending_review', 'reviewed', 'approved']))
                         <video controls preload="metadata" playsinline
                                class="aspect-video w-full bg-black"
                                @if ($video->posterUrl()) poster="{{ $video->posterUrl() }}" @endif>
@@ -177,7 +186,7 @@
                         @endif
                         @if ($canManage)
                             <div class="flex items-center gap-3">
-                                @if (in_array($video->status, ['rejected', 'processing']))
+                                @if ($video->status === 'rejected')
                                     <form method="POST" action="{{ route('profiles.media.videos.retry', [$profile, $video]) }}">
                                         @csrf
                                         <button class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Retry</button>
@@ -205,11 +214,18 @@
 
 @once
     <script>
-        window.mediaManager = function () {
+        window.mediaManager = function (shouldPoll = false) {
             return {
                 photoError: '',
                 videoError: '',
                 videoMaxKb: {{ $videoMaxKb }},
+                init() {
+                    if (!shouldPoll) return;
+                    window.setTimeout(() => {
+                        if (this.$refs.photo?.files?.length || this.$refs.video?.files?.length) return;
+                        window.location.reload();
+                    }, 8000);
+                },
                 validateFile(input, maxKb) {
                     const key = input === this.$refs.photo ? 'photoError' : 'videoError';
                     this[key] = '';

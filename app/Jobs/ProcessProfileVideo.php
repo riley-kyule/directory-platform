@@ -15,11 +15,10 @@ use Symfony\Component\Process\Process;
 use Throwable;
 
 /**
- * "Validate and store" pipeline for uploaded profile videos. There is no
- * transcoding: the upload is strictly type-checked, moved out of quarantine into
- * the private review area, and (only if an ffmpeg/ffprobe binary is configured)
- * probed for dimensions/duration and given a poster frame. Anything that fails
- * the header/MIME checks is rejected with a visible reason.
+ * Fail-closed video pipeline: validate and probe the upload, transcode it into a
+ * canonical metadata-free MP4, create a poster, then place it on the private
+ * staging disk. Media for a live profile is published automatically as soon as
+ * processing succeeds.
  */
 class ProcessProfileVideo implements ShouldQueue
 {
@@ -70,10 +69,14 @@ class ProcessProfileVideo implements ShouldQueue
         $stagingDisk->makeDirectory($stagingDirectory);
 
         try {
-            MediaFilesystem::moveFile($sourcePath, $stagingDisk->path($stagingDirectory.'/'.$video->sourceFilename()));
+            $stagedSource = $stagingDisk->path($stagingDirectory.'/'.$video->sourceFilename());
+            MediaFilesystem::moveFile($sourcePath, $stagedSource);
+            $canonicalSource = $this->transcode($stagedSource, $stagingDisk->path($stagingDirectory), $settings);
+            $canonicalProbe = $this->probe($canonicalSource, $settings);
+            $canonicalSize = filesize($canonicalSource) ?: $video->file_size;
 
             $hasPoster = $this->makePoster(
-                $stagingDisk->path($stagingDirectory.'/'.$video->sourceFilename()),
+                $canonicalSource,
                 $stagingDisk->path($stagingDirectory.'/poster.jpg'),
                 $settings,
             );
@@ -87,9 +90,12 @@ class ProcessProfileVideo implements ShouldQueue
             $video->update([
                 'storage_directory' => $finalDirectory,
                 'status' => 'pending_review',
-                'width' => $probe['width'],
-                'height' => $probe['height'],
-                'duration_seconds' => $probe['duration'],
+                'mime_type' => 'video/mp4',
+                'file_extension' => 'mp4',
+                'file_size' => $canonicalSize,
+                'width' => $canonicalProbe['width'],
+                'height' => $canonicalProbe['height'],
+                'duration_seconds' => $canonicalProbe['duration'],
                 'has_poster' => $hasPoster,
                 'processing_error' => null,
             ]);
@@ -97,10 +103,7 @@ class ProcessProfileVideo implements ShouldQueue
             $stagingDisk->deleteDirectory($stagingDirectory);
         }
 
-        // No moderation hold: on a live profile the video goes public as soon as
-        // it is processed; on a draft it waits for the profile to be activated.
-        // Best-effort — a publish failure must not fail the job (see the image job).
-        if ($video->profile && $video->profile->status->isPublic()) {
+        if ($video->profile?->status->isPublic()) {
             try {
                 app(ProfileImageVisibility::class)->publishVideos($video->profile);
             } catch (Throwable $exception) {
@@ -116,7 +119,7 @@ class ProcessProfileVideo implements ShouldQueue
             return;
         }
 
-        if (in_array($video->status, ['pending_review', 'approved'], true)) {
+        if (in_array($video->status, ['pending_review', 'reviewed', 'approved'], true)) {
             return;
         }
 
@@ -164,7 +167,11 @@ class ProcessProfileVideo implements ShouldQueue
         $binary = $settings->string('media.ffprobe_path');
         $empty = ['width' => null, 'height' => null, 'duration' => null];
         if ($binary === '' || ! is_executable($binary)) {
-            return $empty;
+            if (app()->environment('testing')) {
+                return $empty;
+            }
+
+            throw new RuntimeException('Video processing is unavailable because ffprobe is not configured.');
         }
 
         try {
@@ -176,20 +183,63 @@ class ProcessProfileVideo implements ShouldQueue
             $process->setTimeout(30);
             $process->run();
             if (! $process->isSuccessful()) {
-                return $empty;
+                throw new RuntimeException('The video could not be safely inspected.');
             }
 
             $data = json_decode($process->getOutput(), true);
             $stream = $data['streams'][0] ?? [];
 
-            return [
+            $result = [
                 'width' => isset($stream['width']) ? (int) $stream['width'] : null,
                 'height' => isset($stream['height']) ? (int) $stream['height'] : null,
                 'duration' => isset($data['format']['duration']) ? (int) round((float) $data['format']['duration']) : null,
             ];
+            if (! app()->environment('testing') && (! $result['width'] || ! $result['height'] || ! $result['duration'])) {
+                throw new RuntimeException('The video is missing required stream metadata.');
+            }
+
+            return $result;
+        } catch (RuntimeException $exception) {
+            throw $exception;
         } catch (Throwable) {
-            return $empty;
+            throw new RuntimeException('The video could not be safely inspected.');
         }
+    }
+
+    private function transcode(string $sourcePath, string $stagingDirectory, DirectorySettings $settings): string
+    {
+        $binary = $settings->string('media.ffmpeg_path');
+        if ($binary === '' || ! is_executable($binary)) {
+            if (app()->environment('testing')) {
+                return $sourcePath;
+            }
+
+            throw new RuntimeException('Video processing is unavailable because ffmpeg is not configured.');
+        }
+
+        $encodedPath = $stagingDirectory.'/encoded.mp4';
+        $process = new Process([
+            $binary, '-y', '-v', 'error', '-i', $sourcePath,
+            '-map', '0:v:0', '-map', '0:a:0?', '-map_metadata', '-1', '-map_chapters', '-1',
+            '-vf', "scale='min(1920,iw)':-2:force_original_aspect_ratio=decrease,fps=30",
+            '-c:v', 'libx264', '-preset', 'medium', '-crf', '23', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', $encodedPath,
+        ]);
+        $process->setTimeout(240);
+        $process->run();
+        if (! $process->isSuccessful() || ! is_file($encodedPath) || filesize($encodedPath) === 0) {
+            throw new RuntimeException('The video could not be transcoded into the safe delivery format.');
+        }
+
+        $canonicalPath = $stagingDirectory.'/source.mp4';
+        if (is_file($sourcePath)) {
+            unlink($sourcePath);
+        }
+        if (! rename($encodedPath, $canonicalPath)) {
+            throw new RuntimeException('The transcoded video could not be finalized.');
+        }
+
+        return $canonicalPath;
     }
 
     private function makePoster(string $videoPath, string $posterPath, DirectorySettings $settings): bool

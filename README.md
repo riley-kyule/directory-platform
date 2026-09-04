@@ -41,7 +41,7 @@ The project is in active development. Its current foundation provides account re
 - Internal age, identity, publishing-rights, and agency-authorization verification history with encrypted evidence references
 - Owner profile editing, private-profile viewing, and staff-reviewed renewal requests
 - Admin-managed packages, durations, listing rules, agency limits, and media constraints
-- Media-processing metadata and package image limits
+- Fail-closed image/video processing, metadata stripping, package limits, upload throttling, and automatic publication on live profiles
 - Admin/SEO policy drafting, immutable publication, and public policy pages
 - Versioned policy acceptance evidence across registration, profile submission, media upload, and renewal
 - Database-backed sessions, cache, and queues

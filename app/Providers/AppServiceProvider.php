@@ -47,6 +47,13 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinutes(10, 5)->by('reports:ip:'.$this->rateLimitDigest($request->ip() ?? 'unknown')),
             Limit::perHour(3)->by('reports:identity:'.$this->submissionIdentity($request)),
         ]);
+        RateLimiter::for('profile-media', function (Request $request): Limit {
+            $profile = $request->route('profile');
+            $profileKey = is_object($profile) && isset($profile->public_id) ? $profile->public_id : (string) $profile;
+            $actor = $request->user()?->public_id ?? 'guest';
+
+            return Limit::perMinute(10)->by('profile-media:'.$this->rateLimitDigest($actor.'|'.$profileKey));
+        });
 
         Gate::before(function (User $user, string $ability): ?bool {
             return $user->hasPermission($ability) ? true : null;

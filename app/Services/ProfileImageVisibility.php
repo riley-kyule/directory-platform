@@ -31,7 +31,7 @@ class ProfileImageVisibility
         }
 
         $moved = 0;
-        $profile->images()->where('status', 'pending_review')->each(function ($image) use (&$moved): void {
+        $profile->images()->whereIn('status', ['pending_review', 'reviewed'])->each(function ($image) use (&$moved): void {
             $this->move($image->storage_directory, 'media_review', 'profile_media', "image {$image->public_id}");
             $image->update(['status' => 'approved']);
             $moved++;
@@ -59,7 +59,7 @@ class ProfileImageVisibility
         }
 
         $moved = 0;
-        $profile->videos()->where('status', 'pending_review')->each(function (ProfileVideo $video) use (&$moved): void {
+        $profile->videos()->whereIn('status', ['pending_review', 'reviewed'])->each(function (ProfileVideo $video) use (&$moved): void {
             $this->move($video->storage_directory, 'media_review', 'profile_media', "video {$video->public_id}");
             $video->update(['status' => 'approved']);
             $moved++;

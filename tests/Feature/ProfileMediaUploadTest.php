@@ -81,6 +81,27 @@ class ProfileMediaUploadTest extends TestCase
             ->assertSee('Videos');
     }
 
+    public function test_media_manager_updates_itself_while_an_upload_is_processing(): void
+    {
+        $this->profile->images()->create([
+            'storage_directory' => $this->profile->public_id.'/processing.upload',
+            'sort_order' => 10,
+            'status' => 'processing',
+            'width' => 800,
+            'height' => 1000,
+            'aspect_ratio' => 0.8,
+            'mime_type' => 'image/jpeg',
+            'file_size' => 1000,
+            'exact_hash' => hash('sha256', 'processing-image'),
+        ]);
+
+        $this->actingAs($this->owner)->get(route('profiles.media.index', $this->profile))
+            ->assertOk()
+            ->assertSee('This page will update when it is ready')
+            ->assertSee('x-data="mediaManager(true)"', false)
+            ->assertDontSee('>Retry<', false);
+    }
+
     public function test_owner_can_upload_valid_image_into_private_quarantine(): void
     {
         $response = $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
@@ -151,6 +172,33 @@ class ProfileMediaUploadTest extends TestCase
 
         $response->assertOk()->assertJsonStructure(['status']);
         $this->assertSame('quarantined', $this->profile->images()->firstOrFail()->status);
+    }
+
+    public function test_invalid_json_upload_returns_structured_validation_errors(): void
+    {
+        $this->actingAs($this->owner)->postJson(route('profiles.media.store', $this->profile), [
+            'image' => UploadedFile::fake()->image('small.jpg', 300, 300),
+            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
+        ])->assertUnprocessable()->assertJsonValidationErrors('image');
+    }
+
+    public function test_media_uploads_are_rate_limited_per_actor_and_profile(): void
+    {
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
+                'image' => UploadedFile::fake()->image('portrait-'.$attempt.'.jpg', 800 + $attempt, 1000),
+                'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
+            ])->assertRedirect()->assertSessionHasNoErrors();
+
+            $image = $this->profile->images()->latest('id')->firstOrFail();
+            $this->actingAs($this->owner)->delete(route('profiles.media.destroy', [$this->profile, $image]))
+                ->assertRedirect();
+        }
+
+        $this->actingAs($this->owner)->post(route('profiles.media.store', $this->profile), [
+            'image' => UploadedFile::fake()->image('blocked.jpg', 800, 1000),
+            'policy_acceptances' => $this->outstandingPolicyIds('media_submission', $this->owner, $this->profile),
+        ])->assertTooManyRequests();
     }
 
     public function test_owner_can_retry_a_rejected_image(): void

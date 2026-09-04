@@ -15,6 +15,7 @@ use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DirectoryDefaultsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProfileManagementTest extends TestCase
@@ -26,6 +27,8 @@ class ProfileManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('media_review');
+        Storage::fake('profile_media');
         $this->seed([AccessControlSeeder::class, DirectoryDefaultsSeeder::class]);
         $city = Location::query()->create([
             'country_code' => 'KE', 'type' => 'city', 'name' => 'Nairobi', 'slug' => 'nairobi',
@@ -56,12 +59,13 @@ class ProfileManagementTest extends TestCase
             'starts_at' => now(), 'expires_at' => now()->addMonth(), 'status' => 'active',
             'assigned_by' => $this->profile->owner_user_id, 'assignment_source' => 'manual', 'reason' => 'Initial package.',
         ]);
-        $this->profile->images()->create([
+        $image = $this->profile->images()->create([
             'storage_directory' => 'review/managed-jane', 'sort_order' => 10, 'status' => 'pending_review',
             'width' => 800, 'height' => 1000, 'aspect_ratio' => 0.8, 'mime_type' => 'image/webp',
             'file_size' => 1000, 'exact_hash' => hash('sha256', 'managed-jane'),
             'derivatives' => ['card' => ['file' => 'card-640.webp', 'width' => 640, 'height' => 800, 'size' => 100]],
         ]);
+        Storage::disk('media_review')->put($image->storage_directory.'/card-640.webp', 'reviewed image');
         foreach (['adult_age', 'identity', 'publishing_rights'] as $type) {
             $this->profile->verificationChecks()->create([
                 'check_type' => $type,

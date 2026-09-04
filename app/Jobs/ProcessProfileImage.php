@@ -106,16 +106,9 @@ class ProcessProfileImage implements ShouldQueue
             $stagingDisk->deleteDirectory($stagingDirectory);
         }
 
-        // No moderation hold: on a live profile the photo goes public as soon as
-        // it is processed. On a draft it waits in pending_review until the
-        // profile is activated (PublishProfileImages handles that batch).
-        // Best-effort: a publish failure must not fail the job and flip a good,
-        // fully-processed image to "rejected" — media:reconcile-visibility and
-        // the next lifecycle event both retry the move.
-        $profile = $imageRecord->profile;
-        if ($profile && $profile->status->isPublic()) {
+        if ($imageRecord->profile?->status->isPublic()) {
             try {
-                app(ProfileImageVisibility::class)->publishImages($profile);
+                app(ProfileImageVisibility::class)->publishImages($imageRecord->profile);
             } catch (Throwable $exception) {
                 report($exception);
             }
@@ -131,7 +124,7 @@ class ProcessProfileImage implements ShouldQueue
 
         // If the image already processed (it only reaches here on a later publish
         // hiccup), leave it — it is a valid derivative set, not a failed upload.
-        if (in_array($image->status, ['pending_review', 'approved'], true)) {
+        if (in_array($image->status, ['pending_review', 'reviewed', 'approved'], true)) {
             return;
         }
 

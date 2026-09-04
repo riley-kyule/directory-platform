@@ -82,7 +82,7 @@ class ProfileImageProcessingTest extends TestCase
         Storage::disk('media_review')->assertExists($image->storage_directory.'/card-640.webp');
     }
 
-    public function test_processing_publishes_immediately_on_a_live_profile(): void
+    public function test_processing_on_a_live_profile_publishes_automatically(): void
     {
         Storage::fake('quarantine');
         Storage::fake('media_staging');
@@ -106,8 +106,8 @@ class ProfileImageProcessingTest extends TestCase
         (new ProcessProfileImage($image->id))->handle();
 
         $this->assertSame('approved', $image->refresh()->status);
-        Storage::disk('profile_media')->assertExists($image->storage_directory.'/card-640.webp');
         Storage::disk('media_review')->assertMissing($image->storage_directory.'/card-640.webp');
+        Storage::disk('profile_media')->assertExists($image->storage_directory.'/card-640.webp');
     }
 
     private function profile(): Profile

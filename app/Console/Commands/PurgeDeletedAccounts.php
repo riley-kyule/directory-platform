@@ -6,6 +6,7 @@ use App\Models\Agency;
 use App\Models\ModerationAppeal;
 use App\Models\Profile;
 use App\Models\ProfileImage;
+use App\Models\ProfileVideo;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -74,13 +75,19 @@ class PurgeDeletedAccounts extends Command
             return;
         }
 
-        ProfileImage::query()->where('profile_id', $profile->id)->get()->each(function (ProfileImage $image): void {
-            if ($image->status === 'quarantined') {
-                Storage::disk('quarantine')->delete($image->storage_directory);
-            } elseif ($image->status === 'pending_review') {
+        ProfileImage::withTrashed()->where('profile_id', $profile->id)->get()->each(function (ProfileImage $image) use ($profile): void {
+            Storage::disk('quarantine')->delete($profile->public_id.'/'.$image->public_id.'.upload');
+            if ($image->storage_directory) {
                 Storage::disk('media_review')->deleteDirectory($image->storage_directory);
-            } elseif ($image->storage_directory) {
                 Storage::disk('profile_media')->deleteDirectory($image->storage_directory);
+            }
+        });
+
+        ProfileVideo::withTrashed()->where('profile_id', $profile->id)->get()->each(function (ProfileVideo $video) use ($profile): void {
+            Storage::disk('quarantine')->delete('videos/'.$profile->public_id.'/'.$video->public_id.'.upload');
+            if ($video->storage_directory) {
+                Storage::disk('media_review')->deleteDirectory($video->storage_directory);
+                Storage::disk('profile_media')->deleteDirectory($video->storage_directory);
             }
         });
 

@@ -46,7 +46,7 @@ class ProfileVideoProcessingTest extends TestCase
         Storage::disk('profile_media')->assertMissing($video->storage_directory.'/'.$video->sourceFilename());
     }
 
-    public function test_processing_publishes_immediately_on_a_live_profile(): void
+    public function test_processing_on_a_live_profile_publishes_automatically(): void
     {
         $profile = $this->profile();
         $profile->update(['status' => ProfileStatus::Active, 'expires_at' => now()->addDays(30)]);
@@ -56,8 +56,8 @@ class ProfileVideoProcessingTest extends TestCase
 
         $video->refresh();
         $this->assertSame('approved', $video->status);
-        Storage::disk('profile_media')->assertExists($video->storage_directory.'/'.$video->sourceFilename());
         Storage::disk('media_review')->assertMissing($video->storage_directory.'/'.$video->sourceFilename());
+        Storage::disk('profile_media')->assertExists($video->storage_directory.'/'.$video->sourceFilename());
     }
 
     public function test_junk_bytes_are_rejected_with_a_reason(): void

@@ -104,13 +104,13 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('profiles/{profile}/media')->name('profiles.media.')->middleware('verified')->group(function () {
         Route::get('/', [ProfileMediaController::class, 'index'])->name('index');
-        Route::post('/', [ProfileMediaController::class, 'store'])->name('store');
-        Route::post('/videos', [ProfileMediaController::class, 'storeVideo'])->name('videos.store');
+        Route::post('/', [ProfileMediaController::class, 'store'])->middleware('throttle:profile-media')->name('store');
+        Route::post('/videos', [ProfileMediaController::class, 'storeVideo'])->middleware('throttle:profile-media')->name('videos.store');
         Route::get('/videos/{video}', [ProfileMediaController::class, 'previewVideo'])->name('videos.preview');
-        Route::post('/videos/{video}/retry', [ProfileMediaController::class, 'retryVideo'])->name('videos.retry');
+        Route::post('/videos/{video}/retry', [ProfileMediaController::class, 'retryVideo'])->middleware('throttle:profile-media')->name('videos.retry');
         Route::delete('/videos/{video}', [ProfileMediaController::class, 'destroyVideo'])->name('videos.destroy');
         Route::get('/{image}/{slot}', [ProfileMediaController::class, 'preview'])->name('preview');
-        Route::post('/{image}/retry', [ProfileMediaController::class, 'retry'])->name('retry');
+        Route::post('/{image}/retry', [ProfileMediaController::class, 'retry'])->middleware('throttle:profile-media')->name('retry');
         Route::delete('/{image}', [ProfileMediaController::class, 'destroy'])->name('destroy');
     });
 

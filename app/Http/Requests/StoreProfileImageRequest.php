@@ -16,7 +16,7 @@ class StoreProfileImageRequest extends FormRequest
         $profile = $this->route('profile');
 
         return $profile instanceof Profile
-            && app(ProfileMediaAccess::class)->canManage($this->user(), $profile);
+            && app(ProfileMediaAccess::class)->canUpload($this->user(), $profile);
     }
 
     public function rules(): array
