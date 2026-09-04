@@ -13,6 +13,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class SitemapController extends Controller
 {
@@ -80,7 +81,11 @@ class SitemapController extends Controller
             'lastmod' => $profile->content_updated_at ?? $profile->updated_at,
             'changefreq' => 'daily',
             'priority' => '0.6',
-            'images' => $profile->images->map(fn ($image) => $image->publicUrl('card'))->filter()->values()->all(),
+            'images' => $profile->images
+                ->map(fn ($image) => $image->publicUrl('card'))
+                ->filter()
+                ->map(fn (string $src) => Str::startsWith($src, ['http://', 'https://']) ? $src : url($src))
+                ->values()->all(),
         ]));
     }
 

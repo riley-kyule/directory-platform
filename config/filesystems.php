@@ -68,10 +68,15 @@ return [
             'throw' => true,
         ],
 
+        // Host-relative URLs: these files are served from public/ on whatever
+        // host the request arrived on, so a wrong or www/apex-mismatched
+        // APP_URL can't point the logo, favicon or profile images at a dead
+        // origin. Callers that need an absolute URL (og:image) wrap these in
+        // url() themselves.
         'profile_media' => [
             'driver' => 'local',
             'root' => public_path('media/profiles'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/media/profiles',
+            'url' => '/media/profiles',
             'visibility' => 'public',
             'throw' => true,
         ],
@@ -79,7 +84,7 @@ return [
         'branding' => [
             'driver' => 'local',
             'root' => public_path('branding'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/branding',
+            'url' => '/branding',
             'visibility' => 'public',
             'throw' => true,
         ],
