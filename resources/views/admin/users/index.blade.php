@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-xl font-semibold leading-tight text-gray-800">Users &amp; Roles</h2>
             <a href="{{ route('admin.users.create') }}" class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white hover:bg-gray-700">Add staff member</a>
         </div>
@@ -17,22 +17,24 @@
                 </div>
             @endif
 
-            <form method="GET" class="flex gap-2">
-                <x-text-input name="q" class="block w-full max-w-sm" placeholder="Search by name or email" :value="$search" />
+            <form method="GET" class="flex flex-col gap-2 sm:flex-row">
+                <label class="sr-only" for="user-search">Search users by name or email</label>
+                <x-text-input id="user-search" name="q" class="block w-full sm:max-w-sm" placeholder="Search by name or email" :value="$search" />
                 <x-secondary-button type="submit">Search</x-secondary-button>
                 @if ($search)
                     <a href="{{ route('admin.users.index') }}" class="inline-flex items-center px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Clear</a>
                 @endif
             </form>
 
-            <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+            <div class="overflow-x-auto bg-white shadow-sm sm:rounded-lg" role="region" aria-label="User role management" tabindex="0">
                 <table class="min-w-full divide-y divide-gray-200">
+                    <caption class="sr-only">Users, assigned roles, join dates, and account actions</caption>
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">User</th>
-                            <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Roles</th>
-                            <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Joined</th>
-                            <th class="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
+                            <th scope="col" class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600">User</th>
+                            <th scope="col" class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600">Roles</th>
+                            <th scope="col" class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600">Joined</th>
+                            <th scope="col" class="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-600">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">

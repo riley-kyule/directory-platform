@@ -27,7 +27,7 @@
         <section class="mt-12" aria-labelledby="search-results">
             <div class="mb-6 flex items-end justify-between border-b border-stone-300 pb-4">
                 <h2 id="search-results" class="text-2xl font-black">Active profiles</h2>
-                <div class="text-right" aria-live="polite"><p class="text-sm font-semibold text-stone-500">{{ $profiles->total() }} {{ Str::plural('result', $profiles->total()) }}</p><p class="mt-1 text-xs text-stone-400">Sorted by {{ match($filters['sort'] ?? 'recommended') { 'newest' => 'newest', 'name' => 'name', default => 'recommended order' } }}</p></div>
+                <div class="text-right" aria-live="polite"><p class="text-sm font-semibold text-stone-500">{{ $profiles->total() }} {{ Str::plural('result', $profiles->total()) }}</p><p class="mt-1 text-xs text-stone-600">Sorted by {{ match($filters['sort'] ?? 'recommended') { 'newest' => 'newest', 'name' => 'name', default => 'recommended order' } }}</p></div>
             </div>
 
             @if ($profiles->isNotEmpty())
@@ -48,9 +48,9 @@
                             <a href="{{ route('directory.search') }}" class="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-bold hover:border-stone-500">Clear all filters</a>
                         @endif
                         @if (filled($filters['neighbourhood'] ?? null) && $cityLocation)
-                            <a href="{{ url($cityLocation->publicPath()) }}" class="rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white hover:bg-rose-600">Browse all of {{ $cityLocation->name }}</a>
+                            <a href="{{ url($cityLocation->publicPath()) }}" class="rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white hover:bg-rose-800">Browse all of {{ $cityLocation->name }}</a>
                         @elseif ($cityLocation)
-                            <a href="{{ route('directory.home') }}" class="rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white hover:bg-rose-600">Browse all locations</a>
+                            <a href="{{ route('directory.home') }}" class="rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white hover:bg-rose-800">Browse all locations</a>
                         @endif
                     </div>
                 </div>

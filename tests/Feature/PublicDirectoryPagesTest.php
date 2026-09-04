@@ -119,7 +119,7 @@ class PublicDirectoryPagesTest extends TestCase
 
         $response = $this->get(route('directory.home'))->assertOk();
         $response->assertSee('min-w-0 flex-1 truncate rounded-xl border', false);
-        $response->assertSee('min-w-0 flex-1 truncate rounded-xl bg-rose-500', false);
+        $response->assertSee('min-w-0 flex-1 truncate rounded-xl bg-rose-700', false);
     }
 
     public function test_location_url_uses_approved_seo_data_and_inventory_robots_rule(): void

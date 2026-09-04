@@ -69,7 +69,7 @@
                     @if ($logoUrl)
                         <img src="{{ $logoUrl }}" alt="" width="600" height="180" decoding="async" class="h-14 w-auto max-w-[11rem] object-contain">
                     @else
-                        <span class="grid h-9 w-9 place-items-center rounded-full bg-rose-500 text-lg font-black">D</span>
+                        <span class="grid h-9 w-9 place-items-center rounded-full bg-rose-700 text-lg font-black">D</span>
                         <span class="text-lg font-semibold tracking-tight">{{ config('app.name') }}</span>
                     @endif
                 </a>

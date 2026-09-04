@@ -1,10 +1,35 @@
-<div x-data="{ open: false }">
+<div x-data="{
+        open: false,
+        previousFocus: null,
+        openMenu() {
+            this.previousFocus = document.activeElement;
+            this.open = true;
+            this.$nextTick(() => this.$refs.mobileClose.focus());
+        },
+        closeMenu() {
+            if (! this.open) return;
+            this.open = false;
+            this.$nextTick(() => this.previousFocus?.focus());
+        },
+        trapFocus(event) {
+            if (! this.open || window.matchMedia('(min-width: 1024px)').matches) return;
+            const focusable = [...this.$refs.sidebar.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex=\'-1\'])')];
+            if (! focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            if (! event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    }"
+    @keydown.escape.window="closeMenu()"
+    @keydown.tab.window="trapFocus($event)"
+    x-effect="document.body.classList.toggle('overflow-hidden', open)">
     <!-- Mobile top bar -->
     <div class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 lg:hidden">
-        <a href="{{ route('dashboard') }}" class="flex items-center">
+        <a href="{{ route('dashboard') }}" class="flex min-h-11 items-center" aria-label="{{ config('app.name') }} dashboard">
             <x-application-logo class="block h-8 w-auto fill-current text-gray-800" />
         </a>
-        <button @click="open = true" class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none">
+        <button type="button" @click="openMenu()" :aria-expanded="open.toString()" aria-controls="authenticated-navigation" aria-label="Open navigation" class="inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -12,18 +37,22 @@
     </div>
 
     <!-- Mobile overlay -->
-    <div x-show="open" class="fixed inset-0 z-40 bg-gray-900/50 lg:hidden" @click="open = false" style="display: none;"></div>
+    <div x-show="open" x-cloak class="fixed inset-0 z-40 bg-gray-900/50 lg:hidden" @click="closeMenu()" aria-hidden="true"></div>
 
     <!-- Sidebar: off-canvas on mobile, fixed on desktop -->
     <aside
+        id="authenticated-navigation"
+        x-ref="sidebar"
         :class="open ? 'translate-x-0' : '-translate-x-full'"
+        :inert="! open && ! window.matchMedia('(min-width: 1024px)').matches"
+        :aria-hidden="(! open && ! window.matchMedia('(min-width: 1024px)').matches).toString()"
         class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out lg:translate-x-0"
     >
         <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 px-4">
-            <a href="{{ route('dashboard') }}" class="flex items-center">
+            <a href="{{ route('dashboard') }}" class="flex min-h-11 items-center" aria-label="{{ config('app.name') }} dashboard">
                 <x-application-logo class="block h-8 w-auto fill-current text-gray-800" />
             </a>
-            <button @click="open = false" class="p-1 text-gray-400 hover:text-gray-600 lg:hidden">
+            <button x-ref="mobileClose" type="button" @click="closeMenu()" class="grid h-11 w-11 place-items-center rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 lg:hidden" aria-label="Close navigation">
                 <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -33,7 +62,7 @@
         @php
             $dashboardRoute = Auth::user()->hasPermission('audit.view') ? route('admin.dashboard.index') : route('dashboard');
         @endphp
-        <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+        <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4" aria-label="Account navigation">
             <div class="space-y-1">
                 <x-responsive-nav-link :href="$dashboardRoute" :active="request()->routeIs(['dashboard', 'admin.dashboard.*'])">
                     {{ __('Dashboard') }}
@@ -42,7 +71,7 @@
 
             @if (Auth::user()->account_type === \App\Enums\AccountType::Provider)
                 <div>
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Provider') }}</p>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-600">{{ __('Provider') }}</p>
                     <div class="mt-2 space-y-1">
                         <x-responsive-nav-link :href="route('onboarding.index')" :active="request()->routeIs('onboarding.*')">
                             {{ __('Provider onboarding') }}
@@ -53,7 +82,7 @@
 
             @canany(['seo.locations', 'seo.content', 'seo.redirects', 'seo.search-insights', 'seo.metadata'])
                 <div>
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('SEO') }}</p>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-600">{{ __('SEO') }}</p>
                     <div class="mt-2 space-y-1">
                         @can('seo.content')
                             <x-responsive-nav-link :href="route('seo.site-presentation.edit')" :active="request()->routeIs('seo.site-presentation.*')">
@@ -97,7 +126,7 @@
 
             @canany(['profiles.view-private', 'profiles.create', 'profiles.activate', 'moderation.view', 'verification.view', 'settings.manage', 'reviews.view'])
                 <div>
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Listings') }}</p>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-600">{{ __('Listings') }}</p>
                     <div class="mt-2 space-y-1">
                         @can('profiles.view-private')
                             <x-responsive-nav-link :href="route('staff.directory.index')" :active="request()->routeIs('staff.directory.index')">
@@ -140,7 +169,7 @@
 
             @can('roles.manage')
                 <div>
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Users') }}</p>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-600">{{ __('Users') }}</p>
                     <div class="mt-2 space-y-1">
                         <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
                             {{ __('All Users') }}
@@ -157,7 +186,7 @@
 
             @canany(['settings.manage', 'system.health', 'policies.manage'])
                 <div>
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Settings') }}</p>
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-600">{{ __('Settings') }}</p>
                     <div class="mt-2 space-y-1">
                         @can('system.health')
                             <x-responsive-nav-link :href="route('admin.system-health')" :active="request()->routeIs('admin.system-health')">

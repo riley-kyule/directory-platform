@@ -30,13 +30,17 @@ $maxWidth = [
         prevFocusable() { return this.focusables()[this.prevFocusableIndex()] || this.lastFocusable() },
         nextFocusableIndex() { return (this.focusables().indexOf(document.activeElement) + 1) % (this.focusables().length + 1) },
         prevFocusableIndex() { return Math.max(0, this.focusables().indexOf(document.activeElement)) -1 },
+        previousFocus: null,
+        closeModal() { show = false },
     }"
     x-init="$watch('show', value => {
         if (value) {
+            previousFocus = document.activeElement;
             document.body.classList.add('overflow-y-hidden');
-            {{ $attributes->has('focusable') ? 'setTimeout(() => firstFocusable().focus(), 100)' : '' }}
+            setTimeout(() => (firstFocusable() || $refs.dialog).focus(), 100);
         } else {
             document.body.classList.remove('overflow-y-hidden');
+            previousFocus?.focus();
         }
     })"
     x-on:open-modal.window="$event.detail == '{{ $name }}' ? show = true : null"
@@ -47,10 +51,12 @@ $maxWidth = [
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
     x-show="show"
     x-cloak
+    role="presentation"
     class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50"
 >
     <div
         x-show="show"
+        aria-hidden="true"
         class="fixed inset-0 transform transition-all"
         x-on:click="show = false"
         x-transition:enter="ease-out duration-300"
@@ -64,7 +70,12 @@ $maxWidth = [
     </div>
 
     <div
+        x-ref="dialog"
         x-show="show"
+        role="dialog"
+        aria-modal="true"
+        aria-label="{{ $attributes->get('aria-label', str($name)->replace('-', ' ')->title()) }}"
+        tabindex="-1"
         class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto"
         x-transition:enter="ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"

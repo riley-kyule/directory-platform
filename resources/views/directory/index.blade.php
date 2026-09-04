@@ -40,7 +40,7 @@
                     <h1 class="text-3xl font-black tracking-tight sm:text-4xl">{{ $heading }}</h1>
                     <div class="directory-content mt-3 max-w-3xl text-base leading-7 text-stone-600">{!! app(\App\Services\ContentHtml::class)->sanitize($intro) !!}</div>
                     @if ($lastReviewedAt ?? null)
-                        <p class="mt-2 text-xs font-medium uppercase tracking-wide text-stone-400">Updated {{ $lastReviewedAt->diffForHumans() }}</p>
+                        <p class="mt-2 text-xs font-medium uppercase tracking-wide text-stone-600">Updated {{ $lastReviewedAt->diffForHumans() }}</p>
                     @endif
                 </header>
 
@@ -78,7 +78,7 @@
                                 <h2 id="section-{{ $key }}" class="text-2xl font-black tracking-tight sm:text-3xl">{{ $title }}</h2>
                                 <p class="mt-1 text-sm text-stone-500">{{ $description }}</p>
                             </div>
-                            <span class="hidden text-sm font-semibold text-stone-400 sm:block">{{ $sections[$key]->count() }} shown</span>
+                            <span class="hidden text-sm font-semibold text-stone-600 sm:block">{{ $sections[$key]->count() }} shown</span>
                         </div>
                         @if ($sections[$key]->isNotEmpty())
                             <div class="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

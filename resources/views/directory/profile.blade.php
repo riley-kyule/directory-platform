@@ -145,7 +145,7 @@
                         @if ($profile->verification_status === 'verified')<span class="rounded-full bg-emerald-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">Verified</span>@endif
                         @if ($package === 'vip')<span class="rounded-full bg-amber-300 px-3 py-1 text-xs font-black uppercase tracking-wider text-amber-950">VIP</span>@endif
                         @if ($package === 'premium')<span class="rounded-full bg-violet-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">Premium</span>@endif
-                        @if ($profile->last_activated_at?->gte(now()->subDays($newProfileDays)))<span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">New</span>@endif
+                        @if ($profile->last_activated_at?->gte(now()->subDays($newProfileDays)))<span class="rounded-full bg-rose-700 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">New</span>@endif
                     </div>
                     <h1 class="mt-4 text-4xl font-black tracking-tight">{{ $profile->display_name }}</h1>
                     <p class="mt-2 text-stone-500">@if($profile->microLocation){{ $profile->microLocation->name }}, @endif{{ $profile->sublocation->name }}, {{ $profile->primaryLocation->name }}</p>
@@ -156,12 +156,12 @@
                     @endif
 
                     <dl class="mt-7 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-stone-200 py-6 text-sm">
-                        <div><dt class="text-stone-400">Age</dt><dd class="mt-1 font-bold">{{ $profile->date_of_birth->age }}</dd></div>
-                        <div><dt class="text-stone-400">Gender</dt><dd class="mt-1 font-bold">{{ $profile->gender->label }}</dd></div>
-                        <div><dt class="text-stone-400">Ethnicity</dt><dd class="mt-1 font-bold">{{ $profile->ethnicity->label }}</dd></div>
-                        <div><dt class="text-stone-400">Build</dt><dd class="mt-1 font-bold">{{ $profile->build->label }}</dd></div>
-                        <div><dt class="text-stone-400">Availability</dt><dd class="mt-1 font-bold">{{ collect([$profile->allows_incall ? 'Incall' : null, $profile->allows_outcall ? 'Outcall' : null])->filter()->join(' & ') }}</dd></div>
-                        @if ($profile->languages->isNotEmpty())<div><dt class="text-stone-400">Languages</dt><dd class="mt-1 font-bold">{{ $profile->languages->pluck('label')->join(', ') }}</dd></div>@endif
+                        <div><dt class="text-stone-600">Age</dt><dd class="mt-1 font-bold">{{ $profile->date_of_birth->age }}</dd></div>
+                        <div><dt class="text-stone-600">Gender</dt><dd class="mt-1 font-bold">{{ $profile->gender->label }}</dd></div>
+                        <div><dt class="text-stone-600">Ethnicity</dt><dd class="mt-1 font-bold">{{ $profile->ethnicity->label }}</dd></div>
+                        <div><dt class="text-stone-600">Build</dt><dd class="mt-1 font-bold">{{ $profile->build->label }}</dd></div>
+                        <div><dt class="text-stone-600">Availability</dt><dd class="mt-1 font-bold">{{ collect([$profile->allows_incall ? 'Incall' : null, $profile->allows_outcall ? 'Outcall' : null])->filter()->join(' & ') }}</dd></div>
+                        @if ($profile->languages->isNotEmpty())<div><dt class="text-stone-600">Languages</dt><dd class="mt-1 font-bold">{{ $profile->languages->pluck('label')->join(', ') }}</dd></div>@endif
                     </dl>
 
                     @if ($profile->rates->isNotEmpty())
@@ -170,7 +170,7 @@
 
                     <div class="mt-7 grid grid-cols-2 gap-2">
                         @foreach ($contactLinks as $type => $contact)
-                            <a href="{{ $contact['href'] }}" data-conversion data-profile="{{ $profile->public_id }}" data-channel="{{ $type }}" data-placement="profile_page" @if (in_array($type, ['whatsapp', 'telegram'])) target="_blank" rel="noopener noreferrer" @endif class="rounded-xl {{ $type === 'call' ? 'bg-rose-500 text-white' : 'bg-stone-100 text-stone-900' }} px-3 py-3 text-center text-sm font-bold transition hover:opacity-80">{{ $contact['label'] }}</a>
+                            <a href="{{ $contact['href'] }}" data-conversion data-profile="{{ $profile->public_id }}" data-channel="{{ $type }}" data-placement="profile_page" @if (in_array($type, ['whatsapp', 'telegram'])) target="_blank" rel="noopener noreferrer" @endif class="rounded-xl {{ $type === 'call' ? 'bg-rose-700 text-white' : 'bg-stone-100 text-stone-900' }} px-3 py-3 text-center text-sm font-bold transition hover:opacity-80">{{ $contact['label'] }}</a>
                         @endforeach
                     </div>
                 </div>
@@ -199,7 +199,7 @@
                 <h2 id="reviews" class="text-2xl font-black tracking-tight sm:text-3xl">Reviews</h2>
                 @if ($reviewStats['count'] > 0)
                     <p class="mt-1 text-sm text-stone-500">{{ number_format($reviewStats['average'], 1) }} ★ average from {{ $reviewStats['count'] }} review{{ $reviewStats['count'] === 1 ? '' : 's' }}</p>
-                    @if ($reviewStats['shown'] < $reviewStats['count'])<p class="mt-1 text-xs text-stone-400">Showing the latest {{ $reviewStats['shown'] }} reviews.</p>@endif
+                    @if ($reviewStats['shown'] < $reviewStats['count'])<p class="mt-1 text-xs text-stone-600">Showing the latest {{ $reviewStats['shown'] }} reviews.</p>@endif
                 @else
                     <p class="mt-1 text-sm text-stone-500">No reviews yet — be the first.</p>
                 @endif
@@ -214,14 +214,14 @@
                                 <span class="text-amber-500" aria-label="{{ $review->rating }} out of 5 stars">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</span>
                             </div>
                             <p class="mt-2 whitespace-pre-line text-sm text-stone-700">{{ $review->body }}</p>
-                            <p class="mt-2 text-xs text-stone-400">{{ $review->created_at->diffForHumans() }}</p>
+                            <p class="mt-2 text-xs text-stone-600">{{ $review->created_at->diffForHumans() }}</p>
                         </div>
                     @endforeach
                 </div>
             @endif
 
             <div class="mt-8 text-center">
-                <a href="{{ route('directory.profiles.reviews.create', $profile) }}" class="inline-block rounded-full bg-rose-500 px-6 py-3 text-sm font-bold text-white transition hover:opacity-80">Leave a review</a>
+                <a href="{{ route('directory.profiles.reviews.create', $profile) }}" class="inline-block rounded-full bg-rose-700 px-6 py-3 text-sm font-bold text-white transition hover:opacity-80">Leave a review</a>
             </div>
         </section>
 
@@ -231,8 +231,8 @@
     </div>
 
     @if ($contactLinks)
-        <nav class="fixed inset-x-0 bottom-0 z-50 grid grid-flow-col border-t border-stone-200 bg-white/95 p-2 shadow-2xl backdrop-blur md:hidden" aria-label="Contact {{ $profile->display_name }}">
-            @foreach ($contactLinks as $type => $contact)<a href="{{ $contact['href'] }}" data-conversion data-profile="{{ $profile->public_id }}" data-channel="{{ $type }}" data-placement="mobile_bar" @if (in_array($type, ['whatsapp', 'telegram'])) target="_blank" rel="noopener noreferrer" @endif class="rounded-lg px-2 py-3 text-center text-xs font-bold {{ $type === 'call' ? 'bg-rose-500 text-white' : '' }}">{{ $contact['label'] }}</a>@endforeach
+        <nav class="fixed inset-x-0 bottom-0 z-50 grid grid-flow-col overflow-x-auto border-t border-stone-200 bg-white/95 px-2 pt-2 shadow-2xl backdrop-blur md:hidden" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));" aria-label="Contact {{ $profile->display_name }}">
+            @foreach ($contactLinks as $type => $contact)<a href="{{ $contact['href'] }}" data-conversion data-profile="{{ $profile->public_id }}" data-channel="{{ $type }}" data-placement="mobile_bar" @if (in_array($type, ['whatsapp', 'telegram'])) target="_blank" rel="noopener noreferrer" @endif class="rounded-lg px-2 py-3 text-center text-xs font-bold {{ $type === 'call' ? 'bg-rose-700 text-white' : '' }}">{{ $contact['label'] }}</a>@endforeach
         </nav>
     @endif
 </x-public-layout>
