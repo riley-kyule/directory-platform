@@ -1,10 +1,12 @@
 @if ($activeLocations->isNotEmpty())
-    <div x-data="{ open: false }">
+    <div x-data="{ open: window.innerWidth >= 1024 }"
+         @resize.window.debounce="if (window.innerWidth >= 1024) open = true">
         <button
             type="button"
             @click="open = ! open"
             :aria-expanded="open.toString()"
-            class="flex w-full items-center justify-between gap-2 rounded-2xl border border-stone-200 bg-white p-4 text-left text-sm font-semibold text-stone-900 lg:hidden"
+            aria-controls="location-sidebar-nav"
+            class="flex w-full items-center justify-between gap-2 rounded-2xl border border-stone-200 bg-white p-4 text-left text-sm font-semibold text-stone-900"
         >
             <span>Browse locations</span>
             <svg class="h-4 w-4 shrink-0 text-stone-400 transition-transform" :class="{ 'rotate-90': open }" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -13,9 +15,12 @@
         </button>
 
         <nav
+            id="location-sidebar-nav"
             aria-label="Browse by location"
-            :class="{ 'block': open, 'hidden': ! open }"
-            class="hidden mt-2 rounded-2xl border border-stone-200 bg-white p-5 text-sm lg:mt-0 lg:block"
+            x-show="open"
+            x-cloak
+            x-transition.opacity
+            class="mt-2 rounded-2xl border border-stone-200 bg-white p-5 text-sm"
         >
             <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Locations</h2>
             <ul class="space-y-1">
