@@ -37,8 +37,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // These endpoints accept only aggregate, non-identifying counters and
         // have strict validation/throttles. Exempting them allows cached public
         // pages to use sendBeacon without embedding a guest-specific CSRF token
-        // in the shared page cache.
-        $middleware->validateCsrfTokens(except: ['conversion/contact', 'conversion/profile-view']);
+        // in the shared page cache. 'age-gate/confirm' is here for the same
+        // reason — it only sets a client cookie (no server state, no security
+        // boundary) and the age-gated page is served from the shared cache.
+        $middleware->validateCsrfTokens(except: ['conversion/contact', 'conversion/profile-view', 'age-gate/confirm']);
         // Trust forwarded headers only from explicitly configured proxy IPs or
         // CIDRs. Trusting every sender allows direct-origin clients to spoof the
         // IP used by throttles and audit logs.

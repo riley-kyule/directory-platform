@@ -576,4 +576,48 @@ class PublicDirectoryPagesTest extends TestCase
             ],
         ]);
     }
+
+    private function enableAgeGate(): void
+    {
+        DirectorySetting::query()->updateOrCreate(
+            ['key' => 'site.age_gate_enabled'],
+            ['value' => '1', 'value_type' => 'boolean', 'group' => 'site'],
+        );
+    }
+
+    public function test_age_gate_serves_the_canonical_page_with_a_blocking_dialog(): void
+    {
+        $this->enableAgeGate();
+
+        $response = $this->get(route('directory.profiles.show', $this->profile->slug))->assertOk();
+        // Canonical content and metadata stay in the response...
+        $response->assertSee('<link rel="canonical"', false);
+        $response->assertSee('Jane Public', false);
+        // ...behind an accessible blocking dialog.
+        $response->assertSee('role="dialog"', false);
+        $response->assertSee('aria-modal="true"', false);
+        $response->assertSee('I am 18 or older', false);
+    }
+
+    public function test_age_gate_confirm_sets_the_cookie_without_a_csrf_token(): void
+    {
+        $this->enableAgeGate();
+
+        $this->post('/age-gate/confirm', ['redirect' => route('directory.home')])
+            ->assertRedirect(route('directory.home'))
+            ->assertCookie(\App\Http\Middleware\EnsureAgeConfirmed::COOKIE, '1');
+    }
+
+    public function test_gated_and_confirmed_renders_do_not_share_a_cache_entry(): void
+    {
+        $this->enableAgeGate();
+        $url = route('directory.home');
+
+        // A guest without the cookie gets the gated variant...
+        $this->get($url)->assertOk()->assertSee('role="dialog"', false);
+        // ...and a confirmed visitor gets the page without the dialog, even
+        // though the gated render is now cached under the same URL.
+        $this->withCookie(\App\Http\Middleware\EnsureAgeConfirmed::COOKIE, '1')
+            ->get($url)->assertOk()->assertDontSee('role="dialog"', false);
+    }
 }

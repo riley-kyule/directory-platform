@@ -22,11 +22,15 @@ class PublicPageCache
 
     private const STALE_SECONDS = 600;
 
-    /** @param  Closure(): array{status: int, content: string, content_type: string, location: string|null}  $render */
-    public function remember(string $url, Closure $render): array
+    /**
+     * @param  Closure(): array{status: int, content: string, content_type: string, location: string|null}  $render
+     * @param  string  $variant  distinguishes renders of the same URL that differ
+     *                            for all guests alike — e.g. the age-gated view.
+     */
+    public function remember(string $url, Closure $render, string $variant = ''): array
     {
         return Cache::flexible(
-            $this->key($url),
+            $this->key($url, $variant),
             [self::FRESH_SECONDS, self::STALE_SECONDS],
             $render,
             ['seconds' => 10],
@@ -35,8 +39,10 @@ class PublicPageCache
 
     public function forget(string $url): void
     {
-        Cache::forget($this->key($url));
-        Cache::forget('illuminate:cache:flexible:created:'.$this->key($url));
+        foreach (['', 'age-gate'] as $variant) {
+            Cache::forget($this->key($url, $variant));
+            Cache::forget('illuminate:cache:flexible:created:'.$this->key($url, $variant));
+        }
     }
 
     /**
@@ -102,10 +108,10 @@ class PublicPageCache
         }
     }
 
-    private function key(string $url): string
+    private function key(string $url, string $variant = ''): string
     {
         $generation = Cache::get('page-cache:generation', 'initial');
 
-        return 'page-cache:'.$generation.':'.$url;
+        return 'page-cache:'.$generation.':'.($variant === '' ? '' : $variant.':').$url;
     }
 }
