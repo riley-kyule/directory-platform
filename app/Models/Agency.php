@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\ProfileStatus;
 use App\Services\PublicPageCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -46,13 +45,7 @@ class Agency extends Model
     {
         return $this->profiles()
             ->wherePivotNull('unassigned_at')
-            ->where('profiles.status', ProfileStatus::Active->value)
-            ->where(fn (Builder $query) => $query
-                ->whereNull('profiles.expires_at')
-                ->orWhere('profiles.expires_at', '>', now()))
-            ->whereHas('packageAssignments', fn (Builder $query) => $query
-                ->where('status', 'active')
-                ->where('expires_at', '>', now()));
+            ->publiclyVisible();
     }
 
     public function scopePubliclyVisible(Builder $query): Builder
