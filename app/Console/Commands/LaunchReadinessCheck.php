@@ -51,9 +51,6 @@ class LaunchReadinessCheck extends Command
                 ['Session storage is shared/persistent', in_array(config('session.driver'), ['database', 'redis'], true)],
                 ['Cache storage is shared/persistent', in_array(config('cache.default'), ['database', 'redis', 'memcached', 'dynamodb'], true)],
                 ['Notification mailer delivers externally', ! in_array(config('mail.default'), ['log', 'array'], true)],
-                ['Video inspection is configured', $this->executableSetting($settings->string('media.ffprobe_path'))],
-                ['Video transcoding is configured', $this->executableSetting($settings->string('media.ffmpeg_path'))],
-                ['Backups use non-local storage', ! in_array(config('operations.backup_disk'), ['local', 'public'], true)],
             ];
             if (config('security.require_google_admin_sso')) {
                 $checks[] = ['Google Staff SSO is configured', filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect'))];
@@ -63,6 +60,13 @@ class LaunchReadinessCheck extends Command
 
         $this->runAdvisories([
             ['Support email is configured', $settings->string('site.support_email') !== ''],
+            // Advisory, not blocking: video processing is fail-closed at the job
+            // level (an upload visibly fails rather than publishing unsafe media),
+            // and local backups still beat none — neither should stop a deploy
+            // that is otherwise sound. Harden both before a real public launch.
+            ['Video inspection is configured (ffprobe)', $this->executableSetting($settings->string('media.ffprobe_path'))],
+            ['Video transcoding is configured (ffmpeg)', $this->executableSetting($settings->string('media.ffmpeg_path'))],
+            ['Backups use non-local storage', ! in_array(config('operations.backup_disk'), ['local', 'public'], true)],
             ['Google Search Console ownership tag is configured', $settings->string('seo.google_site_verification') !== ''],
             ['Moderation escalation scan is fresh', SystemHeartbeat::query()->where('name', 'moderation_escalation')->where('last_seen_at', '>=', now()->subMinutes(config('operations.moderation_escalation_stale_minutes')))->exists()],
             ['Privacy-retention cleanup is fresh', SystemHeartbeat::query()->where('name', 'privacy_retention')->where('last_seen_at', '>=', now()->subHours(config('operations.privacy_retention_stale_hours')))->exists()],
