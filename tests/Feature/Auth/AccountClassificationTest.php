@@ -21,6 +21,7 @@ class AccountClassificationTest extends TestCase
             'account_type' => 'member',
             'password' => 'Password!123',
             'password_confirmation' => 'Password!123',
+            'agree_to_policies' => '1',
         ]);
 
         $response->assertRedirect('/dashboard');
@@ -40,6 +41,7 @@ class AccountClassificationTest extends TestCase
             'account_type' => 'provider',
             'password' => 'Password!123',
             'password_confirmation' => 'Password!123',
+            'agree_to_policies' => '1',
         ]);
 
         $response->assertRedirect('/register');
@@ -56,6 +58,7 @@ class AccountClassificationTest extends TestCase
             'provider_type' => 'independent',
             'password' => 'Password!123',
             'password_confirmation' => 'Password!123',
+            'agree_to_policies' => '1',
         ])->assertRedirect('/dashboard');
 
         $user = User::query()->where('email', 'provider@example.test')->firstOrFail();
@@ -74,6 +77,7 @@ class AccountClassificationTest extends TestCase
             'provider_type' => 'agency',
             'password' => 'Password!123',
             'password_confirmation' => 'Password!123',
+            'agree_to_policies' => '1',
         ])->assertSessionHasErrors('provider_type');
     }
 }
